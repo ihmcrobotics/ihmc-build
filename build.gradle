@@ -1,4 +1,16 @@
+buildscript {
+    repositories {
+        mavenLocal()
+    }
+
+    dependencies {
+        classpath group: 'us.ihmc.gradle', name: 'ihmc-build', version: '0.0.1', changing: true
+    }
+}
+
 apply plugin: 'groovy'
+apply plugin: 'maven-publish'
+apply plugin: 'us.ihmc.gradle.ihmc-build'
 
 group = "us.ihmc.gradle"
 version = "0.0.1"
@@ -6,7 +18,38 @@ version = "0.0.1"
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
 
+project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+project.ext.licenseName = "Apache License, Version 2.0"
+project.ext.bintrayLicenseName = "Apache-2.0"
+
 dependencies {
-  compile gradleApi()
-  compile localGroovy()
+    compile gradleApi()
+    compile localGroovy()
+}
+
+jar {
+    manifest {
+        attributes(
+                "Created-By": "IHMC Gradle Build Script",
+                "Implementation-Title": project.name,
+                "Implementation-Version": project.version,
+                "Implementation-Vendor": "IHMC",
+
+                "Bundle-Name": project.name,
+                "Bundle-Version": project.version,
+                "Bundle-License": "${project.ext.licenseURL}",
+                "Bundle-Vendor": "IHMC")
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            group "${project.group}"
+            artifactId "${project.name}"
+            version "${project.version}"
+
+            from components.java
+        }
+    }
 }
