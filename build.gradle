@@ -83,7 +83,7 @@ publishing {
 }
 
 pluginBundle {
-    website = 'http://robots.ihmc.us'
+    website = 'https://github.com/ihmcrobotics/ihmc-build'
     vcsUrl = 'https://github.com/ihmcrobotics/ihmc-build'
     tags = ['build', 'ihmc', 'robotics']
     description = "IHMC Robotics's Gradle common build logic plugin"
