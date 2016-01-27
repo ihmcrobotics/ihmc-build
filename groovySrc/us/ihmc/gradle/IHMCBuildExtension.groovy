@@ -114,6 +114,7 @@ class IHMCBuildExtension {
 
     private List<Project> getAllProjects(Project rootProject) {
         def ret = new ArrayList<Project>()
+        ret.add(rootProject)
 
         if (!rootProject.childProjects.isEmpty()) {
             getAllProjectsFlattened(rootProject.childProjects.values(), ret)
