@@ -2,6 +2,8 @@ package us.ihmc.gradle
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.GroovyPlugin
+import org.gradle.api.plugins.JavaPlugin
 
 /**
  * Created by dstephen on 1/26/16.
@@ -10,11 +12,6 @@ class IHMCBuild implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        project.configure(project) {
-            apply plugin: 'java'
-            apply plugin: 'groovy'
-        }
-
         addExtensions(project)
 
         setupSourceSetStructure(project)
@@ -33,12 +30,20 @@ class IHMCBuild implements Plugin<Project> {
     }
 
     private void setupSourceSetStructure(Project project) {
+        if(project.plugins.hasPlugin(JavaPlugin))
+        {
+            setupJavaSourceSets(project)
+        }
+
+        if(project.plugins.hasPlugin(GroovyPlugin))
+        {
+            setupGroovySourceSets(project)
+        }
+    }
+
+    private void setupGroovySourceSets(Project project) {
         project.sourceSets {
             main {
-                java {
-                    srcDirs = ['src']
-                }
-
                 groovy {
                     srcDirs = ['groovySrc']
                 }
@@ -49,12 +54,28 @@ class IHMCBuild implements Plugin<Project> {
             }
 
             test {
-                java {
-                    srcDirs = ['test']
-                }
-
                 groovy {
                     srcDirs = ['groovyTest']
+                }
+            }
+        }
+    }
+
+    private void setupJavaSourceSets(Project project) {
+        project.sourceSets {
+            main {
+                java {
+                    srcDirs = ['src']
+                }
+
+                resources {
+                    srcDirs = ['src', 'resources']
+                }
+            }
+
+            test {
+                java {
+                    srcDirs = ['test']
                 }
             }
         }
