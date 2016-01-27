@@ -1,6 +1,7 @@
 package us.ihmc.gradle
 
 import org.gradle.api.Project
+import org.gradle.api.artifacts.repositories.ArtifactRepository
 
 /**
  * Created by dstephen on 1/26/16.
@@ -12,6 +13,40 @@ class IHMCBuildExtension {
         this.containingProject = project
     }
 
+    def void removeRepository(ArtifactRepository repository) {
+        if(containingProject.repositories.contains(repository))
+        {
+            containingProject.logger.lifecycle("[IHMC Build] Removing artifact repository ${repository.name}")
+            containingProject.repositories.remove(repository)
+        }
+    }
+
+    def void useDefaultRepositories() {
+        containingProject.repositories {
+            mavenLocal()
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/releases/"
+            }
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/thirdparty/"
+            }
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/central/"
+            }
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/swt-repo/"
+            }
+
+            jcenter()
+
+            mavenCentral()
+        }
+    }
+
     def Project getProjectDependency(String projectName) {
         def projects = getAllProjects(containingProject.getRootProject())
 
@@ -19,7 +54,7 @@ class IHMCBuildExtension {
         {
             if(project.path.endsWith(projectName))
             {
-                println "Found ${project.path} matching ${projectName}"
+                containingProject.logger.debug("IHMC Build Extension Found ${project.path} for getProjectDependency(${projectName})")
                 return project
             }
         }

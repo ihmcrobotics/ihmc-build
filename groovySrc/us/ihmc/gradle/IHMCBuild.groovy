@@ -30,13 +30,11 @@ class IHMCBuild implements Plugin<Project> {
     }
 
     private void setupSourceSetStructure(Project project) {
-        if(project.plugins.hasPlugin(JavaPlugin))
-        {
+        if (project.plugins.hasPlugin(JavaPlugin)) {
             setupJavaSourceSets(project)
         }
 
-        if(project.plugins.hasPlugin(GroovyPlugin))
-        {
+        if (project.plugins.hasPlugin(GroovyPlugin)) {
             setupGroovySourceSets(project)
         }
     }
