@@ -6,7 +6,13 @@ import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaPlugin
 
 /**
- * Created by dstephen on 1/26/16.
+ * The {@code IHMCBuild) Plugin configures a project with conventions used in the IHMC Robotics Lab.
+ * This includes a legacy source set structure that is atypical from many other projects.
+ *
+ * It also provides the {@code ihmc} extension implemented in the {@link IHMCBuildExtension} class,
+ * which exposes some helper methods related to the way we manage our workspaces.
+ *
+ * @author Doug Stephen <a href="mailto:dstephen@ihmc.us">(dstephen@ihmc.us)</a>
  */
 class IHMCBuild implements Plugin<Project> {
 
