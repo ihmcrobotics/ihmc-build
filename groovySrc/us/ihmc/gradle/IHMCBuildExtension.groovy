@@ -13,38 +13,29 @@ class IHMCBuildExtension {
         this.containingProject = project
     }
 
-    def void removeRepository(ArtifactRepository repository) {
-        if(containingProject.repositories.contains(repository))
-        {
-            containingProject.logger.lifecycle("[IHMC Build] Removing artifact repository ${repository.name}")
-            containingProject.repositories.remove(repository)
-        }
-    }
+    def defaultArtifactRepositories(){
 
-    def void useDefaultRepositories() {
-        containingProject.repositories {
-            mavenLocal()
+        containingProject.repositories.mavenLocal()
 
-            maven {
+        containingProject.repositories.maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/releases/"
             }
 
-            maven {
+        containingProject.repositories.maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/thirdparty/"
             }
 
-            maven {
+        containingProject.repositories.maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/central/"
             }
 
-            maven {
+        containingProject.repositories.maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/swt-repo/"
             }
 
-            jcenter()
+        containingProject.repositories.jcenter()
 
-            mavenCentral()
-        }
+        containingProject.repositories.mavenCentral()
     }
 
     def Project getProjectDependency(String projectName) {

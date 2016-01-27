@@ -22,6 +22,17 @@ project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
 project.ext.licenseName = "Apache License, Version 2.0"
 project.ext.bintrayLicenseName = "Apache-2.0"
 
+repositories {
+    ihmc.defaultArtifactRepositories()
+}
+
+task checkRepos {
+    doFirst {
+        println "Checking repos"
+        project.repositories.each {repo -> println "${repo.name}"}
+    }
+}
+
 dependencies {
     compile gradleApi()
     compile localGroovy()
