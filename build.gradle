@@ -27,6 +27,11 @@ dependencies {
     compile localGroovy()
 }
 
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+    from sourceSets.main.allGroovy
+}
+
 jar {
     manifest {
         attributes(
@@ -50,6 +55,10 @@ publishing {
             version "${project.version}"
 
             from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
         }
     }
 }
