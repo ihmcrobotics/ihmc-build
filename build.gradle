@@ -1,3 +1,7 @@
+plugins {
+    id 'com.gradle.plugin-publish' version '0.9.3'
+}
+
 apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 
@@ -75,5 +79,18 @@ publishing {
                 classifier "javadoc"
             }
         }
+    }
+}
+
+pluginBundle {
+    website = 'http://robots.ihmc.us'
+    vcsUrl = 'https://github.com/ihmcrobotics/ihmc-build'
+    tags = ['build', 'ihmc', 'robotics']
+    description = "IHMC Robotics's Gradle common build logic plugin"
+
+    ihmcBuildPlugin {
+        id = 'us.ihmc.gradle.ihmc-build'
+        displayName = 'IHMC Build Plugin'
+        version = project.version
     }
 }
