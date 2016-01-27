@@ -15,23 +15,12 @@ apply plugin: 'us.ihmc.gradle.ihmc-build'
 group = "us.ihmc.gradle"
 version = "0.0.1"
 
-sourceCompatibility = "1.8"
-targetCompatibility = "1.8"
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
 
 project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
 project.ext.licenseName = "Apache License, Version 2.0"
 project.ext.bintrayLicenseName = "Apache-2.0"
-
-repositories {
-    ihmc.defaultArtifactRepositories()
-}
-
-task checkRepos {
-    doFirst {
-        println "Checking repos"
-        project.repositories.each {repo -> println "${repo.name}"}
-    }
-}
 
 dependencies {
     compile gradleApi()
