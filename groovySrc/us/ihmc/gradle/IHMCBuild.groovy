@@ -60,6 +60,10 @@ class IHMCBuild implements Plugin<Project> {
      */
     @Override
     void apply(Project project) {
+        project.configure(project) {
+            apply plugin: 'java'
+        }
+
         addExtensions(project)
 
         setupSourceSetStructure(project)
@@ -78,9 +82,7 @@ class IHMCBuild implements Plugin<Project> {
     }
 
     private void setupSourceSetStructure(Project project) {
-        if (project.plugins.hasPlugin(JavaPlugin)) {
-            setupJavaSourceSets(project)
-        }
+        setupJavaSourceSets(project)
 
         if (project.plugins.hasPlugin(GroovyPlugin)) {
             setupGroovySourceSets(project)
