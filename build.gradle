@@ -6,7 +6,7 @@ apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 
 group = "us.ihmc.gradle"
-version = "0.0.6"
+version = "0.0.7"
 
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
@@ -33,9 +33,14 @@ project.sourceSets {
     }
 }
 
+repositories {
+    jcenter()
+}
+
 dependencies {
     compile gradleApi()
     compile localGroovy()
+    compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.5'
 }
 
 task sourceJar(type: Jar) {

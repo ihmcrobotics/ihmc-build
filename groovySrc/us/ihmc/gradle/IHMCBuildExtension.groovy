@@ -1,5 +1,6 @@
 package us.ihmc.gradle
 
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 
 /**
@@ -110,6 +111,56 @@ class IHMCBuildExtension {
         }
 
         return null
+    }
+
+    def void configureForIHMCOpenSourceBintrayPublish(boolean isDryRun, String mavenPublicationName, String bintrayRepoName, List<String> packageLabels) {
+        containingProject.configure(containingProject) { projectToConfigure ->
+            apply plugin: 'com.jfrog.bintray'
+
+            bintray {
+                user = projectToConfigure.hasProperty("bintray_user") ? projectToConfigure.bintray_user : "invalid"
+                key = projectToConfigure.hasProperty("bintray_key") ? projectToConfigure.bintray_key : "invalid"
+
+                if(user.equals("invalid")) {
+                    throw new GradleException("Bintray user name property not set. Please set the 'bintray_user' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
+                }
+
+                if(key.equals("invalid")) {
+                    throw new GradleException("Bintray API key property not set. Please set the 'bintray_key' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
+                }
+
+                dryRun = isDryRun
+                publish = false
+
+                publications = [mavenPublicationName]
+
+                pkg {
+                    repo = bintrayRepoName
+                    name = projectToConfigure.name
+                    userOrg = 'ihmcrobotics'
+                    desc = "IHMC Open Robotics Software Project ${projectToConfigure.name}"
+
+                    websiteUrl = projectToConfigure.ext.vcsUrl
+                    issueTrackerUrl = "${projectToConfigure.ext.vcsUrl}/issues"
+                    vcsUrl = "${projectToConfigure.ext.vcsUrl}.git"
+
+                    licenses = [projectToConfigure.ext.bintrayLicenseName]
+                    labels = packageLabels
+                    publicDownloadNumbers = true
+
+                    version {
+                        name = projectToConfigure.ext.fullVersion
+                        desc = "IHMC Open Robotics Software Project ${projectToConfigure.name} v${projectToConfigure.ext.fullVersion}"
+                        released = new Date()
+                        vcsTag = "v${projectToConfigure.version}"
+                    }
+                }
+            }
+        }
+    }
+
+    def void devCheck() {
+        println containingProject.name
     }
 
     private List<Project> getAllProjects(Project rootProject) {
