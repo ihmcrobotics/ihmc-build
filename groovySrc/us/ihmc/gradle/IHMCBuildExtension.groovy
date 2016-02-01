@@ -122,11 +122,11 @@ class IHMCBuildExtension {
                 key = projectToConfigure.hasProperty("bintray_key") ? projectToConfigure.bintray_key : "invalid"
 
                 if(user.equals("invalid")) {
-                    throw new GradleException("Bintray user name property not set. Please set the 'bintray_user' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
+                    projectToConfigure.logger.warn("Bintray user name property not set. Please set the 'bintray_user' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
                 }
 
                 if(key.equals("invalid")) {
-                    throw new GradleException("Bintray API key property not set. Please set the 'bintray_key' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
+                    projectToConfigure.logger.warn("Bintray API key property not set. Please set the 'bintray_key' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
                 }
 
                 dryRun = isDryRun
