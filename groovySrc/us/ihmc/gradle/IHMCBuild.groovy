@@ -105,6 +105,10 @@ class IHMCBuild implements Plugin<Project> {
                 groovy {
                     srcDirs = ['groovyTest']
                 }
+
+                resources {
+                  srcDirs = ['testResources']
+                }
             }
         }
     }
@@ -124,6 +128,10 @@ class IHMCBuild implements Plugin<Project> {
             test {
                 java {
                     srcDirs = ['test']
+                }
+
+                resources {
+                    srcDirs = ['testResources']
                 }
             }
         }
