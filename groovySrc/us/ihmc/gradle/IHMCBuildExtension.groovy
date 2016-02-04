@@ -91,7 +91,8 @@ class IHMCBuildExtension {
             }
         }
 
-        return null
+        throw new GradleException("Could not find project with name ${projectName}.\nPlease make sure that there is a directory with the given name and that it " +
+                "contains a 'build.gradle' file somewhere in your workspace.")
     }
 
     /**
