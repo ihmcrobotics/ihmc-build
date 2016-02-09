@@ -35,6 +35,10 @@ class IHMCBuildExtension {
             jcenter()
 
             mavenCentral()
+
+            maven{
+                url "http://clojars.org/repo/"
+            }
         }
     }
 
@@ -89,13 +93,7 @@ class IHMCBuildExtension {
      * @return The fully qualified Gradle path to the project as given by {@link Project#getPath()}
      */
     def String getProjectDependencyGradlePath(String projectName) {
-        def project = getProjectDependency(projectName)
-
-        if (project != null) {
-            return project.path
-        }
-
-        return null
+        return getProjectDependency(projectName).path
     }
 
     def void configureForIHMCOpenSourceBintrayPublish(boolean isDryRun, String mavenPublicationName, String bintrayRepoName, List<String> packageLabels) {
