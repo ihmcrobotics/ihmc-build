@@ -32,6 +32,14 @@ class IHMCBuildExtension {
         return {
             mavenLocal()
 
+            jcenter()
+
+            mavenCentral()
+
+            maven{
+                url "http://clojars.org/repo/"
+            }
+
             maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/releases/"
             }
@@ -41,16 +49,8 @@ class IHMCBuildExtension {
             }
 
             maven {
-                url "https://bengal.ihmc.us/nexus/content/repositories/central/"
-            }
-
-            maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/swt-repo/"
             }
-
-            jcenter()
-
-            mavenCentral()
         }
     }
 
@@ -91,7 +91,8 @@ class IHMCBuildExtension {
             }
         }
 
-        return null
+        throw new GradleException("Could not find project with name ${projectName}.\nPlease make sure that there is a directory with the given name and that it " +
+                "contains a 'build.gradle' file somewhere in your workspace.")
     }
 
     /**
@@ -104,13 +105,7 @@ class IHMCBuildExtension {
      * @return The fully qualified Gradle path to the project as given by {@link Project#getPath()}
      */
     def String getProjectDependencyGradlePath(String projectName) {
-        def project = getProjectDependency(projectName)
-
-        if (project != null) {
-            return project.path
-        }
-
-        return null
+        return getProjectDependency(projectName).path
     }
 
     def void configureForIHMCOpenSourceBintrayPublish(boolean isDryRun, String mavenPublicationName, String bintrayRepoName, List<String> packageLabels) {
@@ -121,12 +116,12 @@ class IHMCBuildExtension {
                 user = projectToConfigure.hasProperty("bintray_user") ? projectToConfigure.bintray_user : "invalid"
                 key = projectToConfigure.hasProperty("bintray_key") ? projectToConfigure.bintray_key : "invalid"
 
-                if(user.equals("invalid")) {
-                    projectToConfigure.logger.warn("Bintray user name property not set. Please set the 'bintray_user' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
+                if (user.equals("invalid")) {
+                    projectToConfigure.logger.debug("Bintray user name property not set. Please set the 'bintray_user' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
                 }
 
-                if(key.equals("invalid")) {
-                    projectToConfigure.logger.warn("Bintray API key property not set. Please set the 'bintray_key' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
+                if (key.equals("invalid")) {
+                    projectToConfigure.logger.debug("Bintray API key property not set. Please set the 'bintray_key' property in ~/.gradle/gradle.properties. See https://github.com/bintray/gradle-bintray-plugin")
                 }
 
                 dryRun = isDryRun
