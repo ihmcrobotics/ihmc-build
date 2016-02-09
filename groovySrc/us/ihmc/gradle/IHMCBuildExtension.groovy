@@ -39,6 +39,18 @@ class IHMCBuildExtension {
             maven{
                 url "http://clojars.org/repo/"
             }
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/releases/"
+            }
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/thirdparty/"
+            }
+
+            maven {
+                url "https://bengal.ihmc.us/nexus/content/repositories/swt-repo/"
+            }
         }
     }
 
