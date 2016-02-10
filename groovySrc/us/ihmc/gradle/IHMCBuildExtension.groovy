@@ -51,6 +51,10 @@ class IHMCBuildExtension {
             maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/swt-repo/"
             }
+
+            maven {
+                url 'http://updates.jmonkeyengine.org/maven'
+            }
         }
     }
 
