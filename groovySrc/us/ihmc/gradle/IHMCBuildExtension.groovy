@@ -36,8 +36,24 @@ class IHMCBuildExtension {
 
             mavenCentral()
 
+            maven {
+                url  "http://dl.bintray.com/ihmcrobotics/maven-vendor"
+            }
+
+            maven {
+                url  "http://dl.bintray.com/ihmcrobotics/maven-release"
+            }
+
             maven{
                 url "http://clojars.org/repo/"
+            }
+
+            maven {
+                url 'http://updates.jmonkeyengine.org/maven'
+            }
+
+            maven {
+                url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
             }
 
             maven {
@@ -50,10 +66,6 @@ class IHMCBuildExtension {
 
             maven {
                 url "https://bengal.ihmc.us/nexus/content/repositories/swt-repo/"
-            }
-
-            maven {
-                url 'http://updates.jmonkeyengine.org/maven'
             }
         }
     }
