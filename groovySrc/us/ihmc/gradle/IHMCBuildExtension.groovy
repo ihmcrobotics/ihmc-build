@@ -30,12 +30,6 @@ class IHMCBuildExtension {
      */
     def Closure ihmcDefaultArtifactProxies() {
         return {
-            mavenLocal()
-
-            jcenter()
-
-            mavenCentral()
-
             maven {
                 url  "http://dl.bintray.com/ihmcrobotics/maven-vendor"
             }
