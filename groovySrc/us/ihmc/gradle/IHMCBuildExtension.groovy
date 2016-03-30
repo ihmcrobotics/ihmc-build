@@ -2,6 +2,7 @@ package us.ihmc.gradle
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
 /**
  * <p>
@@ -104,6 +105,12 @@ class IHMCBuildExtension {
      */
     def String getProjectDependencyGradlePath(String projectName) {
         return getProjectDependency(projectName).path
+    }
+
+    def DefaultProjectDependency getProjectTestDependency(String projectName) {
+        String depPath = getProjectDependencyGradlePath(projectName)
+
+        return containingProject.dependencies.project(path: "${depPath}", configuration: 'testOutput')
     }
 
     def void configureForIHMCOpenSourceBintrayPublish(boolean isDryRun, String mavenPublicationName, String bintrayRepoName, List<String> packageLabels) {
