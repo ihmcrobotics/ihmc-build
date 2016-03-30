@@ -4,6 +4,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.jvm.tasks.Jar
 
 /**
  * <p>
@@ -62,6 +63,19 @@ class IHMCBuild implements Plugin<Project> {
     void apply(Project project) {
         project.configure(project) {
             apply plugin: 'java'
+
+            configurations {
+                testOutput.extendsFrom (testRuntime)
+            }
+
+            project.task("jarTest", type: Jar, dependsOn: project.testClasses) {
+                from sourceSets.test.output
+                classifier = 'test'
+            }
+
+            artifacts {
+                testOutput project.jarTest
+            }
         }
 
         addExtensions(project)
