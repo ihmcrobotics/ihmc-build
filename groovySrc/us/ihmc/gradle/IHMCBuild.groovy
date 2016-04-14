@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.jvm.tasks.Jar
+import org.gradle.language.java.plugins.JavaLanguagePlugin
 
 /**
  * <p>
@@ -62,7 +63,13 @@ class IHMCBuild implements Plugin<Project> {
     @Override
     void apply(Project project) {
         project.configure(project) {
-            apply plugin: 'java'
+
+            if(!project.getPlugins().hasPlugin(JavaLanguagePlugin.Java))
+            {
+                apply plugin: 'java'
+            }
+
+            apply plugin: 'ca.cutterslade.analyze'
 
             configurations {
                 testOutput.extendsFrom (testRuntime)
