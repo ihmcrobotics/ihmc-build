@@ -44,10 +44,6 @@ class IHMCBuildExtension {
             }
 
             maven {
-                url 'http://updates.jmonkeyengine.org/maven'
-            }
-
-            maven {
                 url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
             }
         }
