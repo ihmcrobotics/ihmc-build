@@ -46,6 +46,9 @@ class IHMCBuildExtension {
             maven {
                 url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
             }
+	    maven {
+		url "https://oss.sonatype.org/content/repositories/snapshots"
+	    }
         }
     }
 
