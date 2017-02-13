@@ -138,7 +138,7 @@ class IHMCBuild implements Plugin<Project> {
         project.sourceSets {
             main {
                 java {
-                    srcDirs = ['src']
+                    srcDirs = ['src', 'test-src']
                 }
 
                 resources {
