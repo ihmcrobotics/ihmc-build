@@ -146,9 +146,9 @@ class IHMCBuild implements Plugin<Project> {
                 }
             }
 
-            test-src {
+            testUtil {
                 java {
-                    srcDirs = ['test-src']
+                    srcDirs = ['test-util']
                 }
             }
 
