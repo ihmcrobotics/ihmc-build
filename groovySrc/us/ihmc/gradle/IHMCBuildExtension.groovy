@@ -50,7 +50,7 @@ class IHMCBuildExtension {
    	      maven {
    		       url "https://oss.sonatype.org/content/repositories/snapshots"
    	      }
-   	      
+   	       
             maven {
                 url "https://artifactory.ihmc.us/artifactory/releases/"
             }
