@@ -47,7 +47,6 @@ import org.gradle.language.java.plugins.JavaLanguagePlugin
  */
 class IHMCBuild implements Plugin<Project>
 {
-
    /**
     * <p>Inherited from {@link Plugin}</p>
     *
@@ -65,12 +64,7 @@ class IHMCBuild implements Plugin<Project>
    void apply(Project project)
    {
       project.configure(project) {
-
-         if (!project.getPlugins().hasPlugin(JavaLanguagePlugin.Java))
-         {
-            apply plugin: 'java'
-         }
-
+         
          apply plugin: 'ca.cutterslade.analyze'
 
          configurations {
@@ -89,80 +83,13 @@ class IHMCBuild implements Plugin<Project>
 
       addExtensions(project)
 
-      setupSourceSetStructure(project)
-
-      addTasks(project)
-   }
-
-   private void addExtensions(Project project)
-   {
-      project.extensions.create("ihmc", IHMCBuildExtension, project)
-   }
-
-   private void addTasks(Project project)
-   {
       project.task('checkIHMCBuild') << {
          println "IHMC Build being applied from ${project.name}"
       }
    }
 
-   private void setupSourceSetStructure(Project project)
+   private void addExtensions(Project project)
    {
-      setupJavaSourceSets(project)
-
-      if (project.plugins.hasPlugin(GroovyPlugin))
-      {
-         setupGroovySourceSets(project)
-      }
-   }
-
-   private void setupGroovySourceSets(Project project)
-   {
-      project.sourceSets {
-         main {
-            groovy {
-               srcDirs = ['groovySrc']
-            }
-
-            resources {
-               srcDirs = ['src', 'resources']
-            }
-         }
-
-         test {
-            groovy {
-               srcDirs = ['groovyTest']
-            }
-
-            resources {
-               srcDirs = ['testResources']
-            }
-         }
-      }
-   }
-
-   private void setupJavaSourceSets(Project project)
-   {
-      project.sourceSets {
-         main {
-            java {
-               srcDirs = ['src']
-            }
-
-            resources {
-               srcDirs = ['src', 'resources']
-            }
-         }
-
-         test {
-            java {
-               srcDirs = ['test']
-            }
-
-            resources {
-               srcDirs = ['testResources']
-            }
-         }
-      }
+      project.extensions.create("ihmc", IHMCBuildExtension, project)
    }
 }

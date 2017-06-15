@@ -4,6 +4,9 @@ import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 /**
  * <p>
  * The {@code IHMCBuildExtension} provides some helper extensions to any project
@@ -57,6 +60,76 @@ class IHMCBuildExtension
          }
          maven {
             url "http://artifactory.ihmc.us/artifactory/snapshots/"
+         }
+      }
+   }
+
+   def String getSnapshotVersion(String version, buildNumber)
+   {
+      return version + "-SNAPSHOT-" + buildNumber;
+   }
+
+   def String getNightlyVersion(String version)
+   {
+      return version + "-NIGHTLY-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+   }
+
+   def void setupSourceSetStructure()
+   {
+      setupJavaSourceSets(containingProject)
+
+      if (project.plugins.hasPlugin(GroovyPlugin))
+      {
+         setupGroovySourceSets(containingProject)
+      }
+   }
+
+   private void setupGroovySourceSets(Project project)
+   {
+      project.sourceSets {
+         main {
+            groovy {
+               srcDirs = ['groovySrc']
+            }
+
+            resources {
+               srcDirs = ['src', 'resources']
+            }
+         }
+
+         test {
+            groovy {
+               srcDirs = ['groovyTest']
+            }
+
+            resources {
+               srcDirs = ['testResources']
+            }
+         }
+      }
+   }
+
+   private void setupJavaSourceSets(Project project)
+   {
+      project.sourceSets {
+         main {
+            java {
+               srcDirs = ['src']
+            }
+
+            resources {
+               srcDirs = ['src', 'resources']
+            }
+         }
+
+         test {
+            java {
+               srcDirs = ['test']
+            }
+
+            resources {
+               srcDirs = ['testResources']
+            }
          }
       }
    }
