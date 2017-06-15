@@ -64,7 +64,12 @@ class IHMCBuild implements Plugin<Project>
    void apply(Project project)
    {
       project.configure(project) {
-         
+
+         if (!project.getPlugins().hasPlugin(JavaLanguagePlugin.Java))
+         {
+            apply plugin: 'java'
+         }
+
          apply plugin: 'ca.cutterslade.analyze'
 
          configurations {
