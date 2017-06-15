@@ -45,116 +45,124 @@ import org.gradle.language.java.plugins.JavaLanguagePlugin
  * </ul>
  * @author Doug Stephen <a href="mailto:dstephen@ihmc.us">(dstephen@ihmc.us)</a>
  */
-class IHMCBuild implements Plugin<Project> {
+class IHMCBuild implements Plugin<Project>
+{
 
-    /**
-     * <p>Inherited from {@link Plugin}</p>
-     *
-     * <p>
-     * Adds the {@link IHMCBuildExtension} property to the {@code Project} and
-     * configures the Java and/or Groovy {@code sourceSets} to use the IHMC standard
-     * instead of the Maven standard.
-     * </p>
-     *
-     * @see org.gradle.api.Plugin
-     * @see org.gradle.api.tasks.SourceSet
-     * @see IHMCBuildExtension
-     */
-    @Override
-    void apply(Project project) {
-        project.configure(project) {
+   /**
+    * <p>Inherited from {@link Plugin}</p>
+    *
+    * <p>
+    * Adds the {@link IHMCBuildExtension} property to the {@code Project} and
+    * configures the Java and/or Groovy {@code sourceSets} to use the IHMC standard
+    * instead of the Maven standard.
+    * </p>
+    *
+    * @see org.gradle.api.Plugin
+    * @see org.gradle.api.tasks.SourceSet
+    * @see IHMCBuildExtension
+    */
+   @Override
+   void apply(Project project)
+   {
+      project.configure(project) {
 
-            if(!project.getPlugins().hasPlugin(JavaLanguagePlugin.Java))
-            {
-                apply plugin: 'java'
+         if (!project.getPlugins().hasPlugin(JavaLanguagePlugin.Java))
+         {
+            apply plugin: 'java'
+         }
+
+         apply plugin: 'ca.cutterslade.analyze'
+
+         configurations {
+            testOutput.extendsFrom(testRuntime)
+         }
+
+         project.task("jarTest", type: Jar, dependsOn: project.testClasses) {
+            from sourceSets.test.output
+            classifier = 'test'
+         }
+
+         artifacts {
+            testOutput project.jarTest
+         }
+      }
+
+      addExtensions(project)
+
+      setupSourceSetStructure(project)
+
+      addTasks(project)
+   }
+
+   private void addExtensions(Project project)
+   {
+      project.extensions.create("ihmc", IHMCBuildExtension, project)
+   }
+
+   private void addTasks(Project project)
+   {
+      project.task('checkIHMCBuild') << {
+         println "IHMC Build being applied from ${project.name}"
+      }
+   }
+
+   private void setupSourceSetStructure(Project project)
+   {
+      setupJavaSourceSets(project)
+
+      if (project.plugins.hasPlugin(GroovyPlugin))
+      {
+         setupGroovySourceSets(project)
+      }
+   }
+
+   private void setupGroovySourceSets(Project project)
+   {
+      project.sourceSets {
+         main {
+            groovy {
+               srcDirs = ['groovySrc']
             }
 
-            apply plugin: 'ca.cutterslade.analyze'
+            resources {
+               srcDirs = ['src', 'resources']
+            }
+         }
 
-            configurations {
-                testOutput.extendsFrom (testRuntime)
+         test {
+            groovy {
+               srcDirs = ['groovyTest']
             }
 
-            project.task("jarTest", type: Jar, dependsOn: project.testClasses) {
-                from sourceSets.test.output
-                classifier = 'test'
+            resources {
+               srcDirs = ['testResources']
+            }
+         }
+      }
+   }
+
+   private void setupJavaSourceSets(Project project)
+   {
+      project.sourceSets {
+         main {
+            java {
+               srcDirs = ['src']
             }
 
-            artifacts {
-                testOutput project.jarTest
+            resources {
+               srcDirs = ['src', 'resources']
             }
-        }
+         }
 
-        addExtensions(project)
-
-        setupSourceSetStructure(project)
-
-        addTasks(project)
-    }
-
-    private void addExtensions(Project project) {
-        project.extensions.create("ihmc", IHMCBuildExtension, project)
-    }
-
-    private void addTasks(Project project) {
-        project.task('checkIHMCBuild') << {
-            println "IHMC Build being applied from ${project.name}"
-        }
-    }
-
-    private void setupSourceSetStructure(Project project) {
-        setupJavaSourceSets(project)
-
-        if (project.plugins.hasPlugin(GroovyPlugin)) {
-            setupGroovySourceSets(project)
-        }
-    }
-
-    private void setupGroovySourceSets(Project project) {
-        project.sourceSets {
-            main {
-                groovy {
-                    srcDirs = ['groovySrc']
-                }
-
-                resources {
-                    srcDirs = ['src', 'resources']
-                }
+         test {
+            java {
+               srcDirs = ['test']
             }
 
-            test {
-                groovy {
-                    srcDirs = ['groovyTest']
-                }
-
-                resources {
-                  srcDirs = ['testResources']
-                }
+            resources {
+               srcDirs = ['testResources']
             }
-        }
-    }
-
-    private void setupJavaSourceSets(Project project) {
-        project.sourceSets {
-            main {
-                java {
-                    srcDirs = ['src']
-                }
-
-                resources {
-                    srcDirs = ['src', 'resources']
-                }
-            }
-
-            test {
-                java {
-                    srcDirs = ['test']
-                }
-
-                resources {
-                    srcDirs = ['testResources']
-                }
-            }
-        }
-    }
+         }
+      }
+   }
 }

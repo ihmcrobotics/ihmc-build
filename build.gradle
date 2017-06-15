@@ -6,10 +6,10 @@ apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 
 group = "us.ihmc.gradle"
-version = "0.0.19"
+version = "0.0.20"
 
-sourceCompatibility = "1.7"
-targetCompatibility = "1.7"
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
 
 project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
 project.ext.licenseName = "Apache License, Version 2.0"
