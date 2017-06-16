@@ -7,6 +7,13 @@ import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import org.jfrog.artifactory.client.Artifactory;
+import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
+import org.jfrog.artifactory.client.model.RepoPath;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
+import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger;
+
 /**
  * <p>
  * The {@code IHMCBuildExtension} provides some helper extensions to any project
@@ -26,6 +33,15 @@ class IHMCBuildExtension
       this.containingProject = project
    }
 
+   @Deprecated
+   /**
+    * @use {@link setupCommonArtifactProxies}
+    */
+   def Closure ihmcDefaultArtifactProxies()
+   {
+      setupCommonArtifactProxies();
+   }
+
    /**
     * <p>
     * Set up a closure containing all of the commonly used artifact repos and
@@ -34,7 +50,7 @@ class IHMCBuildExtension
     *
     * @return a {@link Closure that generates all of the "default" {@link org.gradle.api.artifacts.repositories.ArtifactRepository}s we typically use
     */
-   def Closure ihmcDefaultArtifactProxies()
+   def Closure setupCommonArtifactProxies()
    {
       return {
          maven {
@@ -64,6 +80,19 @@ class IHMCBuildExtension
       }
    }
 
+   def void setupAggressiveResolutionStrategy()
+   {
+      containingProject.configurations.all {
+         resolutionStrategy {
+            //failOnVersionConflict()
+            preferProjectModules()
+
+            cacheDynamicVersionsFor 0, 'seconds'
+            cacheChangingModulesFor 0, 'seconds'
+         }
+      }
+   }
+
    def String getSnapshotVersion(String version, buildNumber)
    {
       return version + "-SNAPSHOT-" + buildNumber;
@@ -72,6 +101,94 @@ class IHMCBuildExtension
    def String getNightlyVersion(String version)
    {
       return version + "-NIGHTLY-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+   }
+
+   def String getDynamicVersion(String groupId, String artifactId, String dependencyMode)
+   {
+      def username = containingProject.property("artifactoryUsername")
+      def password = containingProject.property("artifactoryPassword")
+
+      String dynamicVersion = "+";
+      if (dependencyMode.startsWith("STABLE"))
+      {
+         int firstDash = dependencyMode.indexOf("-");
+         if (firstDash > 0)
+         {
+            dynamicVersion = dependencyMode.substring(firstDash + 1);
+         } else
+         {
+            dynamicVersion = "+";
+         }
+      } else
+      {
+         try
+         {
+            ArtifactoryClientBuilder builder = ArtifactoryClientBuilder.create();
+            builder.setUrl("https://artifactory.ihmc.us/artifactory");
+            builder.setUsername(username);
+            builder.setPassword(password);
+            Artifactory artifactory = builder.build();
+            List<RepoPath> snapshots = artifactory.searches().artifactsByGavc().repositories("snapshots").groupId("us.ihmc").artifactId(artifactId).doSearch();
+
+            String latestVersion = null;
+            int latestBuildNumber = -1;
+            for (RepoPath repoPath : snapshots)
+            {
+               if (repoPath.getItemPath().endsWith(".pom") || repoPath.getItemPath().endsWith("sources.jar"))
+               {
+                  continue;
+               }
+
+               if (!repoPath.getItemPath().contains(dependencyMode))
+               {
+                  continue;
+               }
+
+               String version = itemPathToVersion(repoPath.getItemPath(), artifactId);
+               int buildNumber = buildNumber(version);
+
+               // Found exact nightly
+               if (version.endsWith(dependencyMode))
+               {
+                  dynamicVersion = itemPathToVersion(repoPath.getItemPath(), artifactId);
+               }
+
+               if (latestVersion == null)
+               {
+                  latestVersion = version;
+                  latestBuildNumber = buildNumber;
+               } else if (buildNumber > latestBuildNumber)
+               {
+                  latestVersion = version;
+                  latestBuildNumber = buildNumber;
+               }
+            }
+
+            dynamicVersion = latestVersion;
+         }
+         catch (Exception exception)
+         {
+            System.out.println("Artifactory could not be reached, reverting to latest.");
+            dynamicVersion = "+";
+         }
+      }
+
+      return groupId + ":" + artifactId + ":" + dynamicVersion;
+   }
+
+   private int buildNumber(String version)
+   {
+      return Integer.parseInt(version.split("-")[2]);
+   }
+
+   private String itemPathToVersion(String itemPath, String artifactId)
+   {
+      String[] split = itemPath.split("/");
+      String artifact = split[split.length - 1];
+      String withoutDotJar = artifact.split("\\.jar")[0];
+      String version = withoutDotJar.substring(artifactId.length() + 1);
+
+      return version;
    }
 
    def void setupSourceSetStructure()
