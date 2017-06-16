@@ -195,7 +195,7 @@ class IHMCBuildExtension
    {
       setupJavaSourceSets(containingProject)
 
-      if (project.plugins.hasPlugin(GroovyPlugin))
+      if (containingProject.plugins.hasPlugin(GroovyPlugin))
       {
          setupGroovySourceSets(containingProject)
       }
