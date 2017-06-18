@@ -2,7 +2,12 @@ package us.ihmc.gradle
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.component.Artifact
+import org.gradle.api.distribution.Distribution
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.bundling.Jar
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -83,6 +88,19 @@ class IHMCBuildExtension
    def void setupAggressiveResolutionStrategy()
    {
       containingProject.configurations.all {
+         resolutionStrategy {
+            //failOnVersionConflict()
+            preferProjectModules()
+
+            cacheDynamicVersionsFor 0, 'seconds'
+            cacheChangingModulesFor 0, 'seconds'
+         }
+      }
+   }
+
+   def void setupAggressiveResolutionStrategy(Project project)
+   {
+      project.configurations.all {
          resolutionStrategy {
             //failOnVersionConflict()
             preferProjectModules()
@@ -201,7 +219,7 @@ class IHMCBuildExtension
       }
    }
 
-   private void setupGroovySourceSets(Project project)
+   def void setupGroovySourceSets(Project project)
    {
       project.sourceSets {
          main {
@@ -226,7 +244,7 @@ class IHMCBuildExtension
       }
    }
 
-   private void setupJavaSourceSets(Project project)
+   def void setupJavaSourceSets(Project project)
    {
       project.sourceSets {
          main {
@@ -246,6 +264,61 @@ class IHMCBuildExtension
 
             resources {
                srcDirs = ['testResources']
+            }
+         }
+      }
+   }
+
+   def void setupCommonJARConfiguration(Project project)
+   {
+      project.jar {
+         manifest {
+            attributes(
+                  'Created-By': project.ext.author,
+                  'Implementation-Title': project.name,
+                  'Implementation-Version': project.version,
+                  'Implementation-Vendor': project.ext.companyName,
+
+                  'Bundle-Name': project.name,
+                  'Bundle-Version': project.version,
+                  'Bundle-License': project.ext.licenseURL,
+                  'Bundle-Vendor': project.ext.companyName)
+         }
+      }
+   }
+
+   def void setupCommonPublishingConfiguration(Project project)
+   {
+      Task sourceJarTask = project.task(type: Jar, "sourceJar", {
+         from project.sourceSets.main.allJava
+      })
+
+      project.publishing {
+         publications {
+            mavenJava(MavenPublication) {
+               groupId project.ext.groupId
+               artifactId project.name
+               version project.ext.fullVersion
+               from project.components.java
+
+               pom.withXml {
+                  asNode().children().last() + {
+                     resolveStrategy = DELEGATE_FIRST
+                     name project.name
+                     url project.ext.vcsUrl
+                     licenses {
+                        license {
+                           name project.ext.licenseName
+                           url project.ext.licenseURL
+                           distribution 'repo'
+                        }
+                     }
+                  }
+               }
+
+               artifact(sourceJarTask, {
+                  classifier 'sources'
+               })
             }
          }
       }
