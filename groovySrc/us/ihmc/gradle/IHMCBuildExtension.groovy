@@ -19,6 +19,18 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import us.ihmc.commons.exception.DefaultExceptionHandler;
+import us.ihmc.commons.nio.BasicPathVisitor.PathType
+import us.ihmc.commons.nio.BasicPathVisitor
+import us.ihmc.commons.nio.PathTools
+import us.ihmc.commons.nio.FileTools
+import us.ihmc.commons.nio.WriteOption
+
 /**
  * <p>
  * The {@code IHMCBuildExtension} provides some helper extensions to any project
@@ -322,6 +334,88 @@ class IHMCBuildExtension
             }
          }
       }
+   }
+
+   def void setupArtifactoryPublishingConfiguration(Project project)
+   {
+      project.artifactory {
+         contextUrl = 'https://artifactory.ihmc.us/artifactory'
+
+         publish {
+            repository {
+               repoKey = project.ext.artifactoryRepo
+               username = project.property("artifactoryUsername")
+               password = project.property("artifactoryPassword")
+            }
+            defaults {
+               publications('mavenJava')
+            }
+         }
+
+         resolve {
+            repository {
+               repoKey = 'libs-releases'
+            }
+         }
+      }
+   }
+
+   def void setupBintrayPublishingConfiguration(Project project)
+   {
+      project.bintray {
+         user = project.property("bintray_user")
+         key = project.property("bintray_key")
+
+         dryRun = project.ext.bintrayDryRun
+         publish = false
+
+         publications = ['mavenJava']
+
+         pkg {
+            repo = project.ext.bintrayRepo
+            name = project.name
+            userOrg = project.ext.bintrayOrg
+            desc = project.name
+
+            websiteUrl = project.ext.vcsUrl
+            issueTrackerUrl = project.ext.vcsUrl + '/issues'
+            vcsUrl = project.ext.vcsUrl + '.git'
+
+            licenses = [project.ext.bintrayLicenseName]
+            labels = ['ihmc', 'java']
+            publicDownloadNumbers = true
+
+            version {
+               name = project.ext.fullVersion
+               desc = project.name + ' v' + project.ext.fullVersion
+               released = new Date()
+               vcsTag = 'v' + project.version
+            }
+         }
+      }
+   }
+
+   def void convertDirectoryLineEndingsFromDosToUnix(Project project, String pathAsString)
+   {
+      Path directory = project.projectDir.toPath().resolve(pathAsString)
+
+      println "Converting line endings to Unix: " + directory
+      PathTools.walkRecursively(directory, new BasicPathVisitor()
+      {
+         @Override
+         public FileVisitResult visitPath(Path path, PathType pathType)
+         {
+            if (pathType.equals(PathType.FILE))
+            {
+               byte[] fileAsBytes = FileTools.readAllBytes(path, DefaultExceptionHandler.PRINT_STACKTRACE);
+               String fileAsString = new String(fileAsBytes, StandardCharsets.UTF_8);
+               fileAsString.replaceAll("\r\n", "\n");
+               FileTools.write(path, fileAsString.getBytes(), WriteOption.TRUNCATE, DefaultExceptionHandler.PRINT_STACKTRACE);
+            }
+
+            return FileVisitResult.CONTINUE;
+         }
+      });
    }
 
    /**
