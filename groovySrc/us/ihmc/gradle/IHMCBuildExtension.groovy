@@ -19,17 +19,17 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import us.ihmc.commons.exception.DefaultExceptionHandler;
-import us.ihmc.commons.nio.BasicPathVisitor.PathType
-import us.ihmc.commons.nio.BasicPathVisitor
-import us.ihmc.commons.nio.PathTools
-import us.ihmc.commons.nio.FileTools
-import us.ihmc.commons.nio.WriteOption
+//import java.nio.charset.StandardCharsets;
+//import java.nio.file.FileVisitResult;
+//import java.nio.file.Path;
+//import java.nio.file.Paths;
+//
+//import us.ihmc.commons.exception.DefaultExceptionHandler;
+//import us.ihmc.commons.nio.BasicPathVisitor.PathType
+//import us.ihmc.commons.nio.BasicPathVisitor
+//import us.ihmc.commons.nio.PathTools
+//import us.ihmc.commons.nio.FileTools
+//import us.ihmc.commons.nio.WriteOption
 
 /**
  * <p>
@@ -301,16 +301,12 @@ class IHMCBuildExtension
 
    def void setupCommonPublishingConfiguration(Project project)
    {
-      Task sourceJarTask = project.task(type: Jar, "sourceJar", {
-         from project.sourceSets.main.allJava
-      })
-
       project.publishing {
          publications {
             mavenJava(MavenPublication) {
-               groupId project.ext.groupId
+               groupId project.group
                artifactId project.name
-               version project.ext.fullVersion
+               version project.version
                from project.components.java
 
                pom.withXml {
@@ -328,7 +324,8 @@ class IHMCBuildExtension
                   }
                }
 
-               artifact(sourceJarTask, {
+               artifact project.task(type: Jar, "sourceJar", {
+                  from project.sourceSets.main.allJava
                   classifier 'sources'
                })
             }
@@ -386,8 +383,8 @@ class IHMCBuildExtension
             publicDownloadNumbers = true
 
             version {
-               name = project.ext.fullVersion
-               desc = project.name + ' v' + project.ext.fullVersion
+               name = project.version
+               desc = project.name + ' v' + project.version
                released = new Date()
                vcsTag = 'v' + project.version
             }
@@ -395,28 +392,80 @@ class IHMCBuildExtension
       }
    }
 
-   def void convertDirectoryLineEndingsFromDosToUnix(Project project, String pathAsString)
+   def void configureProjectForOpenRobotics(Project project)
    {
-      Path directory = project.projectDir.toPath().resolve(pathAsString)
+      project.apply plugin: 'java'
+      project.apply plugin: 'eclipse'
+      project.apply plugin: 'idea'
+      project.apply plugin: 'maven-publish'
+      project.apply plugin: "com.jfrog.bintray"
+      project.apply plugin: "com.jfrog.artifactory"
 
-      println "Converting line endings to Unix: " + directory
-      PathTools.walkRecursively(directory, new BasicPathVisitor()
+      project.sourceCompatibility = 1.8
+      project.targetCompatibility = 1.8
+
+      project.group = "us.ihmc"
+      project.version = '0.10.0'
+
+      if (project.property("publishMode").startsWith("SNAPSHOT"))
       {
-         @Override
-         public FileVisitResult visitPath(Path path, PathType pathType)
-         {
-            if (pathType.equals(PathType.FILE))
-            {
-               byte[] fileAsBytes = FileTools.readAllBytes(path, DefaultExceptionHandler.PRINT_STACKTRACE);
-               String fileAsString = new String(fileAsBytes, StandardCharsets.UTF_8);
-               fileAsString.replaceAll("\r\n", "\n");
-               FileTools.write(path, fileAsString.getBytes(), WriteOption.TRUNCATE, DefaultExceptionHandler.PRINT_STACKTRACE);
-            }
+         project.version = getSnapshotVersion(project.version, project.property("bambooBuildNumber"))
+      } else if (project.property("publishMode").startsWith("NIGHTLY"))
+      {
+         project.version = getNightlyVersion(project.version)
+      }
 
-            return FileVisitResult.CONTINUE;
-         }
-      });
+      project.ext.vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
+      project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+      project.ext.licenseName = "Apache License, Version 2.0"
+      project.ext.companyName = "IHMC"
+      project.ext.author = "IHMC Gradle Build Script"
+      project.ext.artifactoryRepo = "libs-snapshot-local"
+      project.ext.bintrayRepo = "maven-release"
+      project.ext.bintrayOrg = "ihmcrobotics"
+      project.ext.bintrayLicenseName = "Apache-2.0"
+      project.ext.bintrayDryRun = true
+
+      project.repositories setupCommonArtifactProxies()
+
+      project.repositories {
+         mavenLocal()
+         jcenter()
+         mavenCentral()
+      }
+
+      setupAggressiveResolutionStrategy(project)
+      setupJavaSourceSets(project)
+
+      setupCommonJARConfiguration(project)
+      setupCommonPublishingConfiguration(project)
+
+      setupArtifactoryPublishingConfiguration(project)
+      setupBintrayPublishingConfiguration(project)
    }
+
+//   def void convertDirectoryLineEndingsFromDosToUnix(Project project, String pathAsString)
+//   {
+//      Path directory = project.projectDir.toPath().resolve(pathAsString)
+//
+//      println "Converting line endings to Unix: " + directory
+//      PathTools.walkRecursively(directory, new BasicPathVisitor()
+//      {
+//         @Override
+//         public FileVisitResult visitPath(Path path, PathType pathType)
+//         {
+//            if (pathType.equals(PathType.FILE))
+//            {
+//               byte[] fileAsBytes = FileTools.readAllBytes(path, DefaultExceptionHandler.PRINT_STACKTRACE);
+//               String fileAsString = new String(fileAsBytes, StandardCharsets.UTF_8);
+//               fileAsString.replaceAll("\r\n", "\n");
+//               FileTools.write(path, fileAsString.getBytes(), WriteOption.TRUNCATE, DefaultExceptionHandler.PRINT_STACKTRACE);
+//            }
+//
+//            return FileVisitResult.CONTINUE;
+//         }
+//      });
+//   }
 
    /**
     * <p>
@@ -522,8 +571,8 @@ class IHMCBuildExtension
                publicDownloadNumbers = true
 
                version {
-                  name = projectToConfigure.ext.fullVersion
-                  desc = "IHMC Open Robotics Software Project ${projectToConfigure.name} v${projectToConfigure.ext.fullVersion}"
+                  name = projectToConfigure.version
+                  desc = "IHMC Open Robotics Software Project ${projectToConfigure.name} v${projectToConfigure.version}"
                   released = new Date()
                   vcsTag = "v${projectToConfigure.version}"
                }
