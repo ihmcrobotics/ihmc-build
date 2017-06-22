@@ -401,17 +401,10 @@ class IHMCBuildExtension
 
    def void configureProjectForOpenRobotics(Project project)
    {
-//      project.apply plugin: 'java'
-//      project.apply plugin: 'eclipse'
-//      project.apply plugin: 'idea'
-//      project.apply plugin: 'maven-publish'
-
-      project.plugins {
-         id "java"
-         id "eclipse"
-         id "idea"
-         id "maven-publish"
-      }
+      project.apply plugin: 'java'
+      project.apply plugin: 'eclipse'
+      project.apply plugin: 'idea'
+      project.apply plugin: 'maven-publish'
 
       project.sourceCompatibility = 1.8
       project.targetCompatibility = 1.8
@@ -419,10 +412,11 @@ class IHMCBuildExtension
       project.group = "us.ihmc"
       project.version = '0.10.0'
 
-      if (project.property("publishMode").startsWith("SNAPSHOT"))
+      String publishMode = project.property("publishMode")
+      if (publishMode == "SNAPSHOT")
       {
          project.version = getSnapshotVersion(project.version, project.property("bambooBuildNumber"))
-      } else if (project.property("publishMode").startsWith("NIGHTLY"))
+      } else if (publishMode == "NIGHTLY")
       {
          project.version = getNightlyVersion(project.version)
       }
@@ -450,10 +444,20 @@ class IHMCBuildExtension
       setupJavaSourceSets(project)
 
       setupCommonJARConfiguration(project)
-      setupCommonPublishingConfiguration(project)
 
-      setupArtifactoryPublishingConfiguration(project)
-      setupBintrayPublishingConfiguration(project)
+      if (publishMode == "SNAPSHOT")
+      {
+         declareArtifactory(project, "snapshots")
+      } else if (publishMode == "NIGHTLY")
+      {
+         declareArtifactory(project, "nightlies")
+      } else if (publishMode == "STABLE")
+      {
+         declareBintray(project)
+      }
+
+      declarePublication(project, project.name, project.configurations.compile, project.sourceSets.main)
+      declarePublication(project, project.name + '-test', project.configurations.testCompile, project.sourceSets.test, project.name)
    }
 
    def void declareArtifactory(Project project, String repository)
