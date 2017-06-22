@@ -2,22 +2,23 @@ package us.ihmc.gradle
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.component.Artifact
+import org.gradle.api.credentials.Credentials
 import org.gradle.api.distribution.Distribution
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+import org.gradle.api.internal.java.JavaLibrary
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.SourceSet
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.DependencySet
+import org.gradle.api.artifacts.Configuration
+import org.jfrog.artifactory.client.Artifactory
+import org.jfrog.artifactory.client.ArtifactoryClientBuilder
+import org.jfrog.artifactory.client.model.RepoPath
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-
-import org.jfrog.artifactory.client.Artifactory;
-import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
-import org.jfrog.artifactory.client.model.RepoPath;
-import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.Level;
-import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger;
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 //import java.nio.charset.StandardCharsets;
 //import java.nio.file.FileVisitResult;
@@ -328,6 +329,12 @@ class IHMCBuildExtension
                   from project.sourceSets.main.allJava
                   classifier 'sources'
                })
+
+               artifact project.task(type: Jar, dependsOn: project.getTasks().getByName("compileTestJava"), "testJar", {
+                  println project.components
+                  from new JavaLibrary()
+                  classifier 'test'
+               })
             }
          }
       }
@@ -394,12 +401,17 @@ class IHMCBuildExtension
 
    def void configureProjectForOpenRobotics(Project project)
    {
-      project.apply plugin: 'java'
-      project.apply plugin: 'eclipse'
-      project.apply plugin: 'idea'
-      project.apply plugin: 'maven-publish'
-      project.apply plugin: "com.jfrog.bintray"
-      project.apply plugin: "com.jfrog.artifactory"
+//      project.apply plugin: 'java'
+//      project.apply plugin: 'eclipse'
+//      project.apply plugin: 'idea'
+//      project.apply plugin: 'maven-publish'
+
+      project.plugins {
+         id "java"
+         id "eclipse"
+         id "idea"
+         id "maven-publish"
+      }
 
       project.sourceCompatibility = 1.8
       project.targetCompatibility = 1.8
@@ -442,6 +454,87 @@ class IHMCBuildExtension
 
       setupArtifactoryPublishingConfiguration(project)
       setupBintrayPublishingConfiguration(project)
+   }
+
+   def void declareArtifactory(Project project, String repository)
+   {
+      project.publishing.repositories {
+         maven {
+            name 'Artifactory' + repository.capitalize()
+            url 'https://artifactory.ihmc.us/artifactory/' + repository
+            credentials {
+               username = project.property("artifactoryUsername")
+               password = project.property("artifactoryPassword")
+            }
+         }
+      }
+   }
+
+   def void declareBintray(Project project)
+   {
+      project.publishing.repositories {
+         maven {
+            name 'BintrayRelease'
+            url 'https://api.bintray.com/maven/ihmcrobotics/maven-release/' + project.name
+            credentials {
+               username = project.property("bintray_user")
+               password = project.property("bintray_key")
+            }
+         }
+      }
+   }
+
+   def void declarePublication(Project project, String artifactName, Configuration configuration,
+                               SourceSet sourceSet, String... internalDependencies)
+   {
+      project.publishing.publications.create(sourceSet.getName().capitalize(), MavenPublication) {
+         groupId project.group
+         artifactId artifactName
+         version project.version
+
+         pom.withXml {
+            def dependenciesNode = asNode().appendNode('dependencies')
+
+            internalDependencies.each {
+               def internalDependency = dependenciesNode.appendNode('dependency')
+               internalDependency.appendNode('groupId', project.group)
+               internalDependency.appendNode('artifactId', it)
+               internalDependency.appendNode('version', project.version)
+            }
+
+            configuration.allDependencies.each {
+               if (it.name != "unspecified")
+               {
+                  def dependencyNode = dependenciesNode.appendNode('dependency')
+                  dependencyNode.appendNode('groupId', it.group)
+                  dependencyNode.appendNode('artifactId', it.name)
+                  dependencyNode.appendNode('version', it.version)
+               }
+            }
+
+            asNode().children().last() + {
+               resolveStrategy = DELEGATE_FIRST
+               name project.name
+               url project.ext.vcsUrl
+               licenses {
+                  license {
+                     name project.ext.licenseName
+                     url project.ext.licenseURL
+                     distribution "repo"
+                  }
+               }
+            }
+         }
+
+         artifact project.task(type: Jar, sourceSet.getName() + "ClassesJar", {
+            from sourceSet.output
+         })
+
+         artifact project.task(type: Jar, sourceSet.getName() + "SourcesJar", {
+            from sourceSet.allJava
+            classifier 'sources'
+         })
+      }
    }
 
 //   def void convertDirectoryLineEndingsFromDosToUnix(Project project, String pathAsString)
