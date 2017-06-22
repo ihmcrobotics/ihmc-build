@@ -204,6 +204,8 @@ class IHMCBuildExtension
          }
       }
 
+      if (dynamicVersion == null) dynamicVersion = "+"
+
       return groupId + ":" + artifactId + ":" + dynamicVersion;
    }
 
@@ -426,11 +428,6 @@ class IHMCBuildExtension
       project.ext.licenseName = "Apache License, Version 2.0"
       project.ext.companyName = "IHMC"
       project.ext.author = "IHMC Gradle Build Script"
-      project.ext.artifactoryRepo = "libs-snapshot-local"
-      project.ext.bintrayRepo = "maven-release"
-      project.ext.bintrayOrg = "ihmcrobotics"
-      project.ext.bintrayLicenseName = "Apache-2.0"
-      project.ext.bintrayDryRun = true
 
       project.repositories setupCommonArtifactProxies()
 
@@ -440,7 +437,7 @@ class IHMCBuildExtension
          mavenCentral()
       }
 
-      setupAggressiveResolutionStrategy(project)
+      //setupAggressiveResolutionStrategy(project)
       setupJavaSourceSets(project)
 
       setupCommonJARConfiguration(project)
