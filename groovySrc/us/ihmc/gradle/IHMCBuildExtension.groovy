@@ -57,7 +57,7 @@ class IHMCBuildExtension
     */
    def Closure ihmcDefaultArtifactProxies()
    {
-      setupCommonArtifactProxies();
+      setupCommonArtifactProxies()
    }
 
    /**
@@ -95,6 +95,39 @@ class IHMCBuildExtension
          maven {
             url "http://artifactory.ihmc.us/artifactory/snapshots/"
          }
+      }
+   }
+
+   def void setupCommonArtifactProxies(Project project)
+   {
+      project.repositories {
+         maven {
+            url "http://dl.bintray.com/ihmcrobotics/maven-vendor"
+         }
+         maven {
+            url "http://dl.bintray.com/ihmcrobotics/maven-release"
+         }
+         maven {
+            url "http://clojars.org/repo/"
+         }
+         maven {
+            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
+         }
+         maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+         }
+         maven {
+            url "https://artifactory.ihmc.us/artifactory/releases/"
+         }
+         maven {
+            url "https://artifactory.ihmc.us/artifactory/thirdparty/"
+         }
+         maven {
+            url "http://artifactory.ihmc.us/artifactory/snapshots/"
+         }
+         mavenLocal()
+         jcenter()
+         mavenCentral()
       }
    }
 
@@ -289,15 +322,15 @@ class IHMCBuildExtension
       project.jar {
          manifest {
             attributes(
-                  'Created-By': project.ext.author,
+                  'Created-By': project.maintainer,
                   'Implementation-Title': project.name,
                   'Implementation-Version': project.version,
-                  'Implementation-Vendor': project.ext.companyName,
+                  'Implementation-Vendor': project.companyName,
 
                   'Bundle-Name': project.name,
                   'Bundle-Version': project.version,
-                  'Bundle-License': project.ext.licenseURL,
-                  'Bundle-Vendor': project.ext.companyName)
+                  'Bundle-License': project.licenseURL,
+                  'Bundle-Vendor': project.companyName)
          }
       }
    }
@@ -403,13 +436,7 @@ class IHMCBuildExtension
 
    def void configureProjectForOpenRobotics(Project project)
    {
-      project.apply plugin: 'java'
-      project.apply plugin: 'eclipse'
-      project.apply plugin: 'idea'
-      project.apply plugin: 'maven-publish'
-
-      project.sourceCompatibility = 1.8
-      project.targetCompatibility = 1.8
+      applyJavaPlugins(project)
 
       project.group = "us.ihmc"
       project.version = '0.10.0'
@@ -427,15 +454,9 @@ class IHMCBuildExtension
       project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
       project.ext.licenseName = "Apache License, Version 2.0"
       project.ext.companyName = "IHMC"
-      project.ext.author = "IHMC Gradle Build Script"
+      project.ext.maintainer = "IHMC Gradle Build Script"
 
-      project.repositories setupCommonArtifactProxies()
-
-      project.repositories {
-         mavenLocal()
-         jcenter()
-         mavenCentral()
-      }
+      setupCommonArtifactProxies(project)
 
       //setupAggressiveResolutionStrategy(project)
       setupJavaSourceSets(project)
@@ -455,6 +476,17 @@ class IHMCBuildExtension
 
       declarePublication(project, project.name, project.configurations.compile, project.sourceSets.main)
       declarePublication(project, project.name + '-test', project.configurations.testCompile, project.sourceSets.test, project.name)
+   }
+
+   def void applyJavaPlugins(Project project)
+   {
+      project.apply plugin: 'java'
+      project.apply plugin: 'eclipse'
+      project.apply plugin: 'idea'
+      project.apply plugin: 'maven-publish'
+
+      project.sourceCompatibility = 1.8
+      project.targetCompatibility = 1.8
    }
 
    def void declareArtifactory(Project project, String repository)

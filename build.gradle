@@ -6,7 +6,7 @@ apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 
 group = "us.ihmc.gradle"
-version = "0.0.28"
+version = "0.0.31"
 
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
