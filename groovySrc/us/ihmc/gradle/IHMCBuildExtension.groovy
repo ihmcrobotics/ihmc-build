@@ -2,17 +2,12 @@ package us.ihmc.gradle
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.component.Artifact
-import org.gradle.api.credentials.Credentials
-import org.gradle.api.distribution.Distribution
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 import org.gradle.api.internal.java.JavaLibrary
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.Configuration
+import org.gradle.api.tasks.bundling.Jar
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -51,49 +46,92 @@ class IHMCBuildExtension
       this.containingProject = project
    }
 
-   @Deprecated
-   /**
-    * @use {@link setupCommonArtifactProxies}
-    */
-   def Closure ihmcDefaultArtifactProxies()
+   def void configureProjectForOpenRobotics(Project project)
    {
-      setupCommonArtifactProxies()
+      applyJavaPlugins(project)
+
+      project.group = "us.ihmc"
+      project.version = '0.10.0'
+
+      String publishMode = project.property("publishMode")
+      if (publishMode == "SNAPSHOT")
+      {
+         project.version = getSnapshotVersion(project.version, project.property("bambooBuildNumber"))
+      } else if (publishMode == "NIGHTLY")
+      {
+         project.version = getNightlyVersion(project.version)
+      }
+
+      project.ext.vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
+      project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+      project.ext.licenseName = "Apache License, Version 2.0"
+      project.ext.companyName = "IHMC"
+      project.ext.maintainer = "IHMC Gradle Build Script"
+
+      setupCommonArtifactProxies(project)
+
+      //setupAggressiveResolutionStrategy(project)
+      setupJavaSourceSets(project)
+
+      setupCommonJARConfiguration(project)
+
+      if (publishMode == "SNAPSHOT")
+      {
+         declareArtifactory(project, "snapshots")
+      } else if (publishMode == "NIGHTLY")
+      {
+         declareArtifactory(project, "nightlies")
+      } else if (publishMode == "STABLE")
+      {
+         declareBintray(project)
+      }
+
+      declarePublication(project, project.name, project.configurations.compile, project.sourceSets.main)
+      declarePublication(project, project.name + '-test', project.configurations.testCompile, project.sourceSets.test, project.name)
    }
 
-   /**
-    * <p>
-    * Set up a closure containing all of the commonly used artifact repos and
-    * proxies common across IHMC Robotics software.
-    * </p>
-    *
-    * @return a {@link Closure that generates all of the "default" {@link org.gradle.api.artifacts.repositories.ArtifactRepository}s we typically use
-    */
-   def Closure setupCommonArtifactProxies()
+   def void applyJavaPlugins(Project project)
    {
-      return {
-         maven {
-            url "http://dl.bintray.com/ihmcrobotics/maven-vendor"
+      project.apply plugin: 'java'
+      project.apply plugin: 'eclipse'
+      project.apply plugin: 'idea'
+      project.apply plugin: 'maven-publish'
+
+      project.sourceCompatibility = 1.8
+      project.targetCompatibility = 1.8
+   }
+
+   def String getSnapshotVersion(String version, buildNumber)
+   {
+      return version + "-SNAPSHOT-" + buildNumber;
+   }
+
+   def String getNightlyVersion(String version)
+   {
+      return version + "-NIGHTLY-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+   }
+
+   def void setupJavaSourceSets(Project project)
+   {
+      project.sourceSets {
+         main {
+            java {
+               srcDirs = ['src']
+            }
+
+            resources {
+               srcDirs = ['src', 'resources']
+            }
          }
-         maven {
-            url "http://dl.bintray.com/ihmcrobotics/maven-release"
-         }
-         maven {
-            url "http://clojars.org/repo/"
-         }
-         maven {
-            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
-         }
-         maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
-         }
-         maven {
-            url "https://artifactory.ihmc.us/artifactory/releases/"
-         }
-         maven {
-            url "https://artifactory.ihmc.us/artifactory/thirdparty/"
-         }
-         maven {
-            url "http://artifactory.ihmc.us/artifactory/snapshots/"
+
+         test {
+            java {
+               srcDirs = ['test']
+            }
+
+            resources {
+               srcDirs = ['testResources']
+            }
          }
       }
    }
@@ -129,42 +167,6 @@ class IHMCBuildExtension
          jcenter()
          mavenCentral()
       }
-   }
-
-   def void setupAggressiveResolutionStrategy()
-   {
-      containingProject.configurations.all {
-         resolutionStrategy {
-            //failOnVersionConflict()
-            preferProjectModules()
-
-            cacheDynamicVersionsFor 0, 'seconds'
-            cacheChangingModulesFor 0, 'seconds'
-         }
-      }
-   }
-
-   def void setupAggressiveResolutionStrategy(Project project)
-   {
-      project.configurations.all {
-         resolutionStrategy {
-            //failOnVersionConflict()
-            preferProjectModules()
-
-            cacheDynamicVersionsFor 0, 'seconds'
-            cacheChangingModulesFor 0, 'seconds'
-         }
-      }
-   }
-
-   def String getSnapshotVersion(String version, buildNumber)
-   {
-      return version + "-SNAPSHOT-" + buildNumber;
-   }
-
-   def String getNightlyVersion(String version)
-   {
-      return version + "-NIGHTLY-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
    }
 
    def String getDynamicVersion(String groupId, String artifactId, String dependencyMode)
@@ -257,236 +259,27 @@ class IHMCBuildExtension
       return version;
    }
 
-   def void setupSourceSetStructure()
-   {
-      setupJavaSourceSets(containingProject)
-
-      if (containingProject.plugins.hasPlugin(GroovyPlugin))
-      {
-         setupGroovySourceSets(containingProject)
-      }
-   }
-
-   def void setupGroovySourceSets(Project project)
-   {
-      project.sourceSets {
-         main {
-            groovy {
-               srcDirs = ['groovySrc']
-            }
-
-            resources {
-               srcDirs = ['src', 'resources']
-            }
-         }
-
-         test {
-            groovy {
-               srcDirs = ['groovyTest']
-            }
-
-            resources {
-               srcDirs = ['testResources']
-            }
-         }
-      }
-   }
-
-   def void setupJavaSourceSets(Project project)
-   {
-      project.sourceSets {
-         main {
-            java {
-               srcDirs = ['src']
-            }
-
-            resources {
-               srcDirs = ['src', 'resources']
-            }
-         }
-
-         test {
-            java {
-               srcDirs = ['test']
-            }
-
-            resources {
-               srcDirs = ['testResources']
-            }
-         }
-      }
-   }
-
    def void setupCommonJARConfiguration(Project project)
+   {
+      setupCommonJARConfiguration(project, project.maintainer, project.companyName, project.licenseURL)
+   }
+
+   def void setupCommonJARConfiguration(Project project, String maintainer, String companyName, String licenseURL)
    {
       project.jar {
          manifest {
             attributes(
-                  'Created-By': project.maintainer,
+                  'Created-By': maintainer,
                   'Implementation-Title': project.name,
                   'Implementation-Version': project.version,
-                  'Implementation-Vendor': project.companyName,
+                  'Implementation-Vendor': companyName,
 
                   'Bundle-Name': project.name,
                   'Bundle-Version': project.version,
-                  'Bundle-License': project.licenseURL,
-                  'Bundle-Vendor': project.companyName)
+                  'Bundle-License': licenseURL,
+                  'Bundle-Vendor': companyName)
          }
       }
-   }
-
-   def void setupCommonPublishingConfiguration(Project project)
-   {
-      project.publishing {
-         publications {
-            mavenJava(MavenPublication) {
-               groupId project.group
-               artifactId project.name
-               version project.version
-               from project.components.java
-
-               pom.withXml {
-                  asNode().children().last() + {
-                     resolveStrategy = DELEGATE_FIRST
-                     name project.name
-                     url project.ext.vcsUrl
-                     licenses {
-                        license {
-                           name project.ext.licenseName
-                           url project.ext.licenseURL
-                           distribution 'repo'
-                        }
-                     }
-                  }
-               }
-
-               artifact project.task(type: Jar, "sourceJar", {
-                  from project.sourceSets.main.allJava
-                  classifier 'sources'
-               })
-
-               artifact project.task(type: Jar, dependsOn: project.getTasks().getByName("compileTestJava"), "testJar", {
-                  println project.components
-                  from new JavaLibrary()
-                  classifier 'test'
-               })
-            }
-         }
-      }
-   }
-
-   def void setupArtifactoryPublishingConfiguration(Project project)
-   {
-      project.artifactory {
-         contextUrl = 'https://artifactory.ihmc.us/artifactory'
-
-         publish {
-            repository {
-               repoKey = project.ext.artifactoryRepo
-               username = project.property("artifactoryUsername")
-               password = project.property("artifactoryPassword")
-            }
-            defaults {
-               publications('mavenJava')
-            }
-         }
-
-         resolve {
-            repository {
-               repoKey = 'libs-releases'
-            }
-         }
-      }
-   }
-
-   def void setupBintrayPublishingConfiguration(Project project)
-   {
-      project.bintray {
-         user = project.property("bintray_user")
-         key = project.property("bintray_key")
-
-         dryRun = project.ext.bintrayDryRun
-         publish = false
-
-         publications = ['mavenJava']
-
-         pkg {
-            repo = project.ext.bintrayRepo
-            name = project.name
-            userOrg = project.ext.bintrayOrg
-            desc = project.name
-
-            websiteUrl = project.ext.vcsUrl
-            issueTrackerUrl = project.ext.vcsUrl + '/issues'
-            vcsUrl = project.ext.vcsUrl + '.git'
-
-            licenses = [project.ext.bintrayLicenseName]
-            labels = ['ihmc', 'java']
-            publicDownloadNumbers = true
-
-            version {
-               name = project.version
-               desc = project.name + ' v' + project.version
-               released = new Date()
-               vcsTag = 'v' + project.version
-            }
-         }
-      }
-   }
-
-   def void configureProjectForOpenRobotics(Project project)
-   {
-      applyJavaPlugins(project)
-
-      project.group = "us.ihmc"
-      project.version = '0.10.0'
-
-      String publishMode = project.property("publishMode")
-      if (publishMode == "SNAPSHOT")
-      {
-         project.version = getSnapshotVersion(project.version, project.property("bambooBuildNumber"))
-      } else if (publishMode == "NIGHTLY")
-      {
-         project.version = getNightlyVersion(project.version)
-      }
-
-      project.ext.vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
-      project.ext.licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      project.ext.licenseName = "Apache License, Version 2.0"
-      project.ext.companyName = "IHMC"
-      project.ext.maintainer = "IHMC Gradle Build Script"
-
-      setupCommonArtifactProxies(project)
-
-      //setupAggressiveResolutionStrategy(project)
-      setupJavaSourceSets(project)
-
-      setupCommonJARConfiguration(project)
-
-      if (publishMode == "SNAPSHOT")
-      {
-         declareArtifactory(project, "snapshots")
-      } else if (publishMode == "NIGHTLY")
-      {
-         declareArtifactory(project, "nightlies")
-      } else if (publishMode == "STABLE")
-      {
-         declareBintray(project)
-      }
-
-      declarePublication(project, project.name, project.configurations.compile, project.sourceSets.main)
-      declarePublication(project, project.name + '-test', project.configurations.testCompile, project.sourceSets.test, project.name)
-   }
-
-   def void applyJavaPlugins(Project project)
-   {
-      project.apply plugin: 'java'
-      project.apply plugin: 'eclipse'
-      project.apply plugin: 'idea'
-      project.apply plugin: 'maven-publish'
-
-      project.sourceCompatibility = 1.8
-      project.targetCompatibility = 1.8
    }
 
    def void declareArtifactory(Project project, String repository)
@@ -570,6 +363,107 @@ class IHMCBuildExtension
       }
    }
 
+   def void setupGroovySourceSets(Project project)
+   {
+      project.sourceSets {
+         main {
+            groovy {
+               srcDirs = ['groovySrc']
+            }
+
+            resources {
+               srcDirs = ['src', 'resources']
+            }
+         }
+
+         test {
+            groovy {
+               srcDirs = ['groovyTest']
+            }
+
+            resources {
+               srcDirs = ['testResources']
+            }
+         }
+      }
+   }
+
+   def void setupAggressiveResolutionStrategy()
+   {
+      containingProject.configurations.all {
+         resolutionStrategy {
+            //failOnVersionConflict()
+            preferProjectModules()
+
+            cacheDynamicVersionsFor 0, 'seconds'
+            cacheChangingModulesFor 0, 'seconds'
+         }
+      }
+   }
+
+   def void setupAggressiveResolutionStrategy(Project project)
+   {
+      project.configurations.all {
+         resolutionStrategy {
+            //failOnVersionConflict()
+            preferProjectModules()
+
+            cacheDynamicVersionsFor 0, 'seconds'
+            cacheChangingModulesFor 0, 'seconds'
+         }
+      }
+   }
+
+   @Deprecated
+   /**
+    * <p>
+    * Set up a closure containing all of the commonly used artifact repos and
+    * proxies common across IHMC Robotics software.
+    * </p>
+    *
+    * @return a {@link Closure that generates all of the "default" {@link org.gradle.api.artifacts.repositories.ArtifactRepository}s we typically use
+    */
+   def Closure setupCommonArtifactProxies()
+   {
+      return {
+         maven {
+            url "http://dl.bintray.com/ihmcrobotics/maven-vendor"
+         }
+         maven {
+            url "http://dl.bintray.com/ihmcrobotics/maven-release"
+         }
+         maven {
+            url "http://clojars.org/repo/"
+         }
+         maven {
+            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
+         }
+         maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+         }
+         maven {
+            url "https://artifactory.ihmc.us/artifactory/releases/"
+         }
+         maven {
+            url "https://artifactory.ihmc.us/artifactory/thirdparty/"
+         }
+         maven {
+            url "http://artifactory.ihmc.us/artifactory/snapshots/"
+         }
+      }
+   }
+
+   @Deprecated
+   def void setupSourceSetStructure()
+   {
+      setupJavaSourceSets(containingProject)
+
+      if (containingProject.plugins.hasPlugin(GroovyPlugin))
+      {
+         setupGroovySourceSets(containingProject)
+      }
+   }
+
 //   def void convertDirectoryLineEndingsFromDosToUnix(Project project, String pathAsString)
 //   {
 //      Path directory = project.projectDir.toPath().resolve(pathAsString)
@@ -593,6 +487,109 @@ class IHMCBuildExtension
 //      });
 //   }
 
+   @Deprecated
+   def void setupCommonPublishingConfiguration(Project project)
+   {
+      project.publishing {
+         publications {
+            mavenJava(MavenPublication) {
+               groupId project.group
+               artifactId project.name
+               version project.version
+               from project.components.java
+
+               pom.withXml {
+                  asNode().children().last() + {
+                     resolveStrategy = DELEGATE_FIRST
+                     name project.name
+                     url project.ext.vcsUrl
+                     licenses {
+                        license {
+                           name project.ext.licenseName
+                           url project.ext.licenseURL
+                           distribution 'repo'
+                        }
+                     }
+                  }
+               }
+
+               artifact project.task(type: Jar, "sourceJar", {
+                  from project.sourceSets.main.allJava
+                  classifier 'sources'
+               })
+
+               artifact project.task(type: Jar, dependsOn: project.getTasks().getByName("compileTestJava"), "testJar", {
+                  println project.components
+                  from new JavaLibrary()
+                  classifier 'test'
+               })
+            }
+         }
+      }
+   }
+
+   @Deprecated
+   def void setupArtifactoryPublishingConfiguration(Project project)
+   {
+      project.artifactory {
+         contextUrl = 'https://artifactory.ihmc.us/artifactory'
+
+         publish {
+            repository {
+               repoKey = project.ext.artifactoryRepo
+               username = project.property("artifactoryUsername")
+               password = project.property("artifactoryPassword")
+            }
+            defaults {
+               publications('mavenJava')
+            }
+         }
+
+         resolve {
+            repository {
+               repoKey = 'libs-releases'
+            }
+         }
+      }
+   }
+
+   @Deprecated
+   def void setupBintrayPublishingConfiguration(Project project)
+   {
+      project.bintray {
+         user = project.property("bintray_user")
+         key = project.property("bintray_key")
+
+         dryRun = project.ext.bintrayDryRun
+         publish = false
+
+         publications = ['mavenJava']
+
+         pkg {
+            repo = project.ext.bintrayRepo
+            name = project.name
+            userOrg = project.ext.bintrayOrg
+            desc = project.name
+
+            websiteUrl = project.ext.vcsUrl
+            issueTrackerUrl = project.ext.vcsUrl + '/issues'
+            vcsUrl = project.ext.vcsUrl + '.git'
+
+            licenses = [project.ext.bintrayLicenseName]
+            labels = ['ihmc', 'java']
+            publicDownloadNumbers = true
+
+            version {
+               name = project.version
+               desc = project.name + ' v' + project.version
+               released = new Date()
+               vcsTag = 'v' + project.version
+            }
+         }
+      }
+   }
+
+   @Deprecated
    /**
     * <p>
     * This method is used to naïvely look up a Project in a multi-project build by its name,
@@ -637,6 +634,7 @@ class IHMCBuildExtension
             "contains a 'build.gradle' file somewhere in your workspace.")
    }
 
+   @Deprecated
    /**
     * <p>
     * Uses the same search mechanism as {@link IHMCBuildExtension#getProjectDependency(java.lang.String)} but returns the
@@ -651,6 +649,7 @@ class IHMCBuildExtension
       return getProjectDependency(projectName).path
    }
 
+   @Deprecated
    def DefaultProjectDependency getProjectTestDependency(String projectName)
    {
       String depPath = getProjectDependencyGradlePath(projectName)
@@ -658,6 +657,7 @@ class IHMCBuildExtension
       return containingProject.dependencies.project(path: "${depPath}", configuration: 'testOutput')
    }
 
+   @Deprecated
    def void configureForIHMCOpenSourceBintrayPublish(boolean isDryRun, String mavenPublicationName, String bintrayRepoName, List<String> packageLabels)
    {
       containingProject.configure(containingProject) { projectToConfigure ->
@@ -707,11 +707,13 @@ class IHMCBuildExtension
       }
    }
 
+   @Deprecated
    def void devCheck()
    {
       println containingProject.name
    }
 
+   @Deprecated
    private List<Project> getAllProjects(Project rootProject)
    {
       def ret = new ArrayList<Project>()
@@ -725,6 +727,7 @@ class IHMCBuildExtension
       return ret
    }
 
+   @Deprecated
    private void getAllProjectsFlattened(Collection<Project> projects, List<Project> flatProjects)
    {
       for (Project project : projects)
@@ -737,5 +740,14 @@ class IHMCBuildExtension
             flatProjects.add(project)
          }
       }
+   }
+
+   @Deprecated
+   /**
+    * @use {@link setupCommonArtifactProxies}
+    */
+   def Closure ihmcDefaultArtifactProxies()
+   {
+      setupCommonArtifactProxies()
    }
 }
