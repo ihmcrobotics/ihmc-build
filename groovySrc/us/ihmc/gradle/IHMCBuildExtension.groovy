@@ -56,7 +56,7 @@ class IHMCBuildExtension
       String publishMode = project.property("publishMode")
       if (publishMode == "SNAPSHOT")
       {
-         project.version = getSnapshotVersion(project.version, project.property("bambooBuildNumber"))
+         project.version = getSnapshotVersion(project.version, project.property("buildNumber"))
       } else if (publishMode == "NIGHTLY")
       {
          project.version = getNightlyVersion(project.version)
@@ -190,21 +190,21 @@ class IHMCBuildExtension
       }
    }
 
-   def String getDynamicVersion(String groupId, String artifactId, String dependencyMode)
+   def String getBuildVersion(String groupId, String artifactId, String dependencyMode)
    {
       def username = containingProject.property("artifactoryUsername")
       def password = containingProject.property("artifactoryPassword")
 
-      String dynamicVersion = "+";
+      String buildVersion = "+";
       if (dependencyMode.startsWith("STABLE"))
       {
          int firstDash = dependencyMode.indexOf("-");
          if (firstDash > 0)
          {
-            dynamicVersion = dependencyMode.substring(firstDash + 1);
+            buildVersion = dependencyMode.substring(firstDash + 1);
          } else
          {
-            dynamicVersion = "+";
+            buildVersion = "+";
          }
       } else
       {
@@ -237,7 +237,7 @@ class IHMCBuildExtension
                // Found exact nightly
                if (version.endsWith(dependencyMode))
                {
-                  dynamicVersion = itemPathToVersion(repoPath.getItemPath(), artifactId);
+                  buildVersion = itemPathToVersion(repoPath.getItemPath(), artifactId);
                }
 
                if (latestVersion == null)
@@ -251,18 +251,18 @@ class IHMCBuildExtension
                }
             }
 
-            dynamicVersion = latestVersion;
+            buildVersion = latestVersion;
          }
          catch (Exception exception)
          {
             System.out.println("Artifactory could not be reached, reverting to latest.");
-            dynamicVersion = "+";
+            buildVersion = "+";
          }
       }
 
-      if (dynamicVersion == null) dynamicVersion = "+"
+      if (buildVersion == null) buildVersion = "+"
 
-      return groupId + ":" + artifactId + ":" + dynamicVersion;
+      return groupId + ":" + artifactId + ":" + buildVersion;
    }
 
    private int buildNumber(String version)
@@ -433,6 +433,12 @@ class IHMCBuildExtension
             cacheChangingModulesFor 0, 'seconds'
          }
       }
+   }
+
+   @Deprecated
+   def String getDynamicVersion(String groupId, String artifactId, String dependencyMode)
+   {
+      getBuildVersion(groupId, artifactId, dependencyMode)
    }
 
    @Deprecated
