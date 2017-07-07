@@ -68,7 +68,10 @@ class IHMCBuildExtension
       project.ext.companyName = "IHMC"
       project.ext.maintainer = "IHMC Gradle Build Script"
 
-      setupCommonArtifactProxies(project)
+      addIHMCMavenRepositories(project)
+      addThirdPartyMavenRepositories(project)
+      addPublicMavenRepositories(project)
+      addLocalMavenRepository(project)
 
       //setupAggressiveResolutionStrategy(project)
       setupJavaSourceSets(project)
@@ -136,7 +139,7 @@ class IHMCBuildExtension
       }
    }
 
-   def void setupCommonArtifactProxies(Project project)
+   def void addIHMCMavenRepositories(Project project)
    {
       project.repositories {
          maven {
@@ -144,15 +147,6 @@ class IHMCBuildExtension
          }
          maven {
             url "http://dl.bintray.com/ihmcrobotics/maven-release"
-         }
-         maven {
-            url "http://clojars.org/repo/"
-         }
-         maven {
-            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
-         }
-         maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
          }
          maven {
             url "https://artifactory.ihmc.us/artifactory/releases/"
@@ -163,9 +157,36 @@ class IHMCBuildExtension
          maven {
             url "http://artifactory.ihmc.us/artifactory/snapshots/"
          }
-         mavenLocal()
+      }
+   }
+
+   def void addThirdPartyMavenRepositories(Project project)
+   {
+      project.repositories {
+         maven {
+            url "http://clojars.org/repo/"
+         }
+         maven {
+            url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
+         }
+         maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+         }
+      }
+   }
+
+   def void addPublicMavenRepositories(Project project)
+   {
+      project.repositories {
          jcenter()
          mavenCentral()
+      }
+   }
+
+   def void addLocalMavenRepository(Project project)
+   {
+      project.repositories {
+         mavenLocal()
       }
    }
 

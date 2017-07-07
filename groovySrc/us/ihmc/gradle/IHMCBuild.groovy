@@ -71,6 +71,8 @@ class IHMCBuild implements Plugin<Project>
          }
 
          apply plugin: 'ca.cutterslade.analyze'
+         apply plugin: 'us.ihmc.ihmc-ci'
+         apply plugin: 'com.dorongold.task-tree'
 
          configurations {
             testOutput.extendsFrom(testRuntime)
