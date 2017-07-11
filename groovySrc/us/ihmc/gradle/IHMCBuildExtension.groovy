@@ -15,6 +15,8 @@ import org.jfrog.artifactory.client.model.RepoPath
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+import us.ihmc.continuousIntegration.AgileTestingTools
+
 //import java.nio.charset.StandardCharsets;
 //import java.nio.file.FileVisitResult;
 //import java.nio.file.Path;
@@ -433,6 +435,11 @@ class IHMCBuildExtension
             cacheChangingModulesFor 0, 'seconds'
          }
       }
+   }
+
+   def String convertJobNameToHyphenatedName(String jobName)
+   {
+      return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
 
    @Deprecated

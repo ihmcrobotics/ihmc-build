@@ -6,6 +6,7 @@ import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.jvm.tasks.Jar
 import org.gradle.language.java.plugins.JavaLanguagePlugin
+import us.ihmc.continuousIntegration.IHMCContinuousIntegrationGradlePlugin
 
 /**
  * <p>
@@ -71,8 +72,10 @@ class IHMCBuild implements Plugin<Project>
          }
 
          apply plugin: 'ca.cutterslade.analyze'
-         apply plugin: 'us.ihmc.ihmc-ci'
+         //apply plugin: 'us.ihmc.ihmc-ci'
          apply plugin: 'com.dorongold.task-tree'
+
+         new IHMCContinuousIntegrationGradlePlugin().apply(project)
 
          configurations {
             testOutput.extendsFrom(testRuntime)
