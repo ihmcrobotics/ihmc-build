@@ -197,16 +197,13 @@ class IHMCBuildExtension
       def username = containingProject.property("artifactoryUsername")
       def password = containingProject.property("artifactoryPassword")
 
-      String buildVersion = "+";
+      String buildVersion = "error";
       if (dependencyMode.startsWith("STABLE"))
       {
          int firstDash = dependencyMode.indexOf("-");
          if (firstDash > 0)
          {
             buildVersion = dependencyMode.substring(firstDash + 1);
-         } else
-         {
-            buildVersion = "+";
          }
       } else
       {
@@ -258,11 +255,11 @@ class IHMCBuildExtension
          catch (Exception exception)
          {
             System.out.println("Artifactory could not be reached, reverting to latest.");
-            buildVersion = "+";
+            buildVersion = "error";
          }
       }
 
-      if (buildVersion == null) buildVersion = "+"
+      if (buildVersion == null) buildVersion = "error"
 
       return groupId + ":" + artifactId + ":" + buildVersion;
    }
