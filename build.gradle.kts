@@ -13,14 +13,15 @@ plugins {
    `java-gradle-plugin`
    `kotlin-dsl`
    `maven-publish`
+   id("com.gradle.plugin-publish") version "0.9.7"
 }
 
 group = "us.ihmc.gradle"
 version = "0.3.0"
 
-val licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-val licenseName = "Apache License, Version 2.0"
-val bintrayLicenseName = "Apache-2.0"
+extra["licenseURL"] = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+extra["licenseName"] = "Apache License, Version 2.0"
+extra["bintrayLicenseName"] = "Apache-2.0"
 
 gradlePlugin {
    (plugins) {
@@ -31,6 +32,12 @@ gradlePlugin {
    }
 }
 
+pluginBundle {
+   tags = listOf("build", "ihmc", "robotics")
+   website = "https://github.com/ihmcrobotics/ihmc-build"
+   vcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
+   description = "IHMC Robotics's Gradle common build logic plugin"
+}
 
 java {
    sourceCompatibility = JavaVersion.VERSION_1_8
