@@ -1,5 +1,7 @@
 package us.ihmc.build
 
+import groovy.lang.Closure
+import groovy.util.Node
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -46,10 +48,10 @@ class IHMCBuildExtension(project: Project)
 
       publication.pom.withXml() {
          (this as XmlProvider).run {
-            var dependenciesNode = asNode().appendNode("dependencies")
+            val dependenciesNode = asNode().appendNode("dependencies")
             
             internalDependencies.forEach {
-               var internalDependency = dependenciesNode.appendNode("dependency")
+               val internalDependency = dependenciesNode.appendNode("dependency")
                internalDependency.appendNode("groupId", project.group)
                internalDependency.appendNode("artifactId", it)
                internalDependency.appendNode("version", project.version)
@@ -58,27 +60,21 @@ class IHMCBuildExtension(project: Project)
             configuration.allDependencies.forEach {
                if (it.name != "unspecified")
                {
-                  var dependencyNode = dependenciesNode.appendNode("dependency")
+                  val dependencyNode = dependenciesNode.appendNode("dependency")
                   dependencyNode.appendNode("groupId", project.group)
                   dependencyNode.appendNode("artifactId", it)
                   dependencyNode.appendNode("version", project.version)
                }
             }
-            
-            asNode().children().last()
-//
-//                  . + {
-//               resolveStrategy = DELEGATE_FIRST
-//               name project.name
-//                     url project.extras["vcsUrl"]
-//                     licenses {
-//                        license {
-//                           name project.extras["licenseName"]
-//                                 url project.extras["licenseURL"]
-//                                 distribution "repo"
-//                        }
-//                     }
-//            }
+   
+            asNode().appendNode("name", project.name)
+            asNode().appendNode("url", project.extra["vcsUrl"])
+            val licensesNode = asNode().appendNode("licenses")
+   
+            val licenseNode = licensesNode.appendNode("license")
+            licenseNode.appendNode("name", project.project.extra["licenseName"])
+            licenseNode.appendNode("url", project.project.extra["licenseURL"])
+            licenseNode.appendNode("distribution", "repo")
          }
          
          publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
