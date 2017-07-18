@@ -6,6 +6,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
+import org.gradle.plugins.ide.eclipse.EclipsePlugin
+import org.gradle.plugins.ide.idea.IdeaPlugin
 import us.ihmc.continuousIntegration.IHMCContinuousIntegrationGradlePlugin
 
 class IHMCBuild : Plugin<Project>
@@ -14,12 +16,14 @@ class IHMCBuild : Plugin<Project>
    {
       project.run {
          maybeApplyPlugin(JavaPlugin::class.java)
+         maybeApplyPlugin(EclipsePlugin::class.java)
+         maybeApplyPlugin(IdeaPlugin::class.java)
          maybeApplyPlugin(MavenPublishPlugin::class.java)
          maybeApplyPlugin(AnalyzeDependenciesPlugin::class.java)
          maybeApplyPlugin(TaskTreePlugin::class.java)
          maybeApplyPlugin(IHMCContinuousIntegrationGradlePlugin::class.java)
          
-         extensions.create("ihmc", IHMCBuildExtension::class.java, project)
+         extensions.create("ihmc", IHMCBuildExtension::class.java)
       }
    }
    
