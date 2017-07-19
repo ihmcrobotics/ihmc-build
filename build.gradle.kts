@@ -1,3 +1,5 @@
+import com.gradle.publish.PluginConfig
+
 plugins {
    `java-gradle-plugin`
    `kotlin-dsl`
@@ -5,17 +7,13 @@ plugins {
    id("com.gradle.plugin-publish") version "0.9.7"
 }
 
-group = "us.ihmc.gradle"
-version = "0.3.0"
-
-extra["licenseURL"] = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-extra["licenseName"] = "Apache License, Version 2.0"
-extra["bintrayLicenseName"] = "Apache-2.0"
+group = "us.ihmc.build"
+version = "0.3.28"
 
 gradlePlugin {
    (plugins) {
       "ihmc-build" {
-         id = "ihmc-build"
+         id = "us.ihmc.build.ihmc-build"
          implementationClass = "us.ihmc.build.IHMCBuild"
       }
    }
@@ -25,7 +23,14 @@ pluginBundle {
    tags = listOf("build", "ihmc", "robotics")
    website = "https://github.com/ihmcrobotics/ihmc-build"
    vcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
-   description = "IHMC Robotics's Gradle common build logic plugin"
+   description = "IHMC Robotics opinions on Java builds"
+   
+   plugins(closureOf<NamedDomainObjectContainer<PluginConfig>> {
+      val plugin = PluginConfig("ihmc-build")
+      plugin.id = "us.ihmc.build.ihmc-build"
+      plugin.displayName = "IHMC Build Plugin"
+      add(plugin)
+   })
 }
 
 java {
@@ -38,6 +43,9 @@ repositories {
    maven {
       url = uri("https://plugins.gradle.org/m2/")
    }
+   maven {
+      url = uri("https://repo.gradle.org/gradle/libs-snapshots-local")
+   }
 }
 
 dependencies {
@@ -47,4 +55,5 @@ dependencies {
    compile("us.ihmc:ihmc-ci-plugin:0.14.4")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:+")
    compile("org.jetbrains.kotlin:kotlin-stdlib:1.1.1")
+   compile("org.gradle:gradle-kotlin-dsl:0.11.0-SNAPSHOT")
 }

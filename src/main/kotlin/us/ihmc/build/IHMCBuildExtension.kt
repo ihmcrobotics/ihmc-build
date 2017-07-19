@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.internal.file.DefaultSourceDirectorySet
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -12,7 +13,6 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.closureOf
-import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -21,8 +21,14 @@ import us.ihmc.continuousIntegration.TestSuiteConfiguration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class IHMCBuildExtension()
+open class IHMCBuildExtension()
 {
+   var vcsUrl: String = "invalid repo"
+   var licenseURL: String = "no license"
+   var licenseName: String = "no license"
+   var companyName: String = "IHMC"
+   var maintainer: String = "IHMC"
+   
    fun configureProjectForOpenRobotics(project: Project)
    {
       project.run {
@@ -32,21 +38,21 @@ class IHMCBuildExtension()
          val publishMode: String = property("publishMode") as String
          if (publishMode == "SNAPSHOT")
          {
-            project.version = getSnapshotVersion(version as String, property("buildNumber") as String)
+            version = getSnapshotVersion(version as String, property("buildNumber") as String)
          }
          else if (publishMode == "NIGHTLY")
          {
-            project.version = getNightlyVersion(version as String)
+            version = getNightlyVersion(version as String)
          }
-   
+         
          val testSuites = extensions.getByType(TestSuiteConfiguration::class.java)
          testSuites.bambooPlanKeys = arrayOf("LIBS-UI2", "LIBS-FAST2", "LIBS-FLAKY2", "LIBS-SLOW2", "LIBS-VIDEO2", "LIBS-INDEVELOPMENT2")
-   
-         extra["vcsUrl"] = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
-         extra["licenseURL"] = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-         extra["licenseName"] = "Apache License, Version 2.0"
-         extra["companyName"] = "IHMC"
-         extra["maintainer"] = "IHMC Gradle Build Script"
+         
+         vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
+         licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+         licenseName = "Apache License, Version 2.0"
+         companyName = "IHMC"
+         maintainer = "Rosie"
          
          addIHMCMavenRepositories()
          addThirdPartyMavenRepositories()
@@ -70,11 +76,11 @@ class IHMCBuildExtension()
          {
             declareBintray()
          }
-   
-         val java = project.convention.getPlugin(JavaPluginConvention::class.java)
          
-         declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName("main"))
-         declarePublication(name + "-test", configurations.getByName("testCompile"), java.sourceSets.getByName("test"), name)
+         val java = convention.getPlugin(JavaPluginConvention::class.java)
+         
+         declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
+         declarePublication(name + "-test", configurations.getByName("testCompile"), java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME), name)
       }
    }
    
@@ -90,65 +96,35 @@ class IHMCBuildExtension()
    
    fun Project.setupJavaSourceSets()
    {
-      val java = project.convention.getPlugin(JavaPluginConvention::class.java)
+      val java = convention.getPlugin(JavaPluginConvention::class.java)
       
       java.sourceCompatibility = JavaVersion.VERSION_1_8
       java.targetCompatibility = JavaVersion.VERSION_1_8
       
-      java.sourceSets(closureOf<SourceSetContainer> {
-         maybeCreate("main").run {
-            java(closureOf<SourceSet> {
-               allSource.srcDirs.add(file("src"))
-            })
-            resources(closureOf<SourceSet> {
-               allSource.srcDirs.add(file("src"))
-               allSource.srcDirs.add(file("resources"))
-            })
-         }
-         maybeCreate("test").run {
-            java(closureOf<SourceSet> {
-               allSource.srcDirs.add(file("test"))
-            })
-            resources(closureOf<SourceSet> {
-               allSource.srcDirs.add(file("testResources"))
-            })
-         }
-      })
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDirs("src")
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs("src")
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs("resources")
+      java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.srcDirs("test")
+      java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.srcDirs("testResources")
    }
    
    fun Project.addIHMCMavenRepositories()
    {
       repositories.run {
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-         })
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("http://dl.bintray.com/ihmcrobotics/maven-release")
-         })
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("https://artifactory.ihmc.us/artifactory/releases/")
-         })
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("https://artifactory.ihmc.us/artifactory/thirdparty/")
-         })
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("http://artifactory.ihmc.us/artifactory/snapshots/")
-         })
+         maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+         maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-release")
+         maven {}.url = uri("https://artifactory.ihmc.us/artifactory/releases/")
+         maven {}.url = uri("https://artifactory.ihmc.us/artifactory/thirdparty/")
+         maven {}.url = uri("https://artifactory.ihmc.us/artifactory/snapshots/")
       }
    }
    
    fun Project.addThirdPartyMavenRepositories()
    {
       repositories.run {
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("http://clojars.org/repo/")
-         })
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-         })
-         maven(closureOf<MavenArtifactRepository> {
-            url = uri("https://oss.sonatype.org/content/repositories/snapshots")
-         })
+         maven {}.url = uri("http://clojars.org/repo/")
+         maven {}.url = uri("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         maven {}.url = uri("https://oss.sonatype.org/content/repositories/snapshots")
       }
    }
    
@@ -256,8 +232,7 @@ class IHMCBuildExtension()
    
    fun Project.setupCommonJARConfiguration()
    {
-      setupCommonJARConfiguration(project.extra["maintainer"] as String,
-                                  project.extra["companyName"] as String, project.extra["licenseURL"] as String)
+      setupCommonJARConfiguration(maintainer, companyName, licenseURL)
    }
    
    fun Project.setupCommonJARConfiguration(maintainer: String, companyName: String, licenseURL: String)
@@ -266,12 +241,12 @@ class IHMCBuildExtension()
          (this as Jar).run {
             manifest.attributes.apply {
                put("Created-By", maintainer)
-               put("Implementation-Title", project.name)
-               put("Implementation-Version", project.version)
+               put("Implementation-Title", name)
+               put("Implementation-Version", version)
                put("Implementation-Vendor", companyName)
                
-               put("Bundle-Name", project.name)
-               put("Bundle-Version", project.version)
+               put("Bundle-Name", name)
+               put("Bundle-Version", version)
                put("Bundle-License", licenseURL)
                put("Bundle-Vendor", companyName)
             }
@@ -281,7 +256,7 @@ class IHMCBuildExtension()
    
    fun Project.declareArtifactory(repoName: String)
    {
-      val publishing = project.extensions.getByType(PublishingExtension::class.java)
+      val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "Artifactory"
          url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
@@ -292,10 +267,10 @@ class IHMCBuildExtension()
    
    fun Project.declareBintray()
    {
-      val publishing = project.extensions.getByType(PublishingExtension::class.java)
+      val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "BintrayRelease"
-         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + project.name)
+         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + name)
          credentials.username = property("bintray_user") as String
          credentials.password = property("bintray_key") as String
       })
@@ -306,9 +281,9 @@ class IHMCBuildExtension()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
-      publication.groupId = project.group as String
+      publication.groupId = group as String
       publication.artifactId = artifactName
-      publication.version = project.version as String
+      publication.version = version as String
       
       publication.pom.withXml() {
          (this as XmlProvider).run {
@@ -316,40 +291,40 @@ class IHMCBuildExtension()
             
             internalDependencies.forEach {
                val internalDependency = dependenciesNode.appendNode("dependency")
-               internalDependency.appendNode("groupId", project.group)
+               internalDependency.appendNode("groupId", group)
                internalDependency.appendNode("artifactId", it)
-               internalDependency.appendNode("version", project.version)
+               internalDependency.appendNode("version", version)
             }
             
             configuration.allDependencies.forEach {
                if (it.name != "unspecified")
                {
                   val dependencyNode = dependenciesNode.appendNode("dependency")
-                  dependencyNode.appendNode("groupId", project.group)
-                  dependencyNode.appendNode("artifactId", it)
-                  dependencyNode.appendNode("version", project.version)
+                  dependencyNode.appendNode("groupId", it.group)
+                  dependencyNode.appendNode("artifactId", it.name)
+                  dependencyNode.appendNode("version", it.version)
                }
             }
             
-            asNode().appendNode("name", project.name)
-            asNode().appendNode("url", project.extra["vcsUrl"])
+            asNode().appendNode("name", name)
+            asNode().appendNode("url", vcsUrl)
             val licensesNode = asNode().appendNode("licenses")
             
             val licenseNode = licensesNode.appendNode("license")
-            licenseNode.appendNode("name", project.project.extra["licenseName"])
-            licenseNode.appendNode("url", project.project.extra["licenseURL"])
+            licenseNode.appendNode("name", licenseName)
+            licenseNode.appendNode("url", licenseURL)
             licenseNode.appendNode("distribution", "repo")
          }
-         
-         publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
-            from(sourceSet.output)
-         }))
-         
-         publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
-            from(sourceSet.allJava)
-            classifier = "sources"
-         }))
       }
+   
+      publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
+         from(sourceSet.output)
+      }))
+   
+      publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
+         from(sourceSet.allJava)
+         classifier = "sources"
+      }))
    }
    
    fun Project.setupAggressiveResolutionStrategy()
@@ -367,7 +342,7 @@ class IHMCBuildExtension()
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
-   
+
 //   open class IntermediateArtifact : AbstractPublishArtifact
 //   {
 //      constructor(type: String, task: Task) : super(type, task)
