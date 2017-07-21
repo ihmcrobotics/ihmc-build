@@ -5,12 +5,10 @@ import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.internal.file.DefaultSourceDirectorySet
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.closureOf
 import org.jfrog.artifactory.client.Artifactory
@@ -21,7 +19,7 @@ import us.ihmc.continuousIntegration.TestSuiteConfiguration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-open class IHMCBuildExtension()
+open class IHMCBuildExtension(val project: Project)
 {
    var vcsUrl: String = "invalid repo"
    var licenseURL: String = "no license"
@@ -110,6 +108,7 @@ open class IHMCBuildExtension()
    
    fun Project.addIHMCMavenRepositories()
    {
+      
       repositories.run {
          maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-vendor")
          maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-release")
@@ -141,12 +140,17 @@ open class IHMCBuildExtension()
       repositories.mavenLocal()
    }
    
-   fun Project.getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): String
+   fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): Map<String, String>
    {
-      val username = property("artifactoryUsername") as String
-      val password = property("artifactoryPassword") as String
+      return getBuildVersion(groupId, artifactId, "runtime", dependencyMode)
+   }
+   
+   fun getBuildVersion(groupId: String, artifactId: String, sourceSet: String, dependencyMode: String): Map<String, String>
+   {
+      val username = project.property("artifactoryUsername") as String
+      val password = project.property("artifactoryPassword") as String
       
-      var buildVersion: String? = "error";
+      var buildVersion: String = "error";
       if (dependencyMode.startsWith("STABLE"))
       {
          val firstDash: Int = dependencyMode.indexOf("-");
@@ -157,62 +161,98 @@ open class IHMCBuildExtension()
       }
       else
       {
-         try
+         buildVersion = dependencyMode;
+      }
+      
+      var configuration = "error"
+      if (sourceSet == "runtime")
+      {
+         configuration = "runtime"
+      }
+      else if (sourceSet == "main")
+      {
+         configuration = "compile"
+      }
+      else
+      {
+         configuration = sourceSet + "Compile"
+      }
+      
+      if (isIncludedBuild() || isIncludedBuild(artifactId))
+      {
+         return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion, "configuration" to configuration);
+      }
+      else
+      {
+         return mapOf("group" to groupId, "name" to artifactId + "-" + sourceSet, "version" to buildVersion);
+      }
+   }
+   
+   fun isIncludedBuild(artifactId: String): Boolean
+   {
+      for (includedBuild in project.gradle.includedBuilds)
+      {
+         if (artifactId == includedBuild.name)
          {
-            val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
-            builder.url = "https://artifactory.ihmc.us/artifactory"
-            builder.username = username
-            builder.password = password
-            val artifactory: Artifactory = builder.build()
-            val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories("snapshots").groupId("us.ihmc").artifactId(artifactId).doSearch()
-            
-            var latestVersion: String? = null
-            var latestBuildNumber: Int = -1
-            for (repoPath in snapshots)
-            {
-               if (repoPath.getItemPath().endsWith(".pom") || repoPath.getItemPath().endsWith("sources.jar"))
-               {
-                  continue;
-               }
-               
-               if (!repoPath.getItemPath().contains(dependencyMode))
-               {
-                  continue;
-               }
-               
-               val version: String = itemPathToVersion(repoPath.getItemPath(), artifactId);
-               val buildNumber: Int = buildNumber(version);
-               
-               // Found exact nightly
-               if (version.endsWith(dependencyMode))
-               {
-                  buildVersion = itemPathToVersion(repoPath.getItemPath(), artifactId);
-               }
-               
-               if (latestVersion == null)
-               {
-                  latestVersion = version;
-                  latestBuildNumber = buildNumber;
-               }
-               else if (buildNumber > latestBuildNumber)
-               {
-                  latestVersion = version;
-                  latestBuildNumber = buildNumber;
-               }
-            }
-            
-            buildVersion = latestVersion;
-         }
-         catch (exception: Exception)
-         {
-            System.out.println("Artifactory could not be reached, reverting to latest.");
-            buildVersion = "error";
+            println("project " + project.name + ": " + artifactId + "  == " + includedBuild.name + ": true")
+            return true
          }
       }
       
-      if (buildVersion == null) buildVersion = "error"
+      println("project " + project.name + ": " + artifactId + ": false")
+      return false;
+   }
+   
+   fun isIncludedBuild() : Boolean
+   {
+      return !project.gradle.startParameter.isSearchUpwards();
+   }
+   
+   fun latestArtifactoryVersion(artifactId: String, dependencyMode: String): String
+   {
+      val username = project.property("artifactoryUsername") as String
+      val password = project.property("artifactoryPassword") as String
+      val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
+      builder.url = "https://artifactory.ihmc.us/artifactory"
+      builder.username = username
+      builder.password = password
+      val artifactory: Artifactory = builder.build()
+      val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories("snapshots").groupId("us.ihmc").artifactId(artifactId).doSearch()
       
-      return groupId + ":" + artifactId + ":" + buildVersion;
+      var latestVersion: String = "error"
+      var latestBuildNumber: Int = -1
+      for (repoPath in snapshots)
+      {
+         if (repoPath.itemPath.contains(dependencyMode))
+         {
+            if (repoPath.itemPath.endsWith("sources.jar") || repoPath.itemPath.endsWith(".pom"))
+            {
+               continue;
+            }
+            
+            val version: String = itemPathToVersion(repoPath.itemPath, artifactId);
+            val buildNumber: Int = buildNumber(version);
+            
+            // Found exact nightly
+            if (version.endsWith(dependencyMode))
+            {
+               latestVersion = itemPathToVersion(repoPath.itemPath, artifactId);
+            }
+            
+            if (latestVersion == "error")
+            {
+               latestVersion = version;
+               latestBuildNumber = buildNumber;
+            }
+            else if (buildNumber > latestBuildNumber)
+            {
+               latestVersion = version;
+               latestBuildNumber = buildNumber;
+            }
+         }
+      }
+      
+      return latestVersion;
    }
    
    fun buildNumber(version: String): Int
@@ -316,11 +356,11 @@ open class IHMCBuildExtension()
             licenseNode.appendNode("distribution", "repo")
          }
       }
-   
+      
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
          from(sourceSet.output)
       }))
-   
+      
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
          from(sourceSet.allJava)
          classifier = "sources"
