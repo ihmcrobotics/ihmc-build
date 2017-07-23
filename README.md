@@ -1,3 +1,11 @@
-# ihmc-build
+# IHMC Gradle Build Plugin in Kotlin
 
-`ihmc-build` is a Gradle plugin that encapsulates the common build logic necessary for managing IHMC type workspaces.
+Conversion of our build plugin to Kotlin. Very active development.
+
+Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.build.ihmc-build
+
+## Goals
+
+- Get strongly typed build scripts working in IntelliJ and Eclipse
+- Utilize composite builds to make each project standalone by default
+- Keep Bamboo CI configuration powerful, minimal, and flexible
