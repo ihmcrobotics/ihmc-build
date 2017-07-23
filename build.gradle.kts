@@ -49,11 +49,8 @@ repositories {
 }
 
 dependencies {
-   compile("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.5")
-   compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.0.3")
+   compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.0")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
    compile("us.ihmc:ihmc-ci-plugin:0.14.4")
-   compile("org.jfrog.artifactory.client:artifactory-java-client-services:+")
-   compile("org.jetbrains.kotlin:kotlin-stdlib:1.1.1")
-   compile("org.gradle:gradle-kotlin-dsl:0.11.0-SNAPSHOT")
+   compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
 }
