@@ -5,12 +5,15 @@ import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.closureOf
+import org.gradle.plugins.ide.eclipse.model.EclipseModel
+import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -30,56 +33,92 @@ open class IHMCBuildExtension(val project: Project)
    fun configureProjectForOpenRobotics(project: Project)
    {
       project.run {
-         group = "us.ihmc"
-         version = "0.10.0"
-         
-         val publishMode: String = property("publishMode") as String
-         if (publishMode == "SNAPSHOT")
-         {
-            version = getSnapshotVersion(version as String, property("buildNumber") as String)
+         allprojects {
+            group = "us.ihmc"
+            version = "0.10.0"
+            
+            val publishMode: String = property("publishMode") as String
+            if (publishMode == "SNAPSHOT")
+            {
+               version = getSnapshotVersion(version as String, property("buildNumber") as String)
+            }
+            else if (publishMode == "NIGHTLY")
+            {
+               version = getNightlyVersion(version as String)
+            }
+            
+            val testSuites = extensions.getByType(TestSuiteConfiguration::class.java)
+            testSuites.bambooPlanKeys = arrayOf("LIBS-UI2", "LIBS-FAST2", "LIBS-FLAKY2", "LIBS-SLOW2", "LIBS-VIDEO2", "LIBS-INDEVELOPMENT2")
+            
+            vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
+            licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            licenseName = "Apache License, Version 2.0"
+            companyName = "IHMC"
+            maintainer = "Rosie"
+            
+            addIHMCMavenRepositories()
+            addThirdPartyMavenRepositories()
+            addPublicMavenRepositories()
+            addLocalMavenRepository()
+            
+            //setupAggressiveResolutionStrategy(project)
+            setupJavaSourceSets()
+            
+            setupCommonJARConfiguration()
+            
+            if (publishMode == "SNAPSHOT")
+            {
+               declareArtifactory("snapshots")
+            }
+            else if (publishMode == "NIGHTLY")
+            {
+               declareArtifactory("nightlies")
+            }
+            else if (publishMode == "STABLE")
+            {
+               declareBintray()
+            }
+            
+            val java = convention.getPlugin(JavaPluginConvention::class.java)
+            
+            declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
-         else if (publishMode == "NIGHTLY")
-         {
-            version = getNightlyVersion(version as String)
-         }
-         
-         val testSuites = extensions.getByType(TestSuiteConfiguration::class.java)
-         testSuites.bambooPlanKeys = arrayOf("LIBS-UI2", "LIBS-FAST2", "LIBS-FLAKY2", "LIBS-SLOW2", "LIBS-VIDEO2", "LIBS-INDEVELOPMENT2")
-         
-         vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
-         licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-         licenseName = "Apache License, Version 2.0"
-         companyName = "IHMC"
-         maintainer = "Rosie"
-         
-         addIHMCMavenRepositories()
-         addThirdPartyMavenRepositories()
-         addPublicMavenRepositories()
-         addLocalMavenRepository()
-         
-         //setupAggressiveResolutionStrategy(project)
-         setupJavaSourceSets()
-         
-         setupCommonJARConfiguration()
-         
-         if (publishMode == "SNAPSHOT")
-         {
-            declareArtifactory("snapshots")
-         }
-         else if (publishMode == "NIGHTLY")
-         {
-            declareArtifactory("nightlies")
-         }
-         else if (publishMode == "STABLE")
-         {
-            declareBintray()
-         }
-         
-         val java = convention.getPlugin(JavaPluginConvention::class.java)
-         
-         declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
-         declarePublication(name + "-test", configurations.getByName("testCompile"), java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME), name)
+         //declarePublication(name + "-test", configurations.getByName("testCompile"), java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME), name)
       }
+   }
+   
+   fun addIdeaSourceSetOutput(project: Project)
+   {
+      val idea = project.extensions.getByType(IdeaModel::class.java)
+
+//      idea.module.
+
+//      eclipse.classpath.file.beforeMerged {
+//         //eclipse.classpath.
+//      }
+      
+      val includedBuild = getIncludedBuild("project-one")
+      //eclipse.classpath.plusConfigurations.add(Configuration)
+   }
+   
+   fun addEclipseSourceSetOutput(project: Project)
+   {
+      val eclipse = project.extensions.getByType(EclipseModel::class.java)
+      
+      eclipse.classpath.file.beforeMerged {
+         //eclipse.classpath.
+      }
+      
+      val includedBuild = getIncludedBuild("project-one")
+      //eclipse.classpath.plusConfigurations.add(Configuration)
+   }
+   
+   fun addEclipseSourceSetDependency(project: Project)
+   {
+      val eclipse = project.extensions.getByType(EclipseModel::class.java)
+      
+      val includedBuild = getIncludedBuild("project-one")
+      //eclipse.classpath.plusConfigurations.add(Configuration)
    }
    
    fun getSnapshotVersion(version: String, buildNumber: String): String
@@ -99,16 +138,13 @@ open class IHMCBuildExtension(val project: Project)
       java.sourceCompatibility = JavaVersion.VERSION_1_8
       java.targetCompatibility = JavaVersion.VERSION_1_8
       
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDirs("src")
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs("src")
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs("resources")
-      java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.srcDirs("test")
-      java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.srcDirs("testResources")
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(file("src")))
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("src")))
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("resources")))
    }
    
    fun Project.addIHMCMavenRepositories()
    {
-      
       repositories.run {
          maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-vendor")
          maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-release")
@@ -140,15 +176,17 @@ open class IHMCBuildExtension(val project: Project)
       repositories.mavenLocal()
    }
    
-   fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): Map<String, String>
+   fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: Any?): Map<String, String>
    {
       return getBuildVersion(groupId, artifactId, "runtime", dependencyMode)
    }
    
-   fun getBuildVersion(groupId: String, artifactId: String, sourceSet: String, dependencyMode: String): Map<String, String>
+   fun getBuildVersion(groupId: String, artifactId: String, sourceSet: String, dependencyMode: Any?): Map<String, String>
    {
       val username = project.property("artifactoryUsername") as String
       val password = project.property("artifactoryPassword") as String
+      
+      dependencyMode as String
       
       var buildVersion: String = "error";
       if (dependencyMode.startsWith("STABLE"))
@@ -164,7 +202,7 @@ open class IHMCBuildExtension(val project: Project)
          buildVersion = dependencyMode;
       }
       
-      var configuration = "error"
+      var configuration: String
       if (sourceSet == "runtime")
       {
          configuration = "runtime"
@@ -203,7 +241,20 @@ open class IHMCBuildExtension(val project: Project)
       return false;
    }
    
-   fun isIncludedBuild() : Boolean
+   fun getIncludedBuild(artifactId: String): IncludedBuild?
+   {
+      for (includedBuild in project.gradle.includedBuilds)
+      {
+         if (artifactId == includedBuild.name)
+         {
+            return includedBuild
+         }
+      }
+      
+      return null;
+   }
+   
+   fun isIncludedBuild(): Boolean
    {
       return !project.gradle.startParameter.isSearchUpwards();
    }
@@ -246,7 +297,7 @@ open class IHMCBuildExtension(val project: Project)
             }
             else if (buildNumber > latestBuildNumber)
             {
-               latestVersion = version;
+               latestVersion = version
                latestBuildNumber = buildNumber;
             }
          }
@@ -324,18 +375,18 @@ open class IHMCBuildExtension(val project: Project)
       publication.groupId = group as String
       publication.artifactId = artifactName
       publication.version = version as String
-      
+
       publication.pom.withXml() {
          (this as XmlProvider).run {
             val dependenciesNode = asNode().appendNode("dependencies")
-            
+
             internalDependencies.forEach {
                val internalDependency = dependenciesNode.appendNode("dependency")
                internalDependency.appendNode("groupId", group)
                internalDependency.appendNode("artifactId", it)
                internalDependency.appendNode("version", version)
             }
-            
+
             configuration.allDependencies.forEach {
                if (it.name != "unspecified")
                {
@@ -345,22 +396,22 @@ open class IHMCBuildExtension(val project: Project)
                   dependencyNode.appendNode("version", it.version)
                }
             }
-            
+
             asNode().appendNode("name", name)
             asNode().appendNode("url", vcsUrl)
             val licensesNode = asNode().appendNode("licenses")
-            
+
             val licenseNode = licensesNode.appendNode("license")
             licenseNode.appendNode("name", licenseName)
             licenseNode.appendNode("url", licenseURL)
             licenseNode.appendNode("distribution", "repo")
          }
       }
-      
+
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
          from(sourceSet.output)
       }))
-      
+
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
          from(sourceSet.allJava)
          classifier = "sources"
@@ -382,39 +433,4 @@ open class IHMCBuildExtension(val project: Project)
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
-
-//   open class IntermediateArtifact : AbstractPublishArtifact
-//   {
-//      constructor(type: String, task: Task) : super(type, task)
-//
-//      override fun getDate(): Date
-//      {
-//         return null as Date
-//      }
-//
-//      override fun getFile(): File
-//      {
-//         return null as File
-//      }
-//
-//      override fun getName(): String
-//      {
-//         return file.name
-//      }
-//
-//      override fun getType(): String
-//      {
-//         return type
-//      }
-//
-//      override fun getClassifier(): String
-//      {
-//         return null as String
-//      }
-//
-//      override fun getExtension(): String
-//      {
-//         return ""
-//      }
-//   }
 }
