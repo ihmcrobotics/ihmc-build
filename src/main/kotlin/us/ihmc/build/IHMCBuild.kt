@@ -33,6 +33,8 @@ class IHMCBuild : Plugin<Project>
          extensions.add("testDependencies", IHMCTestProjectExtension(project))
          extensions.add("extraDependencies", IHMCExtraProjectExtension(project))
       }
+      
+      IHMCSettingsGenerator(project)
    }
    
    private fun <K : Project, T : Plugin<K>> Project.maybeApplyPlugin(pluginClass: Class<T>)

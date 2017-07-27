@@ -140,14 +140,6 @@ open class IHMCBuildExtension(val project: Project)
    
    fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: Any?): Map<String, String>
    {
-      return getBuildVersion(groupId, artifactId, "runtime", dependencyMode)
-   }
-   
-   fun getBuildVersion(groupId: String, artifactId: String, sourceSet: String, dependencyMode: Any?): Map<String, String>
-   {
-      val username = project.property("artifactoryUsername") as String
-      val password = project.property("artifactoryPassword") as String
-      
       dependencyMode as String
       
       var buildVersion: String = "error";
@@ -164,28 +156,7 @@ open class IHMCBuildExtension(val project: Project)
          buildVersion = dependencyMode;
       }
       
-      var configuration: String
-      if (sourceSet == "runtime")
-      {
-         configuration = "runtime"
-      }
-      else if (sourceSet == "main")
-      {
-         configuration = "compile"
-      }
-      else
-      {
-         configuration = sourceSet + "Compile"
-      }
-      
-      if (isIncludedBuild() || isIncludedBuild(artifactId))
-      {
-         return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion, "configuration" to configuration);
-      }
-      else
-      {
-         return mapOf("group" to groupId, "name" to artifactId + "-" + sourceSet, "version" to buildVersion);
-      }
+      return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion);
    }
    
    fun isIncludedBuild(artifactId: String): Boolean
@@ -337,18 +308,18 @@ open class IHMCBuildExtension(val project: Project)
       publication.groupId = group as String
       publication.artifactId = artifactName
       publication.version = version as String
-
+      
       publication.pom.withXml() {
          (this as XmlProvider).run {
             val dependenciesNode = asNode().appendNode("dependencies")
-
+            
             internalDependencies.forEach {
                val internalDependency = dependenciesNode.appendNode("dependency")
                internalDependency.appendNode("groupId", group)
                internalDependency.appendNode("artifactId", it)
                internalDependency.appendNode("version", version)
             }
-
+            
             configuration.allDependencies.forEach {
                if (it.name != "unspecified")
                {
@@ -358,22 +329,22 @@ open class IHMCBuildExtension(val project: Project)
                   dependencyNode.appendNode("version", it.version)
                }
             }
-
+            
             asNode().appendNode("name", name)
             asNode().appendNode("url", vcsUrl)
             val licensesNode = asNode().appendNode("licenses")
-
+            
             val licenseNode = licensesNode.appendNode("license")
             licenseNode.appendNode("name", licenseName)
             licenseNode.appendNode("url", licenseURL)
             licenseNode.appendNode("distribution", "repo")
          }
       }
-
+      
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
          from(sourceSet.output)
       }))
-
+      
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
          from(sourceSet.allJava)
          classifier = "sources"
