@@ -12,8 +12,6 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.closureOf
-import org.gradle.plugins.ide.eclipse.model.EclipseModel
-import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -61,7 +59,6 @@ open class IHMCBuildExtension(val project: Project)
             addPublicMavenRepositories()
             addLocalMavenRepository()
             
-            //setupAggressiveResolutionStrategy(project)
             setupJavaSourceSets()
             
             setupCommonJARConfiguration()
@@ -83,42 +80,7 @@ open class IHMCBuildExtension(val project: Project)
             
             declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
-         //declarePublication(name + "-test", configurations.getByName("testCompile"), java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME), name)
       }
-   }
-   
-   fun addIdeaSourceSetOutput(project: Project)
-   {
-      val idea = project.extensions.getByType(IdeaModel::class.java)
-
-//      idea.module.
-
-//      eclipse.classpath.file.beforeMerged {
-//         //eclipse.classpath.
-//      }
-      
-      val includedBuild = getIncludedBuild("project-one")
-      //eclipse.classpath.plusConfigurations.add(Configuration)
-   }
-   
-   fun addEclipseSourceSetOutput(project: Project)
-   {
-      val eclipse = project.extensions.getByType(EclipseModel::class.java)
-      
-      eclipse.classpath.file.beforeMerged {
-         //eclipse.classpath.
-      }
-      
-      val includedBuild = getIncludedBuild("project-one")
-      //eclipse.classpath.plusConfigurations.add(Configuration)
-   }
-   
-   fun addEclipseSourceSetDependency(project: Project)
-   {
-      val eclipse = project.extensions.getByType(EclipseModel::class.java)
-      
-      val includedBuild = getIncludedBuild("project-one")
-      //eclipse.classpath.plusConfigurations.add(Configuration)
    }
    
    fun getSnapshotVersion(version: String, buildNumber: String): String
@@ -416,17 +378,6 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          classifier = "sources"
       }))
-   }
-   
-   fun Project.setupAggressiveResolutionStrategy()
-   {
-      configurations.forEach {
-         it.resolutionStrategy.run {
-            preferProjectModules()
-            cacheDynamicVersionsFor(0, "seconds")
-            cacheChangingModulesFor(0, "seconds")
-         }
-      }
    }
    
    fun convertJobNameToHyphenatedName(jobName: String): String

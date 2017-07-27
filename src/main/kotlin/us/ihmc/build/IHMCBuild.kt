@@ -19,7 +19,6 @@ class IHMCBuild : Plugin<Project>
    {
       project.run {
          allprojects {
-            //maybeApplyPlugin(KotlinDslPlugin::class.java)
             maybeApplyPlugin(JavaPlugin::class.java)
             maybeApplyPlugin(EclipsePlugin::class.java)
             maybeApplyPlugin(IdeaPlugin::class.java)
@@ -28,11 +27,11 @@ class IHMCBuild : Plugin<Project>
             maybeApplyPlugin(AnalyzeDependenciesPlugin::class.java)
             maybeApplyPlugin(TaskTreePlugin::class.java)
             maybeApplyPlugin(IHMCContinuousIntegrationGradlePlugin::class.java)
-            //maybeApplyPlugin(KotlinScriptBasePlugin::class.java)
          }
          
          extensions.add("ihmc", IHMCBuildExtension(project))
          extensions.add("testDependencies", IHMCTestProjectExtension(project))
+         extensions.add("extraDependencies", IHMCExtraProjectExtension(project))
       }
    }
    
