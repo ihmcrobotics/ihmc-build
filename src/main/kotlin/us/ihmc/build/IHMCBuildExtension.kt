@@ -21,6 +21,9 @@ import java.time.format.DateTimeFormatter
 
 open class IHMCBuildExtension(val project: Project)
 {
+   val ihmcGroup = "us.ihmc"
+   val ihmcVersion = "0.10.0"
+   
    var vcsUrl: String = "invalid repo"
    var licenseURL: String = "no license"
    var licenseName: String = "no license"
@@ -31,8 +34,8 @@ open class IHMCBuildExtension(val project: Project)
    {
       project.run {
          allprojects {
-            group = "us.ihmc"
-            version = "0.10.0"
+            group = ihmcGroup
+            version = ihmcVersion
             
             val publishMode: String = property("publishMode") as String
             if (publishMode == "SNAPSHOT")
@@ -156,10 +159,10 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         buildVersion = dependencyMode;
+         buildVersion = "$ihmcVersion-$dependencyMode";
       }
       
-      return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion);
+      return mapOf("group" to groupId, "name" to artifactId, "version" to ihmcVersion + buildVersion);
    }
    
    fun isIncludedBuild(artifactId: String): Boolean
