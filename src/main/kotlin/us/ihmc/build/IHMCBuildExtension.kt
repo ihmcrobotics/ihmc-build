@@ -15,6 +15,7 @@ import org.gradle.kotlin.dsl.closureOf
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
+import us.ihmc.continuousIntegration.AgileTestingTools
 import us.ihmc.continuousIntegration.TestSuiteConfiguration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -162,7 +163,7 @@ open class IHMCBuildExtension(val project: Project)
          buildVersion = "$ihmcVersion-$dependencyMode";
       }
       
-      return mapOf("group" to groupId, "name" to artifactId, "version" to ihmcVersion + buildVersion);
+      return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion);
    }
    
    fun isIncludedBuild(artifactId: String): Boolean
@@ -355,5 +356,15 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          classifier = "sources"
       }))
+   }
+   
+   /**
+    * Used for artifact-test-runner to keep easy Bamboo configuration.
+    * Job names are pascal cased on Bamboo and use this method to
+    * resolve their hyphenated artifact counterparts.
+    */
+   fun convertJobNameToHyphenatedName(jobName: String): String
+   {
+      return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
 }
