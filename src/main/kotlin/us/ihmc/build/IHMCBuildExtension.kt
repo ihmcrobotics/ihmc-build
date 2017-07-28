@@ -15,7 +15,6 @@ import org.gradle.kotlin.dsl.closureOf
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
-import us.ihmc.continuousIntegration.AgileTestingTools
 import us.ihmc.continuousIntegration.TestSuiteConfiguration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -151,6 +150,10 @@ open class IHMCBuildExtension(val project: Project)
             buildVersion = dependencyMode.substring(firstDash + 1);
          }
       }
+      else if (dependencyMode == "SNAPSHOT-LATEST")
+      {
+         buildVersion = latestArtifactoryVersion(artifactId, "SNAPSHOT")
+      }
       else
       {
          buildVersion = dependencyMode;
@@ -211,44 +214,44 @@ open class IHMCBuildExtension(val project: Project)
          {
             if (repoPath.itemPath.endsWith("sources.jar") || repoPath.itemPath.endsWith(".pom"))
             {
-               continue;
+               continue
             }
             
-            val version: String = itemPathToVersion(repoPath.itemPath, artifactId);
-            val buildNumber: Int = buildNumber(version);
+            val version: String = itemPathToVersion(repoPath.itemPath, artifactId)
+            val buildNumber: Int = buildNumber(version)
             
             // Found exact nightly
             if (version.endsWith(dependencyMode))
             {
-               latestVersion = itemPathToVersion(repoPath.itemPath, artifactId);
+               latestVersion = itemPathToVersion(repoPath.itemPath, artifactId)
             }
             
             if (latestVersion == "error")
             {
-               latestVersion = version;
-               latestBuildNumber = buildNumber;
+               latestVersion = version
+               latestBuildNumber = buildNumber
             }
             else if (buildNumber > latestBuildNumber)
             {
                latestVersion = version
-               latestBuildNumber = buildNumber;
+               latestBuildNumber = buildNumber
             }
          }
       }
       
-      return latestVersion;
+      return latestVersion
    }
    
    fun buildNumber(version: String): Int
    {
-      return Integer.parseInt(version.split("-")[2]);
+      return Integer.parseInt(version.split("-")[2])
    }
    
    fun itemPathToVersion(itemPath: String, artifactId: String): String
    {
       val split: List<String> = itemPath.split("/")
       val artifact: String = split[split.size - 1]
-      val withoutDotJar: String = artifact.split("\\.jar")[0]
+      val withoutDotJar: String = artifact.split(".jar")[0]
       val version: String = withoutDotJar.substring(artifactId.length + 1)
       
       return version
@@ -349,10 +352,5 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          classifier = "sources"
       }))
-   }
-   
-   fun convertJobNameToHyphenatedName(jobName: String): String
-   {
-      return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
 }

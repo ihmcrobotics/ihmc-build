@@ -1,6 +1,9 @@
 package us.ihmc.build
 
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.closureOf
+import org.gradle.kotlin.dsl.delegateClosureOf
+import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.nio.charset.Charset
 
@@ -15,17 +18,23 @@ class IHMCSettingsGenerator(project: Project)
          
          val buildsToInclude = sortedSetOf<String>()
          
-         project.allprojects {
-            (this as Project).configurations.getByName("compile").allDependencies.forEach {
+         project.allprojects(closureOf<Project> {
+            configurations.getByName("compile").allDependencies.forEach {
                if (it.group.startsWith("us.ihmc"))
                {
                   if (file("../" + it.name).exists())
                   {
-                     buildsToInclude.add(it.name)
+                     buildsToInclude.add(it.name as String)
+                  }
+                  
+                  val pascalCasedName = AgileTestingTools.hyphenatedToPascalCased(it.name)
+                  if (file("../" + pascalCasedName).exists())
+                  {
+                     buildsToInclude.add(pascalCasedName)
                   }
                }
             }
-         }
+         })
          
          println(buildsToInclude)
          
