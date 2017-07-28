@@ -7,7 +7,9 @@ import org.gradle.kotlin.dsl.dependencies
 open class IHMCTestProjectExtension(val project: Project)
 {
    val hyphenatedName: String = project.property("hyphenatedName") as String
-   val testProject = project.project(":$hyphenatedName-test")
+   val testProject by lazy {
+         project.project(":$hyphenatedName-test")
+   }
    
    fun compile(dependencyNotation: Any?)
    {
