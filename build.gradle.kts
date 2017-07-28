@@ -8,12 +8,12 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.3.36"
+version = "0.4.0"
 
 gradlePlugin {
    (plugins) {
       "ihmc-build" {
-         id = "ihmc-build"
+         id = "us.ihmc.ihmc-build"
          implementationClass = "us.ihmc.build.IHMCBuild"
       }
    }
@@ -27,7 +27,7 @@ pluginBundle {
    
    plugins(closureOf<NamedDomainObjectContainer<PluginConfig>> {
       val plugin = PluginConfig("ihmc-build")
-      plugin.id = "ihmc-build"
+      plugin.id = "us.ihmc.ihmc-build"
       plugin.displayName = "IHMC Build Plugin"
       add(plugin)
    })
@@ -51,7 +51,7 @@ repositories {
 dependencies {
    compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.0")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
-   compile("us.ihmc:ihmc-ci-plugin:0.14.4")
+   compile("us.ihmc:ihmc-ci-plugin:0.15.3")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile("gradle.plugin.org.gradle.kotlin:gradle-kotlin-dsl-plugins:0.10.9")
 }
