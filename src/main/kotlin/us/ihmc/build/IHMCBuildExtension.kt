@@ -1,7 +1,9 @@
 package us.ihmc.build
 
+import groovy.util.Eval
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
+import org.gradle.api.UnknownProjectException
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -12,6 +14,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.closureOf
+import org.gradle.kotlin.dsl.dependencies
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -33,8 +36,14 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureProjectForOpenRobotics(project: Project)
    {
-      project.run {
-         allprojects {
+      vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
+      licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+      licenseName = "Apache License, Version 2.0"
+      companyName = "IHMC"
+      maintainer = "Rosie"
+      
+      project.allprojects {
+         (this as Project).run {
             group = ihmcGroup
             version = ihmcVersion
             
@@ -50,12 +59,6 @@ open class IHMCBuildExtension(val project: Project)
             
             val testSuites = extensions.getByType(TestSuiteConfiguration::class.java)
             testSuites.bambooPlanKeys = arrayOf("LIBS-UI2", "LIBS-FAST2", "LIBS-FLAKY2", "LIBS-SLOW2", "LIBS-VIDEO2", "LIBS-INDEVELOPMENT2")
-            
-            vcsUrl = "https://github.com/ihmcrobotics/ihmc-open-robotics-software"
-            licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-            licenseName = "Apache License, Version 2.0"
-            companyName = "IHMC"
-            maintainer = "Rosie"
             
             addIHMCMavenRepositories()
             addThirdPartyMavenRepositories()
@@ -83,6 +86,16 @@ open class IHMCBuildExtension(val project: Project)
             
             declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
+      }
+      try
+      {
+         val testProject = project.project(":" + project.property("hyphenatedName") as String + "-test")
+         testProject.dependencies {
+            add("compile", project)
+         }
+      }
+      catch (e: UnknownProjectException)
+      {
       }
    }
    
@@ -190,7 +203,7 @@ open class IHMCBuildExtension(val project: Project)
             return true
          }
       }
-   
+      
       return false;
    }
    
@@ -203,7 +216,7 @@ open class IHMCBuildExtension(val project: Project)
             return true
          }
       }
-   
+      
       return false;
    }
    
