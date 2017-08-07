@@ -60,9 +60,12 @@ class IHMCSettingsGenerator(project: Project)
             if (!buildsToInclude.isEmpty())
             {
                text += "\n"
+               text += "if (startParameter.searchUpwards)" + "\n"
+               text += "{" + "\n"
                buildsToInclude.forEach {
-                  text += "includeBuild \"../$it\"\n"
+                  text += "   includeBuild \"../$it\"\n"
                }
+               text += "}" + "\n"
             }
             
             settingsFile.writeText(text)
