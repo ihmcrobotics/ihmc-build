@@ -145,13 +145,19 @@ open class IHMCBuildExtension(val project: Project)
    {
       dependencyMode as String
       
-      var buildVersion: String = "error";
+      val buildVersion: String;
       if (dependencyMode.startsWith("STABLE"))
       {
          val firstDash: Int = dependencyMode.indexOf("-");
          if (firstDash > 0)
          {
             buildVersion = dependencyMode.substring(firstDash + 1);
+         }
+         else
+         {
+            message("Incorrect syntax for dependencyMode: $dependencyMode should be of the form STABLE-[version]")
+            message("Setting buildVersion to 'error'")
+            buildVersion = "error"
          }
       }
       else if (dependencyMode == "SNAPSHOT-LATEST")
@@ -163,21 +169,41 @@ open class IHMCBuildExtension(val project: Project)
          buildVersion = "$ihmcVersion-$dependencyMode";
       }
       
+      if (isArtifactIncluded(artifactId))
+      {
+         message(project.name + ": Using from source: " + AgileTestingTools.hyphenatedToPascalCased(artifactId))
+      }
+      else
+      {
+         message(project.name + ": Using from JAR: $groupId:$artifactId:$buildVersion")
+      }
+      
       return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion);
    }
    
-   fun isIncludedBuild(artifactId: String): Boolean
+   fun isArtifactIncluded(artifactId: String): Boolean
    {
       for (includedBuild in project.gradle.includedBuilds)
       {
-         if (artifactId == includedBuild.name)
+         if (artifactId.startsWith(includedBuild.name))
          {
-            println("project " + project.name + ": " + artifactId + "  == " + includedBuild.name + ": true")
             return true
          }
       }
-      
-      println("project " + project.name + ": " + artifactId + ": false")
+   
+      return false;
+   }
+   
+   fun isIncludedBuild(buildName: String): Boolean
+   {
+      for (includedBuild in project.gradle.includedBuilds)
+      {
+         if (buildName == includedBuild.name)
+         {
+            return true
+         }
+      }
+   
       return false;
    }
    
@@ -366,5 +392,10 @@ open class IHMCBuildExtension(val project: Project)
    fun convertJobNameToHyphenatedName(jobName: String): String
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
+   }
+   
+   fun message(message: String)
+   {
+      println("[ihmc-build] " + message)
    }
 }

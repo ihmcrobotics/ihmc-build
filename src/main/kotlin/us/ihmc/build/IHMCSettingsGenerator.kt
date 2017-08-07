@@ -10,14 +10,14 @@ class IHMCSettingsGenerator(project: Project)
    {
       if (project.hasProperty("disableSettingsGeneration") && project.property("disableSettingsGeneration") as String == "false")
       {
-         println("[WARN] IHMCSettingsGenerator: Disabling settings.gradle generation!")
+         println("[ihmc-build] [WARN] IHMCSettingsGenerator: Disabling settings.gradle generation!")
       }
       else
       {
-         project.task("generateSettings").doLast {
+         val generateSettingsTask = project.task("generateSettings").doLast {
             val settingsFile = project.rootDir.resolve("settings.gradle")
             
-            println("Generating file: " + settingsFile.absolutePath)
+            println("[ihmc-build] Generating file: " + settingsFile.absolutePath)
             
             val buildsToInclude = sortedSetOf<String>()
             
@@ -67,6 +67,11 @@ class IHMCSettingsGenerator(project: Project)
             
             settingsFile.writeText(text)
          }
+         
+         project.getTasksByName("compileJava", false).forEach {
+            it.dependsOn(generateSettingsTask)
+         }
       }
+      
    }
 }
