@@ -60,11 +60,19 @@ class IHMCSettingsGenerator(project: Project)
             if (!buildsToInclude.isEmpty())
             {
                text += "\n"
+               text += "def includes = [" + "\n"
+               buildsToInclude.forEach {
+                  text += "   \"../$it\",\n"
+               }
+               text += "]" + "\n"
+               
+               text += "\n"
                text += "if (startParameter.searchUpwards)" + "\n"
                text += "{" + "\n"
-               buildsToInclude.forEach {
-                  text += "   includeBuild \"../$it\"\n"
-               }
+               text += "   includes.each { include ->" + "\n"
+               text += "      if (new File(rootProject.projectDir, include).exists())" + "\n"
+               text += "         includeBuild include" + "\n"
+               text += "   }" + "\n"
                text += "}" + "\n"
             }
             
