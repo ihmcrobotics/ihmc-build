@@ -53,6 +53,7 @@ class IHMCSettingsGenerator(project: Project)
             text += "println \"Evaluating \" + pascalCasedName + \" settings.gradle\"" + "\n"
             text += "\n"
             text += "Eval.me(extraSourceSets).each {" + "\n"
+            text += "   new File(rootProject.projectDir, it).mkdir()" + "\n"
             text += "   include it" + "\n"
             text += "   project(\":\" + it).name = hyphenatedName + \"-\" + it" + "\n"
             text += "}" + "\n"
