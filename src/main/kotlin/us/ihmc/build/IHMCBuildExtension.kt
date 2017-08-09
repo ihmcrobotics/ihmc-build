@@ -1,10 +1,7 @@
 package us.ihmc.build
 
-import groovy.util.Eval
-import org.gradle.api.JavaVersion
-import org.gradle.api.Project
-import org.gradle.api.UnknownProjectException
-import org.gradle.api.XmlProvider
+import org.apache.commons.io.FileUtils
+import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.initialization.IncludedBuild
@@ -18,8 +15,10 @@ import org.gradle.kotlin.dsl.dependencies
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
+import us.ihmc.commons.nio.FileTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import us.ihmc.continuousIntegration.TestSuiteConfiguration
+import java.nio.file.Files
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -68,6 +67,8 @@ open class IHMCBuildExtension(val project: Project)
             setupJavaSourceSets()
             
             setupCommonJARConfiguration()
+            
+            setupCopyTestsTask()
             
             if (publishMode == "SNAPSHOT")
             {
@@ -410,5 +411,62 @@ open class IHMCBuildExtension(val project: Project)
    fun message(message: String)
    {
       println("[ihmc-build] " + message)
+   }
+   
+   /**
+    * This is temporary to keep the feature branch clean.
+    */
+   fun Project.setupCopyTestsTask()
+   {
+      task("deleteTests", closureOf<Task> {
+         doLast {
+            val testFolder = projectDir.toPath().resolve("test")
+            if (Files.exists(testFolder))
+            {
+               val testSrcFolder = testFolder.resolve("src")
+               val testSrcUsFolder = testSrcFolder.resolve("us")
+               val testUsFolder = testFolder.resolve("us")
+               
+               if (Files.exists(testUsFolder))
+               {
+                  println(testSrcFolder)
+                  println(testSrcUsFolder)
+                  println(testUsFolder)
+                  
+                  FileTools.deleteQuietly(testSrcUsFolder)
+               }
+            }
+         }
+      })
+      
+      task("copyTests", closureOf<Task> {
+         doLast {
+            val testFolder = projectDir.toPath().resolve("test")
+            if (Files.exists(testFolder))
+            {
+               val testSrcFolder = testFolder.resolve("src")
+               val testSrcUsFolder = testSrcFolder.resolve("us")
+               val testUsFolder = testFolder.resolve("us")
+               
+               if (Files.exists(testUsFolder))
+               {
+                  println(testSrcFolder)
+                  println(testSrcUsFolder)
+                  println(testUsFolder)
+                  
+                  FileTools.deleteQuietly(testSrcUsFolder)
+                  
+                  try
+                  {
+                     FileUtils.copyDirectory(testUsFolder.toFile(), testSrcUsFolder.toFile())
+                  }
+                  catch (e: Exception)
+                  {
+                     println("Failed: " + e.printStackTrace())
+                  }
+               }
+            }
+         }
+      })
    }
 }
