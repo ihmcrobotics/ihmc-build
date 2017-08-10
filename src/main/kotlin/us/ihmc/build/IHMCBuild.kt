@@ -7,8 +7,6 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
-import org.gradle.kotlin.dsl.plugins.dsl.KotlinDslPlugin
-import org.gradle.kotlin.dsl.provider.KotlinScriptBasePlugin
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import us.ihmc.continuousIntegration.IHMCContinuousIntegrationGradlePlugin
@@ -28,10 +26,14 @@ class IHMCBuild : Plugin<Project>
             maybeApplyPlugin(TaskTreePlugin::class.java)
             maybeApplyPlugin(IHMCContinuousIntegrationGradlePlugin::class.java)
          }
-         
-         extensions.add("ihmc", IHMCBuildExtension(project))
-         extensions.add("testDependencies", IHMCTestProjectExtension(project))
-         extensions.add("extraDependencies", IHMCExtraProjectExtension(project))
+   
+         val ihmcBuildExtension = IHMCBuildExtension(project)
+         extensions.add("ihmc", ihmcBuildExtension)
+         for (subproject in project.subprojects)
+         {
+            val sourceSetName = subproject.name.split("-").last()
+            extensions.add(sourceSetName + "Dependencies", IHMCExtraDependenciesExtension(project, sourceSetName, ihmcBuildExtension))
+         }
          extensions.add("settings", IHMCSettingsGenerator(project))
       }
    }

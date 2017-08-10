@@ -155,10 +155,38 @@ open class IHMCBuildExtension(val project: Project)
       repositories.mavenLocal()
    }
    
-   fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: Any?): Map<String, String>
+   fun compile(dependencyNotation: String)
    {
-      dependencyMode as String
+      val split = dependencyNotation.split(":")
+      val groupId = split[0]
+      val artifactName = split[1]
+      val dependencyMode = split[2]
+
+      val modifiedDependency = getBuildVersion(groupId, artifactName, dependencyMode)
+
+      compile(modifiedDependency[0], modifiedDependency[1], modifiedDependency[2])
+   }
+   
+   fun compile(dependencyNotation: Map<String?, Any?>)
+   {
+      val groupId = dependencyNotation.get("group") as String
+      val artifactName = dependencyNotation.get("name") as String
+      val dependencyMode = dependencyNotation.get("version") as String
+   
+      val modifiedDependency = getBuildVersion(groupId, artifactName, dependencyMode)
       
+      compile(modifiedDependency[0], modifiedDependency[1], modifiedDependency[2])
+   }
+   
+   private fun compile(group: String, name: String, version: String)
+   {
+      project.dependencies {
+         add("compile", "$group:$name:$version")
+      }
+   }
+   
+   internal fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): Array<String>
+   {
       val buildVersion: String;
       if (dependencyMode.startsWith("STABLE"))
       {
@@ -178,21 +206,25 @@ open class IHMCBuildExtension(val project: Project)
       {
          buildVersion = latestArtifactoryVersion(artifactId, "SNAPSHOT")
       }
-      else
+      else if (dependencyMode.startsWith("SNAPSHOT") || dependencyMode.startsWith("NIGHTLY"))
       {
          buildVersion = "$ihmcVersion-$dependencyMode";
       }
-      
-      if (isArtifactIncluded(artifactId))
-      {
-         message(project.name + ": Using from source: " + AgileTestingTools.hyphenatedToPascalCased(artifactId))
-      }
       else
       {
-         message(project.name + ": Using from JAR: $groupId:$artifactId:$buildVersion")
+         buildVersion = dependencyMode
       }
+
+//      if (isArtifactIncluded(artifactId))
+//      {
+//         message(project.name + ": Using from source: " + AgileTestingTools.hyphenatedToPascalCased(artifactId))
+//      }
+//      else
+//      {
+//         message(project.name + ": Using from JAR: $groupId:$artifactId:$buildVersion")
+//      }
       
-      return mapOf("group" to groupId, "name" to artifactId, "version" to buildVersion);
+      return arrayOf(groupId, artifactId, buildVersion);
    }
    
    fun isArtifactIncluded(artifactId: String): Boolean
