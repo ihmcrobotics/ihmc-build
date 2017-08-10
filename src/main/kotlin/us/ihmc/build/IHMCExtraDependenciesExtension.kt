@@ -44,6 +44,7 @@ open class IHMCExtraDependenciesExtension(val project: Project, val name: String
    private fun compile(group: String, name: String, version: String)
    {
       subproject.dependencies {
+         println("[ihmc-build] Adding dependency to " + subproject.name + ": $group:$name:$version")
          add("compile", "$group:$name:$version")
       }
    }

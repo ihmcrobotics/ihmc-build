@@ -181,6 +181,7 @@ open class IHMCBuildExtension(val project: Project)
    private fun compile(group: String, name: String, version: String)
    {
       project.dependencies {
+         println("[ihmc-build] Adding dependency to " + project.name + ": $group:$name:$version")
          add("compile", "$group:$name:$version")
       }
    }
