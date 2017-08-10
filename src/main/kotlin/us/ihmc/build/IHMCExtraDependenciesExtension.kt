@@ -1,5 +1,6 @@
 package us.ihmc.build
 
+import groovy.lang.Closure
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.dependencies
@@ -8,10 +9,24 @@ open class IHMCExtraDependenciesExtension(val project: Project, val name: String
 {
    val hyphenatedName: String = project.property("hyphenatedName") as String
    val subproject by lazy {
-      project.project(":$hyphenatedName-$name")
+      if (name == "main")
+      {
+         project
+      }
+      else
+      {
+         project.project(":$hyphenatedName-$name")
+      }
    }
    
-   fun compile(project: Project)
+   fun compile(dependencyNotation: Object, closure: Closure<Any>)
+   {
+      subproject.dependencies {
+         add("compile", project, closure)
+      }
+   }
+   
+   fun compile(dependencyNotation: Object)
    {
       subproject.dependencies {
          add("compile", project)
