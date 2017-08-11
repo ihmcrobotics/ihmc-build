@@ -22,6 +22,7 @@ open class IHMCExtraDependenciesExtension(val project: Project, val name: String
    fun compile(dependencyNotation: Object, closure: Closure<Any>)
    {
       subproject.dependencies {
+         println("[ihmc-build] Adding dependency to " + subproject.name + ": $dependencyNotation")
          add("compile", dependencyNotation, closure)
       }
    }
@@ -29,6 +30,7 @@ open class IHMCExtraDependenciesExtension(val project: Project, val name: String
    fun compile(dependencyNotation: Object)
    {
       subproject.dependencies {
+         println("[ihmc-build] Adding dependency to " + subproject.name + ": $dependencyNotation")
          add("compile", dependencyNotation)
       }
    }

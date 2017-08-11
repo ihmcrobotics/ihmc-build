@@ -58,6 +58,7 @@ open class IHMCBuildExtension(val project: Project)
             
             val testSuites = extensions.getByType(TestSuiteConfiguration::class.java)
             testSuites.bambooPlanKeys = arrayOf("LIBS-UI2", "LIBS-FAST2", "LIBS-FLAKY2", "LIBS-SLOW2", "LIBS-VIDEO2", "LIBS-INDEVELOPMENT2")
+            testSuites.disableBambooConfigurationCheck = true
             
             addIHMCMavenRepositories()
             addThirdPartyMavenRepositories()
