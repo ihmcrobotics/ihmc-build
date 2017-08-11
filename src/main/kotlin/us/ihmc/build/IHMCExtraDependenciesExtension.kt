@@ -2,67 +2,155 @@ package us.ihmc.build
 
 import groovy.lang.Closure
 import org.gradle.api.Project
-import org.gradle.api.artifacts.dsl.DependencyHandler
-import org.gradle.kotlin.dsl.dependencies
+import org.gradle.internal.metaobject.DynamicInvokeResult
+import org.gradle.internal.metaobject.MethodAccess
+import org.gradle.internal.metaobject.MethodMixIn
+import org.gradle.util.CollectionUtils
 
-open class IHMCExtraDependenciesExtension(val project: Project, val name: String, val ihmcBuildExtension: IHMCBuildExtension)
+open class IHMCExtraDependenciesExtension(val rootProject: Project, val name: String, val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
 {
-   val hyphenatedName: String = project.property("hyphenatedName") as String
-   val subproject by lazy {
+   val hyphenatedName: String = rootProject.property("hyphenatedName") as String
+   val projectToConfigure by lazy {
       if (name == "main")
       {
-         project
+         rootProject
       }
       else
       {
-         project.project(":$hyphenatedName-$name")
+         rootProject.project(":$hyphenatedName-$name")
+      }
+   }
+   private val dynamicMethods = DynamicMethods()
+   
+   fun add(configurationName: String, dependencyNotation: Object)
+   {
+      val modifiedDependencyNotation = modifyDependency(dependencyNotation)
+      
+      println("[ihmc-build] Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
+      projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation)
+   }
+   
+   fun add(configurationName: String, dependencyNotation: Object, configureClosure: Closure<Any>)
+   {
+      val modifiedDependencyNotation = modifyDependency(dependencyNotation)
+      
+      println("[ihmc-build] Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
+      projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation, configureClosure)
+   }
+   
+   private fun modifyDependency(dependencyNotation: Any): Object
+   {
+      if (dependencyNotation is String)
+      {
+         val split = dependencyNotation.split(":")
+         
+         val modifiedVersion = ihmcBuildExtension.getBuildVersion(split[0], split[1], split[2])
+         
+         var modifiedString = ""
+         for (i in split.indices)
+         {
+            if (i == 2)
+            {
+               modifiedString += modifiedVersion
+            }
+            else
+            {
+               modifiedString += split[i]
+            }
+            
+            if (i < split.size - 1)
+            {
+               modifiedString += ":"
+            }
+         }
+         
+         return modifiedString as Object
+      }
+      else if (dependencyNotation is Map<*, *>)
+      {
+         val groupId: String
+         val artifactName: String
+         val dependencyMode: String
+         
+         if (dependencyNotation.contains("group") && dependencyNotation.get("group") is String)
+         {
+            groupId = dependencyNotation.get("group") as String
+         }
+         else
+         {
+            return dependencyNotation as Object
+         }
+         if (dependencyNotation.contains("name") && dependencyNotation.get("name") is String)
+         {
+            artifactName = dependencyNotation.get("name") as String
+         }
+         else
+         {
+            return dependencyNotation as Object
+         }
+         if (dependencyNotation.contains("version") && dependencyNotation.get("version") is String)
+         {
+            dependencyMode = dependencyNotation.get("version") as String
+         }
+         else
+         {
+            return dependencyNotation as Object
+         }
+         
+         val modifiedVersion = ihmcBuildExtension.getBuildVersion(groupId, artifactName, dependencyMode)
+         
+         var modifiedMap = hashMapOf<String, String>()
+         
+         for (entry in dependencyNotation)
+         {
+            modifiedMap.put(entry.key as String, entry.value as String)
+         }
+         modifiedMap.put("version", modifiedVersion)
+         
+         return modifiedMap as Object
+      }
+      else
+      {
+         return dependencyNotation as Object
       }
    }
    
-   fun compile(dependencyNotation: Object, closure: Closure<Any>)
+   override fun getAdditionalMethods(): MethodAccess
    {
-      subproject.dependencies {
-         println("[ihmc-build] Adding dependency to " + subproject.name + ": $dependencyNotation")
-         add("compile", dependencyNotation, closure)
+      return dynamicMethods
+   }
+   
+   private inner class DynamicMethods : MethodAccess
+   {
+      override fun hasMethod(name: String, vararg arguments: Any): Boolean
+      {
+         return arguments.size != 0 && projectToConfigure.configurations.findByName(name) != null
       }
-   }
-   
-   fun compile(dependencyNotation: Object)
-   {
-      subproject.dependencies {
-         println("[ihmc-build] Adding dependency to " + subproject.name + ": $dependencyNotation")
-         add("compile", dependencyNotation)
-      }
-   }
-   
-   fun compile(dependencyNotation: String)
-   {
-      val split = dependencyNotation.split(":")
-      val groupId = split[0]
-      val artifactName = split[1]
-      val dependencyMode = split[2]
       
-      val modifiedDependency = ihmcBuildExtension.getBuildVersion(groupId, artifactName, dependencyMode)
-      
-      compile(modifiedDependency[0], modifiedDependency[1], modifiedDependency[2])
-   }
-   
-   fun compile(dependencyNotation: Map<String?, Any?>)
-   {
-      val groupId = dependencyNotation.get("group") as String
-      val artifactName = dependencyNotation.get("name") as String
-      val dependencyMode = dependencyNotation.get("version") as String
-      
-      val modifiedDependency = ihmcBuildExtension.getBuildVersion(groupId, artifactName, dependencyMode)
-      
-      compile(modifiedDependency[0], modifiedDependency[1], modifiedDependency[2])
-   }
-   
-   private fun compile(group: String, name: String, version: String)
-   {
-      subproject.dependencies {
-         println("[ihmc-build] Adding dependency to " + subproject.name + ": $group:$name:$version")
-         add("compile", "$group:$name:$version")
+      override fun tryInvokeMethod(name: String, vararg arguments: Any): DynamicInvokeResult
+      {
+         if (arguments.size == 0)
+         {
+            return DynamicInvokeResult.notFound()
+         }
+         val configuration = projectToConfigure.configurations.findByName(name) ?: return DynamicInvokeResult.notFound()
+         val normalizedArgs = CollectionUtils.flattenCollections(*arguments)
+         if (normalizedArgs.size == 2 && normalizedArgs[1] is Closure<*>)
+         {
+            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Object, normalizedArgs[1] as Closure<Any>))
+         }
+         else if (normalizedArgs.size == 1)
+         {
+            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Object))
+         }
+         else
+         {
+            for (arg in normalizedArgs)
+            {
+               add(configuration.name, arg as Object)
+            }
+            return DynamicInvokeResult.found()
+         }
       }
    }
 }

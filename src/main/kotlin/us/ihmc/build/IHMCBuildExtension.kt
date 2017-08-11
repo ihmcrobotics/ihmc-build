@@ -163,9 +163,9 @@ open class IHMCBuildExtension(val project: Project)
       val artifactName = split[1]
       val dependencyMode = split[2]
 
-      val modifiedDependency = getBuildVersion(groupId, artifactName, dependencyMode)
+      val modifiedVersion = getBuildVersion(groupId, artifactName, dependencyMode)
 
-      compile(modifiedDependency[0], modifiedDependency[1], modifiedDependency[2])
+      compile(groupId, artifactName, modifiedVersion)
    }
    
    fun compile(dependencyNotation: Map<String?, Any?>)
@@ -174,9 +174,9 @@ open class IHMCBuildExtension(val project: Project)
       val artifactName = dependencyNotation.get("name") as String
       val dependencyMode = dependencyNotation.get("version") as String
    
-      val modifiedDependency = getBuildVersion(groupId, artifactName, dependencyMode)
+      val modifiedVersion = getBuildVersion(groupId, artifactName, dependencyMode)
       
-      compile(modifiedDependency[0], modifiedDependency[1], modifiedDependency[2])
+      compile(groupId, artifactName, modifiedVersion)
    }
    
    private fun compile(group: String, name: String, version: String)
@@ -187,7 +187,7 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   internal fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): Array<String>
+   internal fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): String
    {
       val buildVersion: String;
       if (dependencyMode.startsWith("STABLE"))
@@ -226,7 +226,7 @@ open class IHMCBuildExtension(val project: Project)
 //         message(project.name + ": Using from JAR: $groupId:$artifactId:$buildVersion")
 //      }
       
-      return arrayOf(groupId, artifactId, buildVersion);
+      return buildVersion;
    }
    
    fun isArtifactIncluded(artifactId: String): Boolean
