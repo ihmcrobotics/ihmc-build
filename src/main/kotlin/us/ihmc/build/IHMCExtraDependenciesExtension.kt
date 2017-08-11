@@ -99,11 +99,11 @@ open class IHMCExtraDependenciesExtension(val rootProject: Project, val name: St
          
          val modifiedVersion = ihmcBuildExtension.getBuildVersion(groupId, artifactName, dependencyMode)
          
-         var modifiedMap = hashMapOf<String, String>()
+         var modifiedMap = hashMapOf<String, Any?>()
          
          for (entry in dependencyNotation)
          {
-            modifiedMap.put(entry.key as String, entry.value as String)
+            modifiedMap.put(entry.key as String, entry.value)
          }
          modifiedMap.put("version", modifiedVersion)
          
