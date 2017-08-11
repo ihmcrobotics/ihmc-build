@@ -18,6 +18,7 @@ import org.jfrog.artifactory.client.model.RepoPath
 import us.ihmc.commons.nio.FileTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import us.ihmc.continuousIntegration.TestSuiteConfiguration
+import java.io.File
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -454,53 +455,65 @@ open class IHMCBuildExtension(val project: Project)
    {
       task("deleteTests", closureOf<Task> {
          doLast {
-            val testFolder = projectDir.toPath().resolve("test")
-            if (Files.exists(testFolder))
-            {
-               val testSrcFolder = testFolder.resolve("src")
-               val testSrcUsFolder = testSrcFolder.resolve("us")
-               val testUsFolder = testFolder.resolve("us")
-               
-               if (Files.exists(testUsFolder))
-               {
-                  println(testSrcFolder)
-                  println(testSrcUsFolder)
-                  println(testUsFolder)
-                  
-                  FileTools.deleteQuietly(testSrcUsFolder)
-               }
-            }
+            deleteTestsFromProject(projectDir, "test")
+            deleteTestsFromProject(projectDir, "visualizers")
          }
       })
-      
+   
       task("copyTests", closureOf<Task> {
          doLast {
-            val testFolder = projectDir.toPath().resolve("test")
-            if (Files.exists(testFolder))
-            {
-               val testSrcFolder = testFolder.resolve("src")
-               val testSrcUsFolder = testSrcFolder.resolve("us")
-               val testUsFolder = testFolder.resolve("us")
-               
-               if (Files.exists(testUsFolder))
-               {
-                  println(testSrcFolder)
-                  println(testSrcUsFolder)
-                  println(testUsFolder)
-                  
-                  FileTools.deleteQuietly(testSrcUsFolder)
-                  
-                  try
-                  {
-                     FileUtils.copyDirectory(testUsFolder.toFile(), testSrcUsFolder.toFile())
-                  }
-                  catch (e: Exception)
-                  {
-                     println("Failed: " + e.printStackTrace())
-                  }
-               }
-            }
+            copyTestsForProject(projectDir, "test")
+            copyTestsForProject(projectDir, "visualizers")
          }
       })
+   }
+   
+   fun copyTestsForProject(projectDir: File, sourceFolder: String)
+   {
+      val subprojectFolder = projectDir.toPath().resolve(sourceFolder)
+      if (Files.exists(subprojectFolder))
+      {
+         val testSrcFolder = subprojectFolder.resolve("src")
+         val testSrcUsFolder = testSrcFolder.resolve("us")
+         val testUsFolder = subprojectFolder.resolve("us")
+      
+         if (Files.exists(testUsFolder))
+         {
+            println("[ihmc-build] " + testSrcFolder)
+            println("[ihmc-build] " + testSrcUsFolder)
+            println("[ihmc-build] " + testUsFolder)
+         
+            FileTools.deleteQuietly(testSrcUsFolder)
+         
+            try
+            {
+               FileUtils.copyDirectory(testUsFolder.toFile(), testSrcUsFolder.toFile())
+            }
+            catch (e: Exception)
+            {
+               println("Failed: " + e.printStackTrace())
+            }
+         }
+      }
+   }
+   
+   fun deleteTestsFromProject(projectDir: File, sourceFolder: String)
+   {
+      val subprojectFolder = projectDir.toPath().resolve(sourceFolder)
+      if (Files.exists(subprojectFolder))
+      {
+         val testSrcFolder = subprojectFolder.resolve("src")
+         val testSrcUsFolder = testSrcFolder.resolve("us")
+         val testUsFolder = subprojectFolder.resolve("us")
+      
+         if (Files.exists(testUsFolder))
+         {
+            println("[ihmc-build] " + testSrcFolder)
+            println("[ihmc-build] " + testSrcUsFolder)
+            println("[ihmc-build] " + testUsFolder)
+         
+            FileTools.deleteQuietly(testSrcUsFolder)
+         }
+      }
    }
 }
