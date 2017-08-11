@@ -22,14 +22,14 @@ open class IHMCExtraDependenciesExtension(val project: Project, val name: String
    fun compile(dependencyNotation: Object, closure: Closure<Any>)
    {
       subproject.dependencies {
-         add("compile", project, closure)
+         add("compile", dependencyNotation, closure)
       }
    }
    
    fun compile(dependencyNotation: Object)
    {
       subproject.dependencies {
-         add("compile", project)
+         add("compile", dependencyNotation)
       }
    }
    
