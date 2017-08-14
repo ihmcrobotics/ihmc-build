@@ -7,7 +7,7 @@ import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
 import org.gradle.util.CollectionUtils
 
-open class IHMCExtraDependenciesExtension(val rootProject: Project, val name: String, val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
+open class IHMCDependenciesExtension(val rootProject: Project, val name: String, val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
 {
    val hyphenatedName: String = rootProject.property("hyphenatedName") as String
    val projectToConfigure by lazy {

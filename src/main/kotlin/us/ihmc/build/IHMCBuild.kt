@@ -29,11 +29,11 @@ class IHMCBuild : Plugin<Project>
    
          val ihmcBuildExtension = IHMCBuildExtension(project)
          extensions.add("ihmc", ihmcBuildExtension)
-         extensions.add("mainDependencies", IHMCExtraDependenciesExtension(project, "main", ihmcBuildExtension))
+         extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension))
          for (subproject in project.subprojects)
          {
             val sourceSetName = subproject.name.split("-").last()
-            extensions.add(sourceSetName + "Dependencies", IHMCExtraDependenciesExtension(project, sourceSetName, ihmcBuildExtension))
+            extensions.add(sourceSetName + "Dependencies", IHMCDependenciesExtension(project, sourceSetName, ihmcBuildExtension))
          }
          extensions.add("settings", IHMCSettingsGenerator(project))
       }
