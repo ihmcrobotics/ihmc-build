@@ -9,7 +9,7 @@ class IHMCSettingsGenerator(project: Project)
 {
    init
    {
-      if (project.hasProperty("disableSettingsGeneration") && project.property("disableSettingsGeneration") as String == "false")
+      if (project.hasProperty("disableSettingsGeneration") && project.property("disableSettingsGeneration") as String == "true")
       {
          println("[ihmc-build] [WARN] IHMCSettingsGenerator: Disabling settings.gradle generation!")
       }

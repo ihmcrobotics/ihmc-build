@@ -43,10 +43,10 @@ open class IHMCBuildExtension(val project: Project)
    private val buildNumberProperty = project.property("buildNumber") as String
    private val hyphenatedNameProperty = project.property("hyphenatedName") as String
    
-   fun loadRepositoryWideProperties(propertiesFilePath: Path)
+   fun loadProductProperties(propertiesFilePath: String)
    {
       val properties = Properties()
-      properties.load(FileInputStream(propertiesFilePath.toFile()))
+      properties.load(FileInputStream(project.projectDir.toPath().resolve(propertiesFilePath).toFile()))
       for (property in properties)
       {
          if (property.key as String == "group")
