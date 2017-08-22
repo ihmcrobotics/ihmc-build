@@ -43,7 +43,10 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       if (settings.startParameter.isSearchUpwards)
       {
          val compositeBuildAssembler = IHMCCompositeBuildAssembler(this)
-         compositeBuildAssembler.findCompositeBuilds()
+         for (buildToInclude in compositeBuildAssembler.findCompositeBuilds())
+         {
+            settings.includeBuild(buildToInclude)
+         }
       }
    }
    
