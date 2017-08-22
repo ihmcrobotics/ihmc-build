@@ -28,13 +28,26 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       settings.rootProject.name = hyphenatedName
    }
    
-   fun configureExtraSourceSetsAsSubprojects(hyphenatedName: String, extraSourceSets: String)
+   fun configureExtraSourceSets(dummyVar2: Any?)
    {
-      for (sourceSetName: String in Eval.me(extraSourceSets) as List<String>)
+      for (sourceSetName in extraSourceSets)
       {
-         File(settings.rootProject.projectDir, sourceSetName).mkdir()
-         settings.include(arrayOf(sourceSetName))
-         settings.project(":" + sourceSetName).name = settings.rootProject.name + "-" + sourceSetName
+         val dir1 = File(settings.rootProject.projectDir, sourceSetName)
+         dir1.mkdir()
+         File(dir1, "src").mkdir()
+      }
+      
+      if (ext.has("useLegacySourceSets") && ext.get("useLegacySourceSets") as String == "true")
+      {
+      
+      }
+      else
+      {
+         for (sourceSetName in extraSourceSets)
+         {
+            settings.include(arrayOf(sourceSetName))
+            settings.project(":" + sourceSetName).name = settings.rootProject.name + "-" + sourceSetName
+         }
       }
    }
    

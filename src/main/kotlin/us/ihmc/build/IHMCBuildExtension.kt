@@ -168,6 +168,31 @@ open class IHMCBuildExtension(val project: Project)
       java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(file("src")))
       java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("src")))
       java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("resources")))
+      
+      if (hasProperty("useLegacySourceSets") && property("useLegacySourceSets") == "true")
+      {
+         if (hasProperty("extraSourceSets"))
+         {
+            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
+   
+            for (extraSourceSet in extraSourceSets)
+            {
+               if (extraSourceSet == "test")
+               {
+                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(file("test/src")))
+                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("test/src")))
+                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("test/resources")))
+               }
+               else
+               {
+                  java.sourceSets.create(extraSourceSet)
+                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(file("$extraSourceSet/src")))
+                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(file("$extraSourceSet/src")))
+                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(file("$extraSourceSet/resources")))
+               }
+            }
+         }
+      }
    }
    
    fun Project.addIHMCMavenRepositories()
