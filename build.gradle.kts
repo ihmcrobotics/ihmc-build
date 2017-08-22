@@ -8,13 +8,13 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.5.4"
+version = "0.5.5"
 
 gradlePlugin {
    (plugins) {
       "ihmc-build" {
          id = "us.ihmc.ihmc-build"
-         implementationClass = "us.ihmc.build.IHMCBuild"
+         implementationClass = "us.ihmc.build.IHMCBuildPlugin"
       }
    }
 }

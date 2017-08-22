@@ -36,4 +36,12 @@ class IHMCSettingsGenerator(project: Project)
       val fileContent = IHMCSettingsGenerator::class.java.getResource("/settings.gradle").readText()
       settingsFile.writeText(fileContent)
    }
+   
+   companion object {
+      @JvmStatic
+      fun testSettingsGenerationFromClasspath()
+      {
+         println("What a wonderful world")
+      }
+   }
 }

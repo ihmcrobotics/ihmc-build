@@ -96,6 +96,17 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   fun repository(url: String)
+   {
+      project.allprojects {
+         (this as Project).run {
+            repositories.run {
+               maven {}.url = uri(url)
+            }
+         }
+      }
+   }
+   
    fun configurePublications()
    {
       if (openSource)

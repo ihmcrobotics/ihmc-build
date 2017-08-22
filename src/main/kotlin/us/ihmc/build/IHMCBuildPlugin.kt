@@ -11,7 +11,7 @@ import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import us.ihmc.continuousIntegration.IHMCContinuousIntegrationGradlePlugin
 
-class IHMCBuild : Plugin<Project>
+class IHMCBuildPlugin : Plugin<Project>
 {
    override fun apply(project: Project)
    {

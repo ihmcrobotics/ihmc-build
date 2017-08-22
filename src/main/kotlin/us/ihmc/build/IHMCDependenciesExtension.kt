@@ -7,10 +7,10 @@ import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
 import org.gradle.util.CollectionUtils
 
-open class IHMCDependenciesExtension(val rootProject: Project, val name: String, val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
+open class IHMCDependenciesExtension(private val rootProject: Project, private val name: String, private val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
 {
-   val hyphenatedName: String = rootProject.property("hyphenatedName") as String
-   val projectToConfigure by lazy {
+   private val hyphenatedName: String = rootProject.property("hyphenatedName") as String
+   private val projectToConfigure by lazy {
       if (name == "main")
       {
          rootProject
@@ -22,20 +22,30 @@ open class IHMCDependenciesExtension(val rootProject: Project, val name: String,
    }
    private val dynamicMethods = DynamicMethods()
    
-   fun add(configurationName: String, dependencyNotation: Object)
+   private fun add(configurationName: String, dependencyNotation: Object)
    {
-      val modifiedDependencyNotation = modifyDependency(dependencyNotation)
-      
-      println("[ihmc-build] Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
+      val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
       projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation)
    }
    
-   fun add(configurationName: String, dependencyNotation: Object, configureClosure: Closure<Any>)
+   private fun add(configurationName: String, dependencyNotation: Object, configureClosure: Closure<Any>)
+   {
+      val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
+      projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation, configureClosure)
+   }
+   
+   private fun processDependencyDeclaration(configurationName: String, dependencyNotation: Object): Object
    {
       val modifiedDependencyNotation = modifyDependency(dependencyNotation)
-      
+   
       println("[ihmc-build] Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
-      projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation, configureClosure)
+      
+      if (configurationName != "compile")
+      {
+         println("[ihmc-build] [WARN] Unusual dependency on configuration: " + configurationName + ": " + dependencyNotation)
+      }
+      
+      return modifiedDependencyNotation
    }
    
    private fun modifyDependency(dependencyNotation: Any): Object
