@@ -21,6 +21,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    init
    {
       logger.info("[ihmc-build] Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
+      ext.set("org.gradle.workers.max", 200)
    }
    
    fun configureProjectName(hyphenatedName: String)
