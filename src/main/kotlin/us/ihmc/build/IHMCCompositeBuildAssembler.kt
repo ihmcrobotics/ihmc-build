@@ -197,11 +197,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          for (dependency in dependencies)
          {
-            if (dependency[0] == "us.ihmc")
-            {
-               logger.info("[ihmc-build] Found declared us.ihmc dependency: " + dependency[1])
-               dependencySet.add(dependency[1])
-            }
+            logger.info("[ihmc-build] Found declared dependency: " + dependency[1])
+            dependencySet.add(dependency[1])
          }
       }
       catch (e: NoSuchFileException)

@@ -68,7 +68,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    {
       checkForPropertyInternal("hyphenatedName", "your-project-hyphenated")
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      checkForPropertyInternal("extraSourceSets", "[\"\"] (ex. [\"test\", \"visualizers\"]")
+      checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
       checkForPropertyInternal("dependencyMode", "SNAPSHOT-LATEST (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
