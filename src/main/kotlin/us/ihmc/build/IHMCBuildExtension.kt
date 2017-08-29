@@ -160,6 +160,7 @@ open class IHMCBuildExtension(val project: Project)
             groupDependencyVersion += "-LATEST"
          }
          
+         printQuiet("Altering groupDependencyVersion from SNAPSHOT-BAMBOO to $groupDependencyVersion")
          project.setProperty("groupDependencyVersion", groupDependencyVersion)
       }
    }
@@ -365,7 +366,7 @@ open class IHMCBuildExtension(val project: Project)
       var latestBuildNumber: Int = -1
       for (repoPath in snapshots)
       {
-         if (repoPath.itemPath.contains(groupDependencyVersion))
+         if (repoPath.itemPath.contains(groupDependencyVersionWithoutBuildNumber))
          {
             if (repoPath.itemPath.endsWith("sources.jar") || repoPath.itemPath.endsWith(".pom"))
             {
