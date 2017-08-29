@@ -15,6 +15,7 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -38,9 +39,51 @@ open class IHMCBuildExtension(val project: Project)
    var companyName: String = "IHMC"
    var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
    
-   private val publishModeProperty = project.property("publishMode") as String
-   private val buildNumberProperty = project.property("buildNumber") as String
-   private val hyphenatedNameProperty = project.property("hyphenatedName") as String
+   private val bintrayUser: String
+   private val bintrayApiKey: String
+   private val artifactoryUsername: String
+   private val artifactoryPassword: String
+   
+   private val publishModeProperty: String
+   private val hyphenatedNameProperty: String
+   private val bambooBranchNameProperty: String
+   private val bambooBuildNumberProperty: String
+   private val bambooParentBuildKeyProperty: String
+   private val groupDependencyVersionProperty: String
+   
+   init
+   {
+      bintrayUser = setupPropertyWithDefault("bintray_user", "unset_user")
+      bintrayApiKey = setupPropertyWithDefault("bintray_key", "unset_api_key")
+      artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
+      artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
+      
+      groupDependencyVersionProperty = setupPropertyWithDefault("groupDependencyVersion", "SNAPSHOT-LATEST")
+      publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
+      hyphenatedNameProperty = setupPropertyWithDefault("hyphenatedName", "")
+      bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
+      bambooBranchNameProperty = setupPropertyWithDefault("bambooBranchName", "")
+      bambooParentBuildKeyProperty = setupPropertyWithDefault("bambooParentBuildKey", "")
+   }
+   
+   fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
+   {
+      if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
+      {
+         return project.property(propertyName) as String
+      }
+      else
+      {
+         if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
+            printQuiet("Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
+         if (propertyName == "bintray_user" || propertyName == "bintray_key")
+            printQuiet("Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
+   
+         printQuiet("No value found for $propertyName. Using default value: $defaultValue")
+         project.extra.set(propertyName, defaultValue)
+         return defaultValue
+      }
+   }
    
    fun loadProductProperties(propertiesFilePath: String)
    {
@@ -51,28 +94,30 @@ open class IHMCBuildExtension(val project: Project)
          if (property.key as String == "group")
          {
             productGroup = property.value as String
-            message("Loaded group: " + productGroup)
+            printQuiet("Loaded group: " + productGroup)
          }
          if (property.key as String == "version")
          {
             productVersion = property.value as String
-            message("Loaded version: " + productVersion)
+            printQuiet("Loaded version: " + productVersion)
          }
          if (property.key as String == "vcsUrl")
          {
             vcsUrl = property.value as String
-            message("Loaded vcsUrl: " + vcsUrl)
+            printQuiet("Loaded vcsUrl: " + vcsUrl)
          }
          if (property.key as String == "openSource")
          {
             openSource = Eval.me(property.value as String) as Boolean
-            message("Loaded openSource: " + openSource)
+            printQuiet("Loaded openSource: " + openSource)
          }
       }
    }
    
    fun configureDependencyResolution()
    {
+      configureGroupDependencyVersion()
+      
       project.allprojects {
          (this as Project).run {
             addIHMCMavenRepositories()
@@ -93,6 +138,30 @@ open class IHMCBuildExtension(val project: Project)
       }
       catch (e: UnknownProjectException)
       {
+      }
+   }
+   
+   fun configureGroupDependencyVersion()
+   {
+      if (groupDependencyVersionProperty.startsWith("SNAPSHOT-BAMBOO"))
+      {
+         var groupDependencyVersion = "SNAPSHOT"
+   
+         if (!bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop")
+         {
+            groupDependencyVersion += "-$bambooBranchNameProperty"
+         }
+   
+         if (!bambooParentBuildKeyProperty.isEmpty())
+         {
+            groupDependencyVersion += "-" + bambooParentBuildKeyProperty.split("-").last()
+         }
+         else
+         {
+            groupDependencyVersion += "-LATEST"
+         }
+         
+         project.setProperty("groupDependencyVersion", groupDependencyVersion)
       }
    }
    
@@ -122,11 +191,7 @@ open class IHMCBuildExtension(val project: Project)
             
             if (publishModeProperty == "SNAPSHOT")
             {
-               version = getSnapshotVersion(version as String, buildNumberProperty)
-            }
-            else if (publishModeProperty == "NIGHTLY")
-            {
-               version = getNightlyVersion(version as String)
+               version = getSnapshotVersion(version as String)
             }
             
             configureJarManifest(maintainer, companyName, licenseURL)
@@ -134,10 +199,6 @@ open class IHMCBuildExtension(val project: Project)
             if (publishModeProperty == "SNAPSHOT")
             {
                declareArtifactory("snapshots")
-            }
-            else if (publishModeProperty == "NIGHTLY")
-            {
-               declareArtifactory("nightlies")
             }
             else if (publishModeProperty == "STABLE")
             {
@@ -174,7 +235,7 @@ open class IHMCBuildExtension(val project: Project)
          if (hasProperty("extraSourceSets"))
          {
             val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
-   
+            
             for (extraSourceSet in extraSourceSets)
             {
                if (extraSourceSet == "test")
@@ -232,9 +293,25 @@ open class IHMCBuildExtension(val project: Project)
       repositories.mavenLocal()
    }
    
-   fun getSnapshotVersion(version: String, buildNumber: String): String
+   fun getSnapshotVersion(version: String): String
    {
-      return version + "-SNAPSHOT-" + buildNumber
+      var snapshotVersion = version + "-SNAPSHOT"
+      
+      if (!bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop")
+      {
+         snapshotVersion += "-$bambooBranchNameProperty"
+      }
+      
+      if (!bambooParentBuildKeyProperty.isEmpty())
+      {
+         snapshotVersion += "-" + bambooParentBuildKeyProperty.split("-").last()
+      }
+      else
+      {
+         snapshotVersion += "-$bambooBuildNumberProperty"
+      }
+      
+      return snapshotVersion
    }
    
    fun getNightlyVersion(version: String): String
@@ -242,51 +319,45 @@ open class IHMCBuildExtension(val project: Project)
       return version + "-NIGHTLY-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
    }
    
-   internal fun getBuildVersion(groupId: String, artifactId: String, dependencyMode: String): String
+   internal fun getBuildVersion(groupId: String, artifactId: String, groupDependencyVersion: String): String
    {
       val buildVersion: String;
-      if (dependencyMode.startsWith("STABLE"))
+      if (groupDependencyVersion.startsWith("STABLE"))
       {
-         val firstDash: Int = dependencyMode.indexOf("-");
+         val firstDash: Int = groupDependencyVersion.indexOf("-");
          if (firstDash > 0)
          {
-            buildVersion = dependencyMode.substring(firstDash + 1);
+            buildVersion = groupDependencyVersion.substring(firstDash + 1);
          }
          else
          {
-            message("Incorrect syntax for dependencyMode: $dependencyMode should be of the form STABLE-[version]")
-            message("Setting buildVersion to 'error'")
+            printQuiet("Incorrect syntax for dependencyMode: $groupDependencyVersion should be of the form STABLE-[version]")
+            printQuiet("Setting buildVersion to 'error'")
             buildVersion = "error"
          }
       }
-      else if (dependencyMode == "SNAPSHOT-LATEST")
+      else if (groupDependencyVersion.matches(Regex("SNAPSHOT.*LATEST")))
       {
          buildVersion = latestVersionFromArtifactory(artifactId, "SNAPSHOT", "snapshots")
       }
-      else if (dependencyMode == "NIGHTLY-LATEST")
+      else if (groupDependencyVersion.startsWith("SNAPSHOT"))
       {
-         buildVersion = latestVersionFromArtifactory(artifactId, "NIGHTLY", "snapshots")
-      }
-      else if (dependencyMode.startsWith("SNAPSHOT") || dependencyMode.startsWith("NIGHTLY"))
-      {
-         buildVersion = "$productVersion-$dependencyMode";
+         buildVersion = latestVersionFromArtifactory(artifactId, groupDependencyVersion, "snapshots")
       }
       else
       {
-         buildVersion = dependencyMode
+         buildVersion = groupDependencyVersion
       }
       
       return buildVersion;
    }
    
-   fun latestVersionFromArtifactory(artifactId: String, dependencyMode: String, repository: String): String
+   fun latestVersionFromArtifactory(artifactId: String, groupDependencyVersion: String, repository: String): String
    {
-      val username = project.property("artifactoryUsername") as String
-      val password = project.property("artifactoryPassword") as String
       val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
       builder.url = "https://artifactory.ihmc.us/artifactory"
-      builder.username = username
-      builder.password = password
+      builder.username = artifactoryUsername
+      builder.password = artifactoryPassword
       val artifactory: Artifactory = builder.build()
       val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories(repository).groupId(productGroup).artifactId(artifactId).doSearch()
       
@@ -294,7 +365,7 @@ open class IHMCBuildExtension(val project: Project)
       var latestBuildNumber: Int = -1
       for (repoPath in snapshots)
       {
-         if (repoPath.itemPath.contains(dependencyMode))
+         if (repoPath.itemPath.contains(groupDependencyVersion))
          {
             if (repoPath.itemPath.endsWith("sources.jar") || repoPath.itemPath.endsWith(".pom"))
             {
@@ -304,8 +375,8 @@ open class IHMCBuildExtension(val project: Project)
             val version: String = itemPathToVersion(repoPath.itemPath, artifactId)
             val buildNumber: Int = buildNumber(version)
             
-            // Found exact nightly
-            if (version.endsWith(dependencyMode))
+            // Found exact match
+            if (version.endsWith(groupDependencyVersion))
             {
                latestVersion = itemPathToVersion(repoPath.itemPath, artifactId)
             }
@@ -366,8 +437,8 @@ open class IHMCBuildExtension(val project: Project)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "Artifactory"
          url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
-         credentials.username = property("artifactoryUsername") as String
-         credentials.password = property("artifactoryPassword") as String
+         credentials.username = artifactoryUsername
+         credentials.password = artifactoryPassword
       })
    }
    
@@ -377,8 +448,8 @@ open class IHMCBuildExtension(val project: Project)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "BintrayRelease"
          url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + name)
-         credentials.username = property("bintray_user") as String
-         credentials.password = property("bintray_key") as String
+         credentials.username = bintrayUser
+         credentials.password = bintrayApiKey
       })
    }
    
@@ -435,9 +506,14 @@ open class IHMCBuildExtension(val project: Project)
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
    
-   fun message(message: String)
+   fun printQuiet(message: Any)
    {
-      println("[ihmc-build] " + message)
+      project.logger.quiet("[ihmc-build] " + message)
+   }
+   
+   fun printInfo(message: Any)
+   {
+      project.logger.info("[ihmc-build] " + message)
    }
    
    /**
@@ -454,9 +530,9 @@ open class IHMCBuildExtension(val project: Project)
          
          if (Files.exists(testUsFolder))
          {
-            message("[ihmc-build] " + testSrcFolder)
-            println("[ihmc-build] " + testSrcUsFolder)
-            println("[ihmc-build] " + testUsFolder)
+            printQuiet(testSrcFolder)
+            printQuiet(testSrcUsFolder)
+            printQuiet(testUsFolder)
             
             FileTools.deleteQuietly(testSrcUsFolder)
             
@@ -466,7 +542,7 @@ open class IHMCBuildExtension(val project: Project)
             }
             catch (e: Exception)
             {
-               println("Failed: " + e.printStackTrace())
+               printQuiet("Failed: " + e.printStackTrace())
             }
          }
       }
@@ -486,9 +562,9 @@ open class IHMCBuildExtension(val project: Project)
          
          if (Files.exists(testUsFolder))
          {
-            println("[ihmc-build] " + testSrcFolder)
-            println("[ihmc-build] " + testSrcUsFolder)
-            println("[ihmc-build] " + testUsFolder)
+            printQuiet(testSrcFolder)
+            printQuiet(testSrcUsFolder)
+            printQuiet(testUsFolder)
             
             FileTools.deleteQuietly(testSrcUsFolder)
          }

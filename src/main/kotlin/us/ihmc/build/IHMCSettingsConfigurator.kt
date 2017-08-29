@@ -70,7 +70,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
-      checkForPropertyInternal("dependencyMode", "SNAPSHOT-LATEST (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
       checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
@@ -91,7 +90,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
             "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
             "publishMode"                 -> publishMode = ext.get(property) as String
-            "dependencyMode"              -> dependencyMode = ext.get(property) as String
             "depthFromWorkspaceDirectory" -> depthFromWorkspaceDirectory = (ext.get(property) as String).toInt()
             "includeBuildsFromWorkspace"  -> includeBuildsFromWorkspace = (ext.get(property) as String).toBoolean()
             "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
