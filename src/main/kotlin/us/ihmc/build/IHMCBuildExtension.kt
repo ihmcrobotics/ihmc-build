@@ -78,7 +78,7 @@ open class IHMCBuildExtension(val project: Project)
             printQuiet("Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
          if (propertyName == "bintray_user" || propertyName == "bintray_key")
             printQuiet("Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
-   
+         
          printQuiet("No value found for $propertyName. Using default value: $defaultValue")
          project.extra.set(propertyName, defaultValue)
          return defaultValue
@@ -146,14 +146,13 @@ open class IHMCBuildExtension(val project: Project)
       if (groupDependencyVersionProperty.startsWith("SNAPSHOT-BAMBOO"))
       {
          var groupDependencyVersion = "SNAPSHOT"
-   
-         if (!bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop")
-         {
-            groupDependencyVersion += "-$bambooBranchNameProperty"
-         }
-   
+         
          if (!bambooParentBuildKeyProperty.isEmpty())
          {
+            if (!bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop")
+            {
+               groupDependencyVersion += "-$bambooBranchNameProperty"
+            }
             groupDependencyVersion += "-" + bambooParentBuildKeyProperty.split("-").last()
          }
          else
@@ -336,11 +335,11 @@ open class IHMCBuildExtension(val project: Project)
             buildVersion = "error"
          }
       }
-      else if (groupDependencyVersion.matches(Regex("SNAPSHOT.*LATEST")))
+      else if (groupDependencyVersion.endsWith("-LATEST"))
       {
-         buildVersion = latestVersionFromArtifactory(artifactId, "SNAPSHOT", "snapshots")
+         buildVersion = latestVersionFromArtifactory(artifactId, groupDependencyVersion, "snapshots")
       }
-      else if (groupDependencyVersion.startsWith("SNAPSHOT"))
+      else if (groupDependencyVersion.contains("SNAPSHOT"))
       {
          buildVersion = latestVersionFromArtifactory(artifactId, groupDependencyVersion, "snapshots")
       }
@@ -361,6 +360,7 @@ open class IHMCBuildExtension(val project: Project)
       val artifactory: Artifactory = builder.build()
       val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories(repository).groupId(productGroup).artifactId(artifactId).doSearch()
       
+      var groupDependencyVersionWithoutBuildNumber = groupDependencyVersion.substring(0, groupDependencyVersion.lastIndexOf("-"))
       var latestVersion: String = "error"
       var latestBuildNumber: Int = -1
       for (repoPath in snapshots)
@@ -376,20 +376,23 @@ open class IHMCBuildExtension(val project: Project)
             val buildNumber: Int = buildNumber(version)
             
             // Found exact match
-            if (version.endsWith(groupDependencyVersion))
+            if (version.endsWith(groupDependencyVersion) && !groupDependencyVersion.endsWith("-LATEST"))
             {
-               latestVersion = itemPathToVersion(repoPath.itemPath, artifactId)
+               return version
             }
             
-            if (latestVersion == "error")
+            if (version.contains(groupDependencyVersionWithoutBuildNumber))
             {
-               latestVersion = version
-               latestBuildNumber = buildNumber
-            }
-            else if (buildNumber > latestBuildNumber)
-            {
-               latestVersion = version
-               latestBuildNumber = buildNumber
+               if (latestVersion == "error")
+               {
+                  latestVersion = version
+                  latestBuildNumber = buildNumber
+               }
+               else if (buildNumber > latestBuildNumber)
+               {
+                  latestVersion = version
+                  latestBuildNumber = buildNumber
+               }
             }
          }
       }
@@ -399,7 +402,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun buildNumber(version: String): Int
    {
-      return Integer.parseInt(version.split("-")[2])
+      return Integer.parseInt(version.split("-").last())
    }
    
    private fun itemPathToVersion(itemPath: String, artifactId: String): String
