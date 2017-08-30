@@ -321,40 +321,52 @@ open class IHMCBuildExtension(val project: Project)
    
    internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
    {
+      // Make sure POM is correct
       if (isIncludedBuild(artifactId))
       {
          return publishVersion
       }
-   
-      var modifiedVersion = declaredVersion
-      if (modifiedVersion.contains("BAMBOO"))
+      
+      // Use Bamboo variables to resolve the version
+      if (declaredVersion.contains("BAMBOO"))
       {
-         modifiedVersion = "SNAPSHOT"
-         if (isChildBuild)
+         if (isChildBuild) // Match to parent build, enforcing branch
          {
+            var childVersion = "SNAPSHOT"
             if (isBranchBuild)
             {
-               modifiedVersion += "-$branchName"
+               childVersion += "-$branchName"
             }
-            modifiedVersion += "-$buildNumber"
+            childVersion += "-$buildNumber"
+            return matchVersionFromArtifactory(groupId, artifactId, childVersion, "snapshots")
          }
          else
          {
-            modifiedVersion += "-LATEST"
+            var latestVersion = "NOT-FOUND"
+            if (isBranchBuild) // Try to match the same branch
+            {
+               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT-$branchName", "snapshots")
+            }
+            if (latestVersion.contains("NOT-FOUND")) // Give up on the branch, use any latest
+            {
+               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT", "snapshots")
+            }
+            return latestVersion
          }
       }
       
-      if (modifiedVersion.endsWith("-LATEST"))
+      // For users
+      if (declaredVersion.endsWith("-LATEST")) // Finds latest version
       {
-         return latestVersionFromArtifactory(groupId, artifactId, modifiedVersion.substringBefore("-LATEST"), "snapshots")
+         return latestVersionFromArtifactory(groupId, artifactId, declaredVersion.substringBefore("-LATEST"), "snapshots")
       }
-      else if (modifiedVersion.contains("SNAPSHOT"))
+      else if (declaredVersion.startsWith("SNAPSHOT")) // Not going to be exact match
       {
-         return matchVersionFromArtifactory(groupId, artifactId, modifiedVersion, "snapshots")
+         return matchVersionFromArtifactory(groupId, artifactId, declaredVersion, "snapshots")
       }
-      else
+      else // Pass directly to gradle as declared
       {
-         return modifiedVersion
+         return declaredVersion
       }
    }
    
