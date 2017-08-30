@@ -24,8 +24,6 @@ import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
 import java.nio.file.Files
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
@@ -46,10 +44,14 @@ open class IHMCBuildExtension(val project: Project)
    
    private val publishModeProperty: String
    private val hyphenatedNameProperty: String
-   private val bambooBranchNameProperty: String
-   private val bambooBuildNumberProperty: String
-   private val bambooParentBuildKeyProperty: String
    private val groupDependencyVersionProperty: String
+   
+   // Bamboo variables
+   private val isChildBuild: Boolean
+   private val buildNumber: String
+   private lateinit var publishVersion: String
+   private val isBranchBuild: Boolean
+   private val branchName: String
    
    init
    {
@@ -61,9 +63,22 @@ open class IHMCBuildExtension(val project: Project)
       groupDependencyVersionProperty = setupPropertyWithDefault("groupDependencyVersion", "SNAPSHOT-LATEST")
       publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
       hyphenatedNameProperty = setupPropertyWithDefault("hyphenatedName", "")
-      bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
-      bambooBranchNameProperty = setupPropertyWithDefault("bambooBranchName", "")
-      bambooParentBuildKeyProperty = setupPropertyWithDefault("bambooParentBuildKey", "")
+      
+      val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
+      val bambooBranchNameProperty = setupPropertyWithDefault("bambooBranchName", "")
+      val bambooParentBuildKeyProperty = setupPropertyWithDefault("bambooParentBuildKey", "")
+      
+      isChildBuild = !bambooParentBuildKeyProperty.isEmpty();
+      if (isChildBuild)
+      {
+         buildNumber = bambooParentBuildKeyProperty.split("-").last()
+      }
+      else
+      {
+         buildNumber = bambooBuildNumberProperty
+      }
+      isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop"
+      branchName = bambooBranchNameProperty
    }
    
    fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
@@ -116,8 +131,6 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureDependencyResolution()
    {
-      configureGroupDependencyVersion()
-      
       project.allprojects {
          (this as Project).run {
             addIHMCMavenRepositories()
@@ -138,30 +151,6 @@ open class IHMCBuildExtension(val project: Project)
       }
       catch (e: UnknownProjectException)
       {
-      }
-   }
-   
-   fun configureGroupDependencyVersion()
-   {
-      if (groupDependencyVersionProperty.startsWith("SNAPSHOT-BAMBOO"))
-      {
-         var groupDependencyVersion = "SNAPSHOT"
-         
-         if (!bambooParentBuildKeyProperty.isEmpty())
-         {
-            if (!bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop")
-            {
-               groupDependencyVersion += "-$bambooBranchNameProperty"
-            }
-            groupDependencyVersion += "-" + bambooParentBuildKeyProperty.split("-").last()
-         }
-         else
-         {
-            groupDependencyVersion += "-LATEST"
-         }
-         
-         printQuiet("Altering groupDependencyVersion from SNAPSHOT-BAMBOO to $groupDependencyVersion")
-         project.setProperty("groupDependencyVersion", groupDependencyVersion)
       }
    }
    
@@ -187,12 +176,8 @@ open class IHMCBuildExtension(val project: Project)
       project.allprojects {
          (this as Project).run {
             group = productGroup
-            version = productVersion
-            
-            if (publishModeProperty == "SNAPSHOT")
-            {
-               version = getSnapshotVersion(version as String)
-            }
+            publishVersion = getPublishVersion()
+            version = publishVersion
             
             configureJarManifest(maintainer, companyName, licenseURL)
             
@@ -293,117 +278,142 @@ open class IHMCBuildExtension(val project: Project)
       repositories.mavenLocal()
    }
    
-   fun getSnapshotVersion(version: String): String
+   private fun getPublishVersion(): String
    {
-      var snapshotVersion = version + "-SNAPSHOT"
+      var publishVersion = productVersion
       
-      if (!bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop")
+      if (publishModeProperty != "STABLE")
       {
-         snapshotVersion += "-$bambooBranchNameProperty"
-      }
-      
-      if (!bambooParentBuildKeyProperty.isEmpty())
-      {
-         snapshotVersion += "-" + bambooParentBuildKeyProperty.split("-").last()
-      }
-      else
-      {
-         snapshotVersion += "-$bambooBuildNumberProperty"
-      }
-      
-      return snapshotVersion
-   }
-   
-   fun getNightlyVersion(version: String): String
-   {
-      return version + "-NIGHTLY-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
-   }
-   
-   internal fun getBuildVersion(groupId: String, artifactId: String, groupDependencyVersion: String): String
-   {
-      val buildVersion: String;
-      if (groupDependencyVersion.startsWith("STABLE"))
-      {
-         val firstDash: Int = groupDependencyVersion.indexOf("-");
-         if (firstDash > 0)
+         publishVersion += "-SNAPSHOT"
+         
+         if (isBranchBuild)
          {
-            buildVersion = groupDependencyVersion.substring(firstDash + 1);
+            publishVersion += "-$branchName"
+         }
+         
+         publishVersion += "-$buildNumber"
+      }
+      return publishVersion
+   }
+   
+   fun isIncludedBuild(artifactId: String): Boolean
+   {
+      for (includedBuild in project.gradle.includedBuilds)
+      {
+         if (artifactId == includedBuild.name)
+         {
+            return true
+         }
+         else if (artifactId.startsWith(includedBuild.name))
+         {
+            for (extraSourceSet in IHMCBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).extraSourceSets)
+            {
+               if (artifactId == (includedBuild.name + "-$extraSourceSet"))
+               {
+                  return true
+               }
+            }
+         }
+      }
+      
+      return false
+   }
+   
+   internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
+   {
+      if (isIncludedBuild(artifactId))
+      {
+         return publishVersion
+      }
+   
+      var modifiedVersion = declaredVersion
+      if (modifiedVersion.contains("BAMBOO"))
+      {
+         modifiedVersion = "SNAPSHOT"
+         if (isChildBuild)
+         {
+            if (isBranchBuild)
+            {
+               modifiedVersion += "-$branchName"
+            }
+            modifiedVersion += "-$buildNumber"
          }
          else
          {
-            printQuiet("Incorrect syntax for dependencyMode: $groupDependencyVersion should be of the form STABLE-[version]")
-            printQuiet("Setting buildVersion to 'error'")
-            buildVersion = "error"
+            modifiedVersion += "-LATEST"
          }
       }
-      else if (groupDependencyVersion.endsWith("-LATEST"))
+      
+      if (modifiedVersion.endsWith("-LATEST"))
       {
-         buildVersion = latestVersionFromArtifactory(artifactId, groupDependencyVersion, "snapshots")
+         return latestVersionFromArtifactory(groupId, artifactId, modifiedVersion.substringBefore("-LATEST"), "snapshots")
       }
-      else if (groupDependencyVersion.contains("SNAPSHOT"))
+      else if (modifiedVersion.contains("SNAPSHOT"))
       {
-         buildVersion = latestVersionFromArtifactory(artifactId, groupDependencyVersion, "snapshots")
+         return matchVersionFromArtifactory(groupId, artifactId, modifiedVersion, "snapshots")
       }
       else
       {
-         buildVersion = groupDependencyVersion
+         return modifiedVersion
       }
-      
-      return buildVersion;
    }
    
-   fun latestVersionFromArtifactory(artifactId: String, groupDependencyVersion: String, repository: String): String
+   private fun matchVersionFromArtifactory(groupId: String, artifactId: String, versionMatcher: String, repository: String): String
+   {
+      val snapshots: List<RepoPath> = searchArtifactoryRepository(repository, groupId, artifactId)
+      
+      for (repoPath in snapshots)
+      {
+         if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
+         {
+            val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
+            
+            if (versionFromArtifactory.endsWith(versionMatcher))
+            {
+               return versionFromArtifactory
+            }
+         }
+      }
+      
+      return "MATCH-NOT-FOUND-$versionMatcher"
+   }
+   
+   private fun latestVersionFromArtifactory(groupId: String, artifactId: String, versionMatcher: String, repository: String): String
+   {
+      val snapshots: List<RepoPath> = searchArtifactoryRepository(repository, groupId, artifactId)
+      
+      var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
+      var highestBuildNumber: Int = -1
+      for (repoPath in snapshots)
+      {
+         if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
+         {
+            val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
+            
+            if (versionFromArtifactory.contains(versionMatcher))
+            {
+               val buildNumberFromArtifactory: Int = Integer.parseInt(versionFromArtifactory.split("-").last())
+               if (buildNumberFromArtifactory > highestBuildNumber)
+               {
+                  matchedVersion = versionFromArtifactory
+                  highestBuildNumber = buildNumberFromArtifactory
+               }
+            }
+         }
+      }
+      
+      return matchedVersion
+   }
+   
+   private fun searchArtifactoryRepository(repository: String, groupId: String, artifactId: String): List<RepoPath>
    {
       val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
       builder.url = "https://artifactory.ihmc.us/artifactory"
       builder.username = artifactoryUsername
       builder.password = artifactoryPassword
       val artifactory: Artifactory = builder.build()
-      val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories(repository).groupId(productGroup).artifactId(artifactId).doSearch()
-      
-      var groupDependencyVersionWithoutBuildNumber = groupDependencyVersion.substring(0, groupDependencyVersion.lastIndexOf("-"))
-      var latestVersion: String = "error"
-      var latestBuildNumber: Int = -1
-      for (repoPath in snapshots)
-      {
-         if (repoPath.itemPath.contains(groupDependencyVersionWithoutBuildNumber))
-         {
-            if (repoPath.itemPath.endsWith("sources.jar") || repoPath.itemPath.endsWith(".pom"))
-            {
-               continue
-            }
-            
-            val version: String = itemPathToVersion(repoPath.itemPath, artifactId)
-            val buildNumber: Int = buildNumber(version)
-            
-            // Found exact match
-            if (version.endsWith(groupDependencyVersion) && !groupDependencyVersion.endsWith("-LATEST"))
-            {
-               return version
-            }
-            
-            if (version.contains(groupDependencyVersionWithoutBuildNumber))
-            {
-               if (latestVersion == "error")
-               {
-                  latestVersion = version
-                  latestBuildNumber = buildNumber
-               }
-               else if (buildNumber > latestBuildNumber)
-               {
-                  latestVersion = version
-                  latestBuildNumber = buildNumber
-               }
-            }
-         }
-      }
-      
-      return latestVersion
-   }
-   
-   private fun buildNumber(version: String): Int
-   {
-      return Integer.parseInt(version.split("-").last())
+      val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
+      return snapshots
    }
    
    private fun itemPathToVersion(itemPath: String, artifactId: String): String

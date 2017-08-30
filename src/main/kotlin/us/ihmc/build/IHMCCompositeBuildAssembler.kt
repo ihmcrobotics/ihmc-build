@@ -1,7 +1,5 @@
 package us.ihmc.build
 
-import groovy.util.Eval
-import org.apache.commons.lang3.StringUtils
 import org.codehaus.groovy.ast.ASTNode
 import org.codehaus.groovy.ast.CodeVisitorSupport
 import org.codehaus.groovy.ast.builder.AstBuilder
@@ -9,7 +7,6 @@ import org.codehaus.groovy.ast.expr.*
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
-import java.io.FileInputStream
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,7 +19,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    val rootProjectPath: Path = configurator.settings.rootProject.projectDir.toPath()
    var workspacePath: Path
    val buildFolderNameToPathMap = HashMap<String, Path>()
-   private val buildFolderNameToPropertiesMap = HashMap<String, BuildProperties>()
+   private val buildFolderNameToPropertiesMap = HashMap<String, IHMCBuildProperties>()
    val transitiveBuildFolderNames = TreeSet<String>()
    
    init
@@ -105,60 +102,11 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          if (Files.isDirectory(subdirectory) && Files.exists(subdirectory.resolve("build.gradle")))
          {
             buildFolderNameToPathMap.put(subdirectory.fileName.toString(), subdirectory)
-            buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), loadProperties(subdirectory))
+            buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCBuildProperties(logger).load(subdirectory))
             
             mapDirectory(subdirectory)
          }
       }
-   }
-   
-   private fun loadProperties(projectPath: Path): BuildProperties
-   {
-      val properties = Properties()
-      properties.load(FileInputStream(projectPath.resolve("gradle.properties").toFile()))
-      val buildProperties: BuildProperties = BuildProperties()
-      for (propertyKey in properties.keys)
-      {
-         if (propertyKey == "excludeFromCompositeBuild")
-         {
-            buildProperties.exclude = (properties.get(propertyKey)!! as String).toBoolean()
-            if (buildProperties.exclude)
-            {
-               logger.quiet("[ihmc-build] Excluding " + projectPath.fileName.toString() + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
-            }
-         }
-         if (propertyKey == "pascalCasedName")
-         {
-            buildProperties.pascalCasedName = properties.get(propertyKey)!! as String
-         }
-         if (propertyKey == "hyphenatedName")
-         {
-            buildProperties.hyphenatedName = properties.get(propertyKey)!! as String
-         }
-         if (propertyKey == "extraSourceSets")
-         {
-            buildProperties.extraSourceSets.addAll(Eval.me(properties.get(propertyKey)!! as String) as ArrayList<String>)
-         }
-      }
-      
-      if (buildProperties.pascalCasedName == null)
-      {
-         buildProperties.pascalCasedName = toPascalCased(projectPath.fileName.toString())
-      }
-      if (buildProperties.hyphenatedName == null)
-      {
-         buildProperties.hyphenatedName = toHyphenated(projectPath.fileName.toString())
-      }
-      
-      return buildProperties
-   }
-   
-   class BuildProperties
-   {
-      var hyphenatedName: String = ""
-      var pascalCasedName: String = ""
-      var exclude = false
-      val extraSourceSets = ArrayList<String>()
    }
    
    private fun matchNames(buildFolderNameToCheck: String, dependencyNameAsDeclared: String): Boolean
@@ -263,62 +211,5 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          super.visitMapExpression(expression)
       }
-   }
-   
-   private fun toPascalCased(hyphenated: String): String
-   {
-      val split = hyphenated.split("-")
-      var pascalCased = ""
-      for (section in split)
-      {
-         pascalCased += StringUtils.capitalize(section)
-      }
-      return pascalCased
-   }
-   
-   private fun toHyphenated(pascalCased: String): String
-   {
-      var hyphenated = pascalCasedToPrehyphenated(pascalCased);
-      
-      hyphenated = hyphenated.substring(1, hyphenated.length - 1);
-      
-      return hyphenated;
-   }
-   
-   private fun pascalCasedToPrehyphenated(pascalCased: String): String
-   {
-      val parts = ArrayList<String>();
-      var part = "";
-      
-      for (i in 0..pascalCased.length)
-      {
-         var character = pascalCased[i].toString();
-         if (StringUtils.isAllUpperCase(character) || StringUtils.isNumeric(character))
-         {
-            if (!part.isEmpty())
-            {
-               parts.add(part.toLowerCase());
-            }
-            part = character;
-         }
-         else
-         {
-            part += character;
-         }
-      }
-      if (!part.isEmpty())
-      {
-         parts.add(part.toLowerCase());
-      }
-      
-      var hyphenated = "";
-      for (i in 0..parts.size)
-      {
-         hyphenated += '-';
-         hyphenated += parts.get(i);
-      }
-      hyphenated += '-';
-      
-      return hyphenated;
    }
 }

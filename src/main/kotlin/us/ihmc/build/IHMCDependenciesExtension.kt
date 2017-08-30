@@ -54,7 +54,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
       {
          val split = dependencyNotation.split(":")
          
-         val modifiedVersion = ihmcBuildExtension.getBuildVersion(split[0], split[1], split[2])
+         val modifiedVersion = ihmcBuildExtension.getExternalDependencyVersion(split[0], split[1], split[2])
          
          var modifiedString = ""
          for (i in split.indices)
@@ -107,7 +107,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
             return dependencyNotation as Object
          }
          
-         val modifiedVersion = ihmcBuildExtension.getBuildVersion(groupId, artifactName, dependencyMode)
+         val modifiedVersion = ihmcBuildExtension.getExternalDependencyVersion(groupId, artifactName, dependencyMode)
          
          var modifiedMap = hashMapOf<String, Any?>()
          
