@@ -60,9 +60,9 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    {
       for (sourceSetName in extraSourceSets)
       {
-         val dir1 = File(settings.rootProject.projectDir, sourceSetName)
+         val dir1 = File(settings.rootProject.projectDir, "src/$sourceSetName")
          dir1.mkdir()
-         File(dir1, "src").mkdir()
+         File(dir1, "java").mkdir()
       }
       
       if (ext.has("useLegacySourceSets") && ext.get("useLegacySourceSets") as String == "true")

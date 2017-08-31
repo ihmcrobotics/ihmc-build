@@ -41,8 +41,10 @@ class IHMCBuildPlugin : Plugin<Project>
                {
                   if (File(project.projectDir, childDir + "/build.gradle").exists())
                   {
-                     us.ihmc.build.deleteTestsFromProject(File(project.projectDir, childDir), "test")
-                     us.ihmc.build.deleteTestsFromProject(File(project.projectDir, childDir), "visualizers")
+                     val childPath = File(project.projectDir, childDir).toPath()
+                     us.ihmc.build.revertSourceFolderFromMavenStandard(childPath, "main")
+                     us.ihmc.build.revertSourceFolderFromMavenStandard(childPath, "test")
+                     us.ihmc.build.revertSourceFolderFromMavenStandard(childPath, "visualizers")
                   }
                }
             }
@@ -55,8 +57,10 @@ class IHMCBuildPlugin : Plugin<Project>
                {
                   if (File(project.projectDir, childDir + "/build.gradle").exists())
                   {
-                     us.ihmc.build.copyTestsForProject(File(project.projectDir, childDir), "test")
-                     us.ihmc.build.copyTestsForProject(File(project.projectDir, childDir), "visualizers")
+                     val childPath = File(project.projectDir, childDir).toPath()
+                     us.ihmc.build.moveSourceFolderToMavenStandard(childPath, "main")
+                     us.ihmc.build.moveSourceFolderToMavenStandard(childPath, "test")
+                     us.ihmc.build.moveSourceFolderToMavenStandard(childPath, "visualizers")
                   }
                }
             }

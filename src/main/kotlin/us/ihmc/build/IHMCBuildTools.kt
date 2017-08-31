@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils
 import us.ihmc.commons.nio.FileTools
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.ArrayList
 
 fun writeProjectSettingsFile(directory: File)
@@ -87,26 +88,40 @@ fun pascalCasedToPrehyphenated(pascalCased: String): String
 /**
  * Temporary tool for converting projects to new folder structure quickly.
  */
-fun moveSourceFolderToMavenStandard(projectDir: File, sourceFolder: String)
+fun moveSourceFolderToMavenStandard(projectDir: Path, sourceSetName: String)
 {
-   val subprojectFolder = projectDir.toPath().resolve(sourceFolder)
-   val mavenFolder = projectDir.toPath().resolve("src").resolve(sourceFolder).resolve("java")
-   if (Files.exists(subprojectFolder))
+   val oldSourceFolder: Path
+   if (sourceSetName == "main")
    {
-      val sourceSetMavenUsFolder = mavenFolder.resolve("us")
-      val sourceSetUsFolder = subprojectFolder.resolve("us")
+      oldSourceFolder = projectDir.resolve("src")
+   }
+   else
+   {
+      oldSourceFolder = projectDir.resolve(sourceSetName)
+   }
+   val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
+   moveAPackage(oldSourceFolder, mavenFolder, "us")
+   moveAPackage(oldSourceFolder, mavenFolder, "optiTrack")
+}
+
+private fun moveAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+{
+   if (Files.exists(oldSourceFolder))
+   {
+      val oldUs = oldSourceFolder.resolve(packageName)
+      val newUs = mavenFolder.resolve(packageName)
       
-      if (Files.exists(sourceSetUsFolder))
+      if (Files.exists(oldUs))
       {
          printQuiet(mavenFolder)
-         printQuiet(sourceSetMavenUsFolder)
-         printQuiet(sourceSetUsFolder)
+         printQuiet(oldUs)
+         printQuiet(newUs)
          
-         FileTools.deleteQuietly(sourceSetMavenUsFolder)
+         FileTools.deleteQuietly(newUs)
          
          try
          {
-            FileUtils.moveDirectory(sourceSetUsFolder.toFile(), sourceSetMavenUsFolder.toFile())
+            FileUtils.moveDirectory(oldUs.toFile(), newUs.toFile())
          }
          catch (e: Exception)
          {
@@ -116,58 +131,110 @@ fun moveSourceFolderToMavenStandard(projectDir: File, sourceFolder: String)
    }
 }
 
-/**
- * Temporary tool for converting projects to new folder structure quickly.
- */
-fun copyTestsForProject(projectDir: File, sourceFolder: String)
+fun moveCustomFolderToMavenStandard(projectPath: Path, customSourcePath: Path, toPath: Path)
 {
-   val subprojectFolder = projectDir.toPath().resolve(sourceFolder)
-   if (Files.exists(subprojectFolder))
+   if (Files.exists(customSourcePath) && Files.isDirectory(customSourcePath))
    {
-      val testSrcFolder = subprojectFolder.resolve("src")
-      val testSrcUsFolder = testSrcFolder.resolve("us")
-      val testUsFolder = subprojectFolder.resolve("us")
+      val tempDir = projectPath.resolve("tempDir")
       
-      if (Files.exists(testUsFolder))
+      printQuiet(customSourcePath)
+      printQuiet(toPath)
+      printQuiet(tempDir)
+   
+      FileTools.deleteQuietly(tempDir)
+      
+      try
       {
-         printQuiet(testSrcFolder)
-         printQuiet(testSrcUsFolder)
-         printQuiet(testUsFolder)
-         
-         FileTools.deleteQuietly(testSrcUsFolder)
-         
-         try
-         {
-            FileUtils.copyDirectory(testUsFolder.toFile(), testSrcUsFolder.toFile())
-         }
-         catch (e: Exception)
-         {
-            printQuiet("Failed: " + e.printStackTrace())
-         }
+         FileUtils.moveDirectory(customSourcePath.toFile(), tempDir.toFile())
+         FileUtils.moveDirectory(tempDir.toFile(), toPath.toFile())
       }
+      catch (e: Exception)
+      {
+         printQuiet("Failed: " + e.printStackTrace())
+      }
+   
+      FileTools.deleteQuietly(tempDir)
+   }
+}
+
+fun revertCustomFolderFromMavenStandard(projectPath: Path, customSourcePath: Path, toPath: Path)
+{
+   if (Files.exists(toPath) && Files.isDirectory(toPath))
+   {
+      val tempDir = projectPath.resolve("tempDir")
+   
+      printQuiet(customSourcePath)
+      printQuiet(toPath)
+      printQuiet(tempDir)
+   
+      FileTools.deleteQuietly(tempDir)
+      
+      try
+      {
+         FileUtils.moveDirectory(toPath.toFile(), tempDir.toFile())
+         FileUtils.moveDirectory(tempDir.toFile(), customSourcePath.toFile())
+      }
+      catch (e: Exception)
+      {
+         printQuiet("Failed: " + e.printStackTrace())
+      }
+   
+      FileTools.deleteQuietly(tempDir)
    }
 }
 
 /**
  * Temporary tool for converting projects to new folder structure quickly.
  */
-fun deleteTestsFromProject(projectDir: File, sourceFolder: String)
+fun revertSourceFolderFromMavenStandard(projectDir: Path, sourceSetName: String)
 {
-   val subprojectFolder = projectDir.toPath().resolve(sourceFolder)
-   if (Files.exists(subprojectFolder))
+   val oldSourceFolder: Path
+   if (sourceSetName == "main")
    {
-      val testSrcFolder = subprojectFolder.resolve("src")
-      val testSrcUsFolder = testSrcFolder.resolve("us")
-      val testUsFolder = subprojectFolder.resolve("us")
+      oldSourceFolder = projectDir.resolve("src")
+   }
+   else
+   {
+      oldSourceFolder = projectDir.resolve(sourceSetName)
+   }
+   val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
+   if (Files.exists(oldSourceFolder))
+   {
+      revertAPackage(oldSourceFolder, mavenFolder, "us")
+      revertAPackage(oldSourceFolder, mavenFolder, "optiTrack")
+   }
+   else
+   {
+      println("File not exsiss: $oldSourceFolder")
+   }
+}
+
+private fun revertAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+{
+   val oldUs = oldSourceFolder.resolve(packageName)
+   val newUs = mavenFolder.resolve(packageName)
+   
+   if (Files.exists(newUs))
+   {
+      printQuiet(mavenFolder)
+      printQuiet(oldUs)
+      printQuiet(newUs)
       
-      if (Files.exists(testUsFolder))
+      FileTools.deleteQuietly(oldUs)
+      
+      try
       {
-         printQuiet(testSrcFolder)
-         printQuiet(testSrcUsFolder)
-         printQuiet(testUsFolder)
-         
-         FileTools.deleteQuietly(testSrcUsFolder)
+         FileUtils.moveDirectory(newUs.toFile(), oldUs.toFile())
       }
+      catch (e: Exception)
+      {
+         printQuiet("Failed: " + e.printStackTrace())
+      }
+   }
+   else
+   {
+   
+      println("File not exsiss: $oldUs")
    }
 }
 

@@ -137,10 +137,10 @@ open class IHMCBuildExtension(val project: Project)
             addThirdPartyMavenRepositories()
             addWorldMavenRepositories()
             addLocalMavenRepository()
-            
-            setupJavaSourceSets()
          }
       }
+      
+      setupJavaSourceSets()
       
       try
       {
@@ -204,26 +204,39 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   fun Project.setupJavaSourceSets()
+   fun setupJavaSourceSets()
    {
-      val java = convention.getPlugin(JavaPluginConvention::class.java)
-      
+      val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       java.sourceCompatibility = JavaVersion.VERSION_1_8
       java.targetCompatibility = JavaVersion.VERSION_1_8
-      
-//      for (sourceSet in java.sourceSets)
-//      {
-//         sourceSet.java.setSrcDirs(emptySet<File>())
-//         sourceSet.java.resources.setSrcDirs(emptySet<File>())
-//      }
-      
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(file("src")))
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("src")))
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("resources")))
-      
-      if (hasProperty("useLegacySourceSets") && property("useLegacySourceSets") == "true")
+      for (sourceSet in java.sourceSets)
       {
-         if (hasProperty("extraSourceSets"))
+         sourceSet.java.setSrcDirs(emptySet<File>())
+         sourceSet.resources.setSrcDirs(emptySet<File>())
+      }
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/main/java")))
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/main/java")))
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/main/resources")))
+      
+      for (subproject in project.subprojects)
+      {
+         val java = subproject.convention.getPlugin(JavaPluginConvention::class.java)
+         java.sourceCompatibility = JavaVersion.VERSION_1_8
+         java.targetCompatibility = JavaVersion.VERSION_1_8
+         for (sourceSet in java.sourceSets)
+         {
+            sourceSet.java.setSrcDirs(emptySet<File>())
+            sourceSet.resources.setSrcDirs(emptySet<File>())
+         }
+         val sourceSetName = subproject.name.split("-").last()
+         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
+         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
+         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))
+      }
+      
+      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
+      {
+         if (project.hasProperty("extraSourceSets"))
          {
             val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
             
@@ -231,16 +244,16 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (extraSourceSet == "test")
                {
-                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(file("test/src")))
-                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("test/src")))
-                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(file("test/resources")))
+                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
+                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/src")))
+                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
                }
                else
                {
                   java.sourceSets.create(extraSourceSet)
-                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(file("$extraSourceSet/src")))
-                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(file("$extraSourceSet/src")))
-                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(file("$extraSourceSet/resources")))
+                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
+                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
+                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
                }
             }
          }
