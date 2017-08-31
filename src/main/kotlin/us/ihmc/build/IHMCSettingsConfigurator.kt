@@ -73,8 +73,8 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       {
          for (sourceSetName in extraSourceSets)
          {
-            settings.include(arrayOf(sourceSetName))
-            settings.project(":" + sourceSetName).name = settings.rootProject.name + "-" + sourceSetName
+            settings.include(arrayOf("src/$sourceSetName"))
+            settings.project(":src/$sourceSetName").name = settings.rootProject.name + "-" + sourceSetName
          }
       }
    }

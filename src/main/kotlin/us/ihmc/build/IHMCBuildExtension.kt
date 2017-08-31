@@ -234,30 +234,30 @@ open class IHMCBuildExtension(val project: Project)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))
       }
       
-      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
-      {
-         if (project.hasProperty("extraSourceSets"))
-         {
-            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
-            
-            for (extraSourceSet in extraSourceSets)
-            {
-               if (extraSourceSet == "test")
-               {
-                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
-                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/src")))
-                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
-               }
-               else
-               {
-                  java.sourceSets.create(extraSourceSet)
-                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
-               }
-            }
-         }
-      }
+//      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
+//      {
+//         if (project.hasProperty("extraSourceSets"))
+//         {
+//            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
+//
+//            for (extraSourceSet in extraSourceSets)
+//            {
+//               if (extraSourceSet == "test")
+//               {
+//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
+//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/src")))
+//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
+//               }
+//               else
+//               {
+//                  java.sourceSets.create(extraSourceSet)
+//                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
+//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
+//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
+//               }
+//            }
+//         }
+//      }
    }
    
    fun Project.addIHMCMavenRepositories()
