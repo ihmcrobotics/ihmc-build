@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.6.4"
+version = "0.6.5"
 
 gradlePlugin {
    (plugins) {
@@ -54,4 +54,5 @@ dependencies {
    compile("us.ihmc:ihmc-ci-plugin:0.15.3")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile("gradle.plugin.org.gradle.kotlin:gradle-kotlin-dsl-plugins:0.10.9")
+   compile("org.gradle:gradle-kotlin-dsl:0.10.3")
 }

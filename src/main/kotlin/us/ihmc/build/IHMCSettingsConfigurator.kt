@@ -5,6 +5,7 @@ import groovy.util.Eval
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
+import org.gradle.kotlin.dsl.extra
 import java.io.File
 
 class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val ext: ExtraPropertiesExtension)
@@ -21,7 +22,33 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    init
    {
       logger.info("[ihmc-build] Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
-      ext.set("org.gradle.workers.max", 200)
+      ext["org.gradle.workers.max"] = 200
+   }
+   
+   fun configureAsGroupOfProjects()
+   {
+      checkForPropertyInternal("isProjectGroup", "true")
+      checkForPropertyInternal("hyphenatedName", "your-project-hyphenated")
+      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
+      checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
+      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
+      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
+      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
+      checkForPropertyInternal("org.gradle.workers.max", "200")
+   }
+   
+   fun includeAllChildProjects()
+   {
+      if (settings.startParameter.isSearchUpwards)
+      {
+         for (childDir in settings.settingsDir.list())
+         {
+            if (File(settings.settingsDir, childDir + "/build.gradle").exists())
+            {
+               settings.includeBuild(childDir)
+            }
+         }
+      }
    }
    
    fun configureProjectName(hyphenatedName: String)
