@@ -20,51 +20,7 @@ class IHMCBuildPlugin : Plugin<Project>
    {
       if (project.hasProperty("isProjectGroup") && (project.property("isProjectGroup") as String).toBoolean())
       {
-         project.task("generateSettings", closureOf<Task> {
-            doLast {
-               us.ihmc.build.writeGroupSettingsFile(project.projectDir)
-   
-               for (childDir in project.projectDir.list())
-               {
-                  if (File(project.projectDir, childDir + "/build.gradle").exists())
-                  {
-                     us.ihmc.build.writeProjectSettingsFile(File(project.projectDir, childDir))
-                  }
-               }
-            }
-         })
-         project.task("deleteTests", closureOf<Task> {
-            doLast {
-               us.ihmc.build.writeGroupSettingsFile(project.projectDir)
-         
-               for (childDir in project.projectDir.list())
-               {
-                  if (File(project.projectDir, childDir + "/build.gradle").exists())
-                  {
-                     val childPath = File(project.projectDir, childDir).toPath()
-                     us.ihmc.build.revertSourceFolderFromMavenStandard(childPath, "main")
-                     us.ihmc.build.revertSourceFolderFromMavenStandard(childPath, "test")
-                     us.ihmc.build.revertSourceFolderFromMavenStandard(childPath, "visualizers")
-                  }
-               }
-            }
-         })
-         project.task("copyTests", closureOf<Task> {
-            doLast {
-               us.ihmc.build.writeGroupSettingsFile(project.projectDir)
-         
-               for (childDir in project.projectDir.list())
-               {
-                  if (File(project.projectDir, childDir + "/build.gradle").exists())
-                  {
-                     val childPath = File(project.projectDir, childDir).toPath()
-                     us.ihmc.build.moveSourceFolderToMavenStandard(childPath, "main")
-                     us.ihmc.build.moveSourceFolderToMavenStandard(childPath, "test")
-                     us.ihmc.build.moveSourceFolderToMavenStandard(childPath, "visualizers")
-                  }
-               }
-            }
-         })
+         configureProjectGroup(project)
       }
       else
       {
@@ -101,5 +57,84 @@ class IHMCBuildPlugin : Plugin<Project>
    {
       if (!plugins.hasPlugin(pluginClass))
          plugins.apply(pluginClass)
+   }
+   
+   private fun configureProjectGroup(project: Project)
+   {
+      project.task("generateSettings", closureOf<Task> {
+         doLast {
+            writeGroupSettingsFile(project.projectDir)
+            
+            for (childDir in project.projectDir.list())
+            {
+               if (File(project.projectDir, childDir + "/build.gradle").exists())
+               {
+                  writeProjectSettingsFile(File(project.projectDir, childDir))
+               }
+            }
+         }
+      })
+      project.task("convertStructure", closureOf<Task> {
+         doLast {
+            for (childDir in project.projectDir.list())
+            {
+               if (File(project.projectDir, childDir + "/build.gradle").exists())
+               {
+                  val childFile = File(project.projectDir, childDir)
+                  val tempFile = File(project.projectDir, "TMP" + childDir)
+                  val childPath = childFile.toPath()
+                  moveSourceFolderToMavenStandard(childPath, "main")
+                  moveSourceFolderToMavenStandard(childPath, "test")
+                  moveSourceFolderToMavenStandard(childPath, "visualizers")
+                  
+//                  val properties = IHMCBuildProperties(logger).load(childPath)
+//                  if (childPath.fileName.toString() == properties.pascalCasedName)
+//                  {
+//                     try
+//                     {
+//                        Files.move(childPath, project.projectDir.toPath().resolve(properties.hyphenatedName), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+//                     }
+//                     catch (e: IOException)
+//                     {
+//                        e.printStackTrace()
+//                     }
+//                     FileUtils.moveDirectory(childFile, tempFile)
+//                     FileUtils.moveDirectory(tempFile, File(project.projectDir, properties.hyphenatedName))
+//                  }
+               }
+            }
+         }
+      })
+      project.task("revertStructure", closureOf<Task> {
+         doLast {
+            for (childDir in project.projectDir.list())
+            {
+               if (File(project.projectDir, childDir + "/build.gradle").exists())
+               {
+                  val childFile = File(project.projectDir, childDir)
+                  val tempFile = File(project.projectDir, "TMP" + childDir)
+                  val childPath = childFile.toPath()
+                  revertSourceFolderFromMavenStandard(childPath, "main")
+                  revertSourceFolderFromMavenStandard(childPath, "test")
+                  revertSourceFolderFromMavenStandard(childPath, "visualizers")
+                  
+//                  val properties = IHMCBuildProperties(logger).load(childPath)
+//                  if (childPath.fileName.toString() == properties.hyphenatedName)
+//                  {
+//                     try
+//                     {
+//                        Files.move(childPath, project.projectDir.toPath().resolve(properties.pascalCasedName), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+//                     }
+//                     catch (e: IOException)
+//                     {
+//                        e.printStackTrace()
+//                     }
+//                     FileUtils.moveDirectory(childFile, tempFile)
+//                     FileUtils.moveDirectory(tempFile, File(project.projectDir, properties.pascalCasedName))
+//                  }
+               }
+            }
+         }
+      })
    }
 }
