@@ -1,7 +1,6 @@
 package us.ihmc.build
 
 import groovy.util.Eval
-import org.apache.commons.io.FileUtils
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.UnknownProjectException
@@ -19,17 +18,15 @@ import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
-import us.ihmc.commons.nio.FileTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
-import java.nio.file.Files
 import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
 {
-   var productGroup = "unset.group"
-   var productVersion = "UNSET-VERSION"
+   var group = "unset.group"
+   var version = "UNSET-VERSION"
    var vcsUrl: String = "unset_vcs_url"
    var openSource: Boolean = false
    var licenseURL: String = "proprietary"
@@ -108,13 +105,13 @@ open class IHMCBuildExtension(val project: Project)
       {
          if (property.key as String == "group")
          {
-            productGroup = property.value as String
-            printQuiet("Loaded group: " + productGroup)
+            group = property.value as String
+            printQuiet("Loaded group: " + group)
          }
          if (property.key as String == "version")
          {
-            productVersion = property.value as String
-            printQuiet("Loaded version: " + productVersion)
+            version = property.value as String
+            printQuiet("Loaded version: " + version)
          }
          if (property.key as String == "vcsUrl")
          {
@@ -173,6 +170,7 @@ open class IHMCBuildExtension(val project: Project)
          licenseName = "Apache License, Version 2.0"
       }
       
+      val productGroup = group
       project.allprojects {
          (this as Project).run {
             group = productGroup
@@ -299,7 +297,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun getPublishVersion(): String
    {
-      var publishVersion = productVersion
+      var publishVersion = version
       
       if (publishModeProperty != "STABLE")
       {
