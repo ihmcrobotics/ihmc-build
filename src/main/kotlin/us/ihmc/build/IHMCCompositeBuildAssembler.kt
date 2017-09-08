@@ -99,7 +99,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       for (subdirectory in Files.list(directory))
       {
-         if (Files.isDirectory(subdirectory) && Files.exists(subdirectory.resolve("build.gradle")))
+         if (Files.isDirectory(subdirectory) && Files.exists(subdirectory.resolve("build.gradle"))
+               && Files.exists(subdirectory.resolve("gradle.properties"))&& Files.exists(subdirectory.resolve("settings.gradle")))
          {
             buildFolderNameToPathMap.put(subdirectory.fileName.toString(), subdirectory)
             buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCBuildProperties(logger).load(subdirectory))
