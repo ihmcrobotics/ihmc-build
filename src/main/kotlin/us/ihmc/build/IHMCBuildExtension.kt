@@ -181,7 +181,15 @@ open class IHMCBuildExtension(val project: Project)
             
             if (publishModeProperty == "SNAPSHOT")
             {
-               declareArtifactory("snapshots")
+               if (openSource)
+               {
+                  declareArtifactory("snapshots")
+               }
+               else
+               {
+                  declareArtifactory("proprietary-snapshots")
+                  
+               }
             }
             else if (publishModeProperty == "STABLE")
             {
@@ -231,7 +239,7 @@ open class IHMCBuildExtension(val project: Project)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))
       }
-      
+
 //      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
 //      {
 //         if (project.hasProperty("extraSourceSets"))
@@ -269,6 +277,7 @@ open class IHMCBuildExtension(val project: Project)
          if (!openSource)
          {
             maven {}.url = uri("https://artifactory.ihmc.us/artifactory/proprietary/")
+            maven {}.url = uri("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/")
          }
       }
    }
@@ -355,18 +364,18 @@ open class IHMCBuildExtension(val project: Project)
                childVersion += "-$branchName"
             }
             childVersion += "-$buildNumber"
-            return matchVersionFromArtifactory(groupId, artifactId, childVersion, "snapshots")
+            return matchVersionFromArtifactory(groupId, artifactId, childVersion)
          }
          else
          {
             var latestVersion = "NOT-FOUND"
             if (isBranchBuild) // Try to match the same branch
             {
-               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT-$branchName", "snapshots")
+               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT-$branchName")
             }
             if (latestVersion.contains("NOT-FOUND")) // Give up on the branch, use any latest
             {
-               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT", "snapshots")
+               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT")
             }
             return latestVersion
          }
@@ -375,11 +384,11 @@ open class IHMCBuildExtension(val project: Project)
       // For users
       if (declaredVersion.endsWith("-LATEST")) // Finds latest version
       {
-         return latestVersionFromArtifactory(groupId, artifactId, declaredVersion.substringBefore("-LATEST"), "snapshots")
+         return latestVersionFromArtifactory(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
       }
       else if (declaredVersion.startsWith("SNAPSHOT")) // Not going to be exact match
       {
-         return matchVersionFromArtifactory(groupId, artifactId, declaredVersion, "snapshots")
+         return matchVersionFromArtifactory(groupId, artifactId, declaredVersion)
       }
       else // Pass directly to gradle as declared
       {
@@ -387,19 +396,32 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   private fun matchVersionFromArtifactory(groupId: String, artifactId: String, versionMatcher: String, repository: String): String
+   private fun getSnapshotRepositoryList(): List<String>
    {
-      val snapshots: List<RepoPath> = searchArtifactoryRepository(repository, groupId, artifactId)
-      
-      for (repoPath in snapshots)
+      if (openSource)
       {
-         if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
+         return listOf("snapshots")
+      }
+      else
+      {
+         return listOf("snapshots", "proprietary-snapshots")
+      }
+   }
+   
+   private fun matchVersionFromArtifactory(groupId: String, artifactId: String, versionMatcher: String): String
+   {
+      for (repository in getSnapshotRepositoryList())
+      {
+         for (repoPath in searchArtifactoryRepository(repository, groupId, artifactId))
          {
-            val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
-            
-            if (versionFromArtifactory.endsWith(versionMatcher))
+            if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
             {
-               return versionFromArtifactory
+               val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
+         
+               if (versionFromArtifactory.endsWith(versionMatcher))
+               {
+                  return versionFromArtifactory
+               }
             }
          }
       }
@@ -407,25 +429,27 @@ open class IHMCBuildExtension(val project: Project)
       return "MATCH-NOT-FOUND-$versionMatcher"
    }
    
-   private fun latestVersionFromArtifactory(groupId: String, artifactId: String, versionMatcher: String, repository: String): String
+   private fun latestVersionFromArtifactory(groupId: String, artifactId: String, versionMatcher: String): String
    {
-      val snapshots: List<RepoPath> = searchArtifactoryRepository(repository, groupId, artifactId)
-      
       var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
       var highestBuildNumber: Int = -1
-      for (repoPath in snapshots)
+   
+      for (repository in getSnapshotRepositoryList())
       {
-         if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
+         for (repoPath in searchArtifactoryRepository(repository, groupId, artifactId))
          {
-            val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
-            
-            if (versionFromArtifactory.contains(versionMatcher))
+            if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
             {
-               val buildNumberFromArtifactory: Int = Integer.parseInt(versionFromArtifactory.split("-").last())
-               if (buildNumberFromArtifactory > highestBuildNumber)
+               val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
+         
+               if (versionFromArtifactory.contains(versionMatcher))
                {
-                  matchedVersion = versionFromArtifactory
-                  highestBuildNumber = buildNumberFromArtifactory
+                  val buildNumberFromArtifactory: Int = Integer.parseInt(versionFromArtifactory.split("-").last())
+                  if (buildNumberFromArtifactory > highestBuildNumber)
+                  {
+                     matchedVersion = versionFromArtifactory
+                     highestBuildNumber = buildNumberFromArtifactory
+                  }
                }
             }
          }
@@ -438,8 +462,11 @@ open class IHMCBuildExtension(val project: Project)
    {
       val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
       builder.url = "https://artifactory.ihmc.us/artifactory"
-      builder.username = artifactoryUsername
-      builder.password = artifactoryPassword
+      if (!openSource)
+      {
+         builder.username = artifactoryUsername
+         builder.password = artifactoryPassword
+      }
       val artifactory: Artifactory = builder.build()
       val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
       return snapshots
