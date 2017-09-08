@@ -207,7 +207,10 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
                dependencyMap.put(key, value)
             }
             
-            dependencies.add(arrayOf(dependencyMap["group"]!!, dependencyMap["name"]!!, dependencyMap["version"]!!))
+            if (dependencyMap.containsKey("group") && dependencyMap.containsKey("name") && dependencyMap.containsKey("version"))
+            {
+               dependencies.add(arrayOf(dependencyMap["group"]!!, dependencyMap["name"]!!, dependencyMap["version"]!!))
+            }
          }
          
          super.visitMapExpression(expression)
