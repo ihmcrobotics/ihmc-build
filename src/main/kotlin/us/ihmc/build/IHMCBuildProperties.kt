@@ -11,6 +11,7 @@ class IHMCBuildProperties(val logger: Logger)
    var hyphenatedName: String = ""
    var pascalCasedName: String = ""
    var exclude = false
+   var isProjectGroup: Boolean = false
    val extraSourceSets = ArrayList<String>()
    
    fun load(projectPath: Path): IHMCBuildProperties
@@ -25,6 +26,14 @@ class IHMCBuildProperties(val logger: Logger)
             if (exclude)
             {
                logger.quiet("[ihmc-build] Excluding " + projectPath.fileName.toString() + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
+            }
+         }
+         if (propertyKey == "isProjectGroup")
+         {
+            isProjectGroup = (properties.get(propertyKey)!! as String).toBoolean()
+            if (isProjectGroup)
+            {
+               logger.quiet("[ihmc-build] Including project group: " + projectPath.fileName.toString() + ". Property isProjectGroup = " + properties.get(propertyKey))
             }
          }
          if (propertyKey == "pascalCasedName")

@@ -7,6 +7,7 @@ import org.codehaus.groovy.ast.expr.*
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
+import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -35,6 +36,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    fun findCompositeBuilds(): List<String>
    {
       logger.info("[ihmc-build] Workspace dir: " + workspacePath)
+      buildFolderNameToPathMap.put(workspacePath.fileName.toString(), workspacePath)
+      buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCBuildProperties(logger).load(workspacePath))
       mapDirectory(workspacePath)
       for (buildFolderName in buildFolderNameToPathMap.keys)
       {
@@ -65,17 +68,34 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    
    private fun findTransitivesRecursive(projectDir: Path)
    {
-      val dependencies: SortedSet<String> = parseDependenciesFromGradleFile(projectDir.resolve("build.gradle"))
+      if (!buildFolderNameToPropertiesMap.containsKey(projectDir.fileName.toString()))
+         return
       
-      for (dependency in dependencies)
+      if (buildFolderNameToPropertiesMap[projectDir.fileName.toString()]!!.isProjectGroup)
       {
-         val newMatchingKeys: List<String> = findMatchingBuildKey(dependency)
-         
-         transitiveBuildFolderNames.addAll(newMatchingKeys)
-         for (newMatchingKey in newMatchingKeys)
+         val projectFile = projectDir.toFile()
+         for (childDir in projectFile.list())
          {
-            logger.info("[ihmc-build] Adding module: " + newMatchingKey)
-            findTransitivesRecursive(buildFolderNameToPathMap[newMatchingKey]!!)
+            if (File(projectFile, childDir + "/build.gradle").exists())
+            {
+               findTransitivesRecursive(projectDir.resolve(childDir))
+            }
+         }
+      }
+      else
+      {
+         val dependencies: SortedSet<String> = parseDependenciesFromGradleFile(projectDir.resolve("build.gradle"))
+         
+         for (dependency in dependencies)
+         {
+            val newMatchingKeys: List<String> = findMatchingBuildKey(dependency)
+            
+            transitiveBuildFolderNames.addAll(newMatchingKeys)
+            for (newMatchingKey in newMatchingKeys)
+            {
+               logger.info("[ihmc-build] Adding module: " + newMatchingKey)
+               findTransitivesRecursive(buildFolderNameToPathMap[newMatchingKey]!!)
+            }
          }
       }
    }
@@ -100,7 +120,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       for (subdirectory in Files.list(directory))
       {
          if (Files.isDirectory(subdirectory) && Files.exists(subdirectory.resolve("build.gradle"))
-               && Files.exists(subdirectory.resolve("gradle.properties"))&& Files.exists(subdirectory.resolve("settings.gradle")))
+               && Files.exists(subdirectory.resolve("gradle.properties")) && Files.exists(subdirectory.resolve("settings.gradle")))
          {
             buildFolderNameToPathMap.put(subdirectory.fileName.toString(), subdirectory)
             buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCBuildProperties(logger).load(subdirectory))

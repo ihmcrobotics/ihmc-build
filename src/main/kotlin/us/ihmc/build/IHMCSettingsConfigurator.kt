@@ -37,20 +37,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }
    
-   fun includeAllChildProjects()
-   {
-      if (settings.startParameter.isSearchUpwards)
-      {
-         for (childDir in settings.settingsDir.list())
-         {
-            if (File(settings.settingsDir, childDir + "/build.gradle").exists())
-            {
-               settings.includeBuild(childDir)
-            }
-         }
-      }
-   }
-   
    fun configureProjectName(hyphenatedName: String)
    {
       settings.rootProject.name = hyphenatedName
