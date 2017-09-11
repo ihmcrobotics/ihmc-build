@@ -128,10 +128,21 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureDependencyResolution()
    {
+      repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+      repository("http://dl.bintray.com/ihmcrobotics/maven-release")
+      repository("https://artifactory.ihmc.us/artifactory/releases/")
+      repository("https://artifactory.ihmc.us/artifactory/thirdparty/")
+      repository("https://artifactory.ihmc.us/artifactory/snapshots/")
+      if (!openSource)
+      {
+         repository("https://artifactory.ihmc.us/artifactory/proprietary/", artifactoryUsername, artifactoryPassword)
+         repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
+      }
+      repository("http://clojars.org/repo/")
+      repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+      repository("https://oss.sonatype.org/content/repositories/snapshots")
       project.allprojects {
          (this as Project).run {
-            addIHMCMavenRepositories()
-            addThirdPartyMavenRepositories()
             addWorldMavenRepositories()
             addLocalMavenRepository()
          }
@@ -174,6 +185,17 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
+   }
+   
+   private fun Project.addWorldMavenRepositories()
+   {
+      repositories.jcenter()
+      repositories.mavenCentral()
+   }
+   
+   private fun Project.addLocalMavenRepository()
+   {
+      repositories.mavenLocal()
    }
    
    fun configurePublications()
@@ -278,50 +300,6 @@ open class IHMCBuildExtension(val project: Project)
 //            }
 //         }
 //      }
-   }
-   
-   fun Project.addIHMCMavenRepositories()
-   {
-      repositories.run {
-         maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-         maven {}.url = uri("http://dl.bintray.com/ihmcrobotics/maven-release")
-         maven {}.url = uri("https://artifactory.ihmc.us/artifactory/releases/")
-         maven {}.url = uri("https://artifactory.ihmc.us/artifactory/thirdparty/")
-         maven {}.url = uri("https://artifactory.ihmc.us/artifactory/snapshots/")
-         if (!openSource)
-         {
-            val proprietary = maven {}
-            proprietary.url = uri("https://artifactory.ihmc.us/artifactory/proprietary/")
-            proprietary.credentials.username = artifactoryUsername
-            proprietary.credentials.username = artifactoryPassword
-            val proprietarySnapshots = maven {}
-            proprietarySnapshots.url = uri("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/")
-            proprietarySnapshots.credentials.username = artifactoryUsername
-            proprietarySnapshots.credentials.username = artifactoryPassword
-         }
-      }
-   }
-   
-   fun Project.addThirdPartyMavenRepositories()
-   {
-      repositories.run {
-         maven {}.url = uri("http://clojars.org/repo/")
-         maven {}.url = uri("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-         maven {}.url = uri("https://oss.sonatype.org/content/repositories/snapshots")
-      }
-   }
-   
-   fun Project.addWorldMavenRepositories()
-   {
-      repositories.run {
-         jcenter()
-         mavenCentral()
-      }
-   }
-   
-   fun Project.addLocalMavenRepository()
-   {
-      repositories.mavenLocal()
    }
    
    private fun getPublishVersion(): String
@@ -437,7 +415,7 @@ open class IHMCBuildExtension(val project: Project)
             if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
             {
                val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
-         
+               
                if (versionFromArtifactory.endsWith(versionMatcher))
                {
                   return versionFromArtifactory
@@ -453,7 +431,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
       var highestBuildNumber: Int = -1
-   
+      
       for (repository in getSnapshotRepositoryList())
       {
          for (repoPath in searchArtifactoryRepository(repository, groupId, artifactId))
@@ -461,7 +439,7 @@ open class IHMCBuildExtension(val project: Project)
             if (!repoPath.itemPath.endsWith("sources.jar") && !repoPath.itemPath.endsWith(".pom"))
             {
                val versionFromArtifactory: String = itemPathToVersion(repoPath.itemPath, artifactId)
-         
+               
                if (versionFromArtifactory.contains(versionMatcher))
                {
                   val buildNumberFromArtifactory: Int = Integer.parseInt(versionFromArtifactory.split("-").last())
