@@ -36,8 +36,13 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    fun findCompositeBuilds(): List<String>
    {
       logger.info("[ihmc-build] Workspace dir: " + workspacePath)
-      buildFolderNameToPathMap.put(workspacePath.fileName.toString(), workspacePath)
-      buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCBuildProperties(logger).load(workspacePath))
+   
+      if (Files.isDirectory(workspacePath) && Files.exists(workspacePath.resolve("build.gradle"))
+            && Files.exists(workspacePath.resolve("gradle.properties")) && Files.exists(workspacePath.resolve("settings.gradle")))
+      {
+         buildFolderNameToPathMap.put(workspacePath.fileName.toString(), workspacePath)
+         buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCBuildProperties(logger).load(workspacePath))
+      }
       mapDirectory(workspacePath)
       for (buildFolderName in buildFolderNameToPathMap.keys)
       {
