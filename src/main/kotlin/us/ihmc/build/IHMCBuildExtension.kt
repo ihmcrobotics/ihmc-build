@@ -162,6 +162,20 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   fun repository(url: String, username: String, password: String)
+   {
+      project.allprojects {
+         (this as Project).run {
+            repositories.run {
+               val maven = maven {}
+               maven.url = uri(url)
+               maven.credentials.username = username
+               maven.credentials.password = password
+            }
+         }
+      }
+   }
+   
    fun configurePublications()
    {
       if (openSource)
@@ -276,8 +290,14 @@ open class IHMCBuildExtension(val project: Project)
          maven {}.url = uri("https://artifactory.ihmc.us/artifactory/snapshots/")
          if (!openSource)
          {
-            maven {}.url = uri("https://artifactory.ihmc.us/artifactory/proprietary/")
-            maven {}.url = uri("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/")
+            val proprietary = maven {}
+            proprietary.url = uri("https://artifactory.ihmc.us/artifactory/proprietary/")
+            proprietary.credentials.username = artifactoryUsername
+            proprietary.credentials.username = artifactoryPassword
+            val proprietarySnapshots = maven {}
+            proprietarySnapshots.url = uri("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/")
+            proprietarySnapshots.credentials.username = artifactoryUsername
+            proprietarySnapshots.credentials.username = artifactoryPassword
          }
       }
    }

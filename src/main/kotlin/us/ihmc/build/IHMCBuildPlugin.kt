@@ -33,8 +33,10 @@ class IHMCBuildPlugin : Plugin<Project>
                maybeApplyPlugin(MavenPublishPlugin::class.java)
                maybeApplyPlugin(AnalyzeDependenciesPlugin::class.java)
                maybeApplyPlugin(TaskTreePlugin::class.java)
-               maybeApplyPlugin(IHMCContinuousIntegrationGradlePlugin::class.java)
             }
+            
+            // Only apply to main
+            maybeApplyPlugin(IHMCContinuousIntegrationGradlePlugin::class.java)
             
             val ihmcBuildExtension = IHMCBuildExtension(project)
             extensions.add("ihmc", ihmcBuildExtension)
