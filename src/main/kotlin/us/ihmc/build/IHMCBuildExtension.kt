@@ -25,6 +25,7 @@ import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
 {
+   private val logger = project.logger
    var group = "unset.group"
    var version = "UNSET-VERSION"
    var vcsUrl: String = "unset_vcs_url"
@@ -87,11 +88,11 @@ open class IHMCBuildExtension(val project: Project)
       else
       {
          if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
-            printQuiet("Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
+            logInfo(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
          if (propertyName == "bintray_user" || propertyName == "bintray_key")
-            printQuiet("Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
+            logInfo(logger, "Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
          
-         printQuiet("No value found for $propertyName. Using default value: $defaultValue")
+         logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
          project.extra.set(propertyName, defaultValue)
          return defaultValue
       }
@@ -106,22 +107,22 @@ open class IHMCBuildExtension(val project: Project)
          if (property.key as String == "group")
          {
             group = property.value as String
-            printQuiet("Loaded group: " + group)
+            logInfo(logger, "Loaded group: " + group)
          }
          if (property.key as String == "version")
          {
             version = property.value as String
-            printQuiet("Loaded version: " + version)
+            logInfo(logger, "Loaded version: " + version)
          }
          if (property.key as String == "vcsUrl")
          {
             vcsUrl = property.value as String
-            printQuiet("Loaded vcsUrl: " + vcsUrl)
+            logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
          }
          if (property.key as String == "openSource")
          {
             openSource = Eval.me(property.value as String) as Boolean
-            printQuiet("Loaded openSource: " + openSource)
+            logInfo(logger, "Loaded openSource: " + openSource)
          }
       }
    }
@@ -572,15 +573,5 @@ open class IHMCBuildExtension(val project: Project)
    fun convertJobNameToHyphenatedName(jobName: String): String
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
-   }
-   
-   fun printQuiet(message: Any)
-   {
-      project.logger.quiet("[ihmc-build] " + message)
-   }
-   
-   fun printInfo(message: Any)
-   {
-      project.logger.info("[ihmc-build] " + message)
    }
 }

@@ -35,8 +35,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    
    fun findCompositeBuilds(): List<String>
    {
-      logger.info("[ihmc-build] Workspace dir: " + workspacePath)
-   
+      logInfo(logger, "Workspace dir: " + workspacePath)
+      
       if (Files.isDirectory(workspacePath) && Files.exists(workspacePath.resolve("build.gradle"))
             && Files.exists(workspacePath.resolve("gradle.properties")) && Files.exists(workspacePath.resolve("settings.gradle")))
       {
@@ -46,7 +46,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       mapDirectory(workspacePath)
       for (buildFolderName in buildFolderNameToPathMap.keys)
       {
-         logger.info("[ihmc-build] Found: " + buildFolderName + " : " + buildFolderNameToPathMap.get(buildFolderName))
+         logInfo(logger, "Found: " + buildFolderName + " : " + buildFolderNameToPathMap.get(buildFolderName))
       }
       
       val buildsToInclude = ArrayList<String>()
@@ -65,7 +65,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       for (buildToInclude in buildsToInclude)
       {
-         logger.quiet("[ihmc-build] Including build: " + buildToInclude)
+         logInfo(logger, "Including build: " + buildToInclude)
       }
       
       return buildsToInclude
@@ -83,7 +83,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          {
             if (File(projectFile, childDir + "/build.gradle").exists())
             {
-               findTransitivesRecursive(projectDir.resolve(childDir))
+               addModule(childDir)
             }
          }
       }
@@ -93,15 +93,20 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          for (dependency in dependencies)
          {
-            val newMatchingKeys: List<String> = findMatchingBuildKey(dependency)
-            
-            transitiveBuildFolderNames.addAll(newMatchingKeys)
-            for (newMatchingKey in newMatchingKeys)
-            {
-               logger.info("[ihmc-build] Adding module: " + newMatchingKey)
-               findTransitivesRecursive(buildFolderNameToPathMap[newMatchingKey]!!)
-            }
+            addModule(dependency)
          }
+      }
+   }
+   
+   private fun addModule(dependency: String)
+   {
+      val newMatchingKeys: List<String> = findMatchingBuildKey(dependency)
+      
+      transitiveBuildFolderNames.addAll(newMatchingKeys)
+      for (newMatchingKey in newMatchingKeys)
+      {
+         logInfo(logger, "Adding module: " + newMatchingKey)
+         findTransitivesRecursive(buildFolderNameToPathMap[newMatchingKey]!!)
       }
    }
    
@@ -112,7 +117,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       {
          if (!transitiveBuildFolderNames.contains(buildFolderNameToCheck) && matchNames(buildFolderNameToCheck, dependencyNameAsDeclared))
          {
-            logger.info("Matched: " + dependencyNameAsDeclared + " to " + buildFolderNameToCheck + "  " + toPascalCased(dependencyNameAsDeclared))
+            logInfo(logger, "Matched: " + dependencyNameAsDeclared + " to " + buildFolderNameToCheck + "  " + toPascalCased(dependencyNameAsDeclared))
             matched.add(buildFolderNameToCheck)
          }
       }
@@ -160,7 +165,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       {
          val builder = AstBuilder()
          val bytesInFile = String(Files.readAllBytes(buildFile))
-         logger.info("[ihmc-build] Parsing for dependencies: " + buildFile)
+         logInfo(logger, "Parsing for dependencies: " + buildFile)
          val nodes: List<ASTNode> = builder.buildFromString(bytesInFile)
          val dependencies = ArrayList<Array<String>>()
          val visitor = ExternalGradleFileCodeVisitor(dependencies, logger)
@@ -171,25 +176,25 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          for (dependency in dependencies)
          {
-            logger.info("[ihmc-build] Found declared dependency: " + dependency[1])
+            logInfo(logger, "Found declared dependency: " + dependency[1])
             dependencySet.add(dependency[1])
          }
       }
       catch (e: NoSuchFileException)
       {
-         logger.info("[ihmc-build] Build not found on disk: " + e.message)
+         logInfo(logger, "Build not found on disk: " + e.message)
       }
       catch (e: GradleScriptException)
       {
-         logger.error("[ihmc-build] Cannot evaluate " + buildFile + ": " + e.message)
+         logWarn(logger, "Cannot evaluate " + buildFile + ": " + e.message)
       }
       catch (e: MultipleCompilationErrorsException)
       {
-         logger.error("[ihmc-build] Cannot evaluate " + buildFile + ": " + e.message)
+         logWarn(logger, "Cannot evaluate " + buildFile + ": " + e.message)
       }
       catch (e: IOException)
       {
-         e.printStackTrace()
+         logTrace(logger, e.stackTrace)
       }
       return dependencySet
    }
@@ -219,7 +224,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       override fun visitMapExpression(expression: MapExpression)
       {
-         logger.info("[ihmc-build] Found map entry: " + expression.getText())
+         logInfo(logger, "Found map entry: " + expression.getText())
          val mapEntryExpressions: List<MapEntryExpression> = expression.getMapEntryExpressions()
          if (mapEntryExpressions.size >= 3)
          {

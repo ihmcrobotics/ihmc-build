@@ -9,6 +9,7 @@ import org.gradle.util.CollectionUtils
 
 open class IHMCDependenciesExtension(private val rootProject: Project, private val name: String, private val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
 {
+   private val logger = rootProject.logger
    private val hyphenatedName: String = rootProject.property("hyphenatedName") as String
    private val projectToConfigure by lazy {
       if (name == "main")
@@ -38,11 +39,11 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
    {
       val modifiedDependencyNotation = modifyDependency(dependencyNotation)
    
-      println("[ihmc-build] Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
+      logDebug(logger, "Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
       
       if (configurationName != "compile")
       {
-         println("[ihmc-build] [WARN] Unusual dependency on configuration: " + configurationName + ": " + dependencyNotation)
+         logDebug(logger, " Unusual dependency on configuration: " + configurationName + ": " + dependencyNotation)
       }
       
       return modifiedDependencyNotation

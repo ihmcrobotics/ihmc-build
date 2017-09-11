@@ -25,7 +25,7 @@ class IHMCBuildProperties(val logger: Logger)
             exclude = (properties.get(propertyKey)!! as String).toBoolean()
             if (exclude)
             {
-               logger.quiet("[ihmc-build] Excluding " + projectPath.fileName.toString() + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
+               logInfo(logger, "Excluding " + projectPath.fileName.toString() + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
             }
          }
          if (propertyKey == "isProjectGroup")
@@ -33,7 +33,7 @@ class IHMCBuildProperties(val logger: Logger)
             isProjectGroup = (properties.get(propertyKey)!! as String).toBoolean()
             if (isProjectGroup)
             {
-               logger.quiet("[ihmc-build] Including project group: " + projectPath.fileName.toString() + ". Property isProjectGroup = " + properties.get(propertyKey))
+               logInfo(logger, "Including project group: " + projectPath.fileName.toString() + ". Property isProjectGroup = " + properties.get(propertyKey))
             }
          }
          if (propertyKey == "pascalCasedName")

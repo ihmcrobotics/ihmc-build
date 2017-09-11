@@ -48,7 +48,7 @@ class IHMCBuildPlugin : Plugin<Project>
             }
             project.task("generateSettings", closureOf<Task> {
                doLast {
-                  us.ihmc.build.writeProjectSettingsFile(project.projectDir)
+                  us.ihmc.build.writeProjectSettingsFile(logger, project.projectDir)
                }
             })
          }
@@ -65,13 +65,13 @@ class IHMCBuildPlugin : Plugin<Project>
    {
       project.task("generateSettings", closureOf<Task> {
          doLast {
-            writeGroupSettingsFile(project.projectDir)
+            writeGroupSettingsFile(logger, project.projectDir)
             
             for (childDir in project.projectDir.list())
             {
                if (File(project.projectDir, childDir + "/build.gradle").exists())
                {
-                  writeProjectSettingsFile(File(project.projectDir, childDir))
+                  writeProjectSettingsFile(logger, File(project.projectDir, childDir))
                }
             }
          }
@@ -85,24 +85,9 @@ class IHMCBuildPlugin : Plugin<Project>
                   val childFile = File(project.projectDir, childDir)
                   val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
-                  moveSourceFolderToMavenStandard(childPath, "main")
-                  moveSourceFolderToMavenStandard(childPath, "test")
-                  moveSourceFolderToMavenStandard(childPath, "visualizers")
-                  
-//                  val properties = IHMCBuildProperties(logger).load(childPath)
-//                  if (childPath.fileName.toString() == properties.pascalCasedName)
-//                  {
-//                     try
-//                     {
-//                        Files.move(childPath, project.projectDir.toPath().resolve(properties.hyphenatedName), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-//                     }
-//                     catch (e: IOException)
-//                     {
-//                        e.printStackTrace()
-//                     }
-//                     FileUtils.moveDirectory(childFile, tempFile)
-//                     FileUtils.moveDirectory(tempFile, File(project.projectDir, properties.hyphenatedName))
-//                  }
+                  moveSourceFolderToMavenStandard(project.logger, childPath, "main")
+                  moveSourceFolderToMavenStandard(project.logger, childPath, "test")
+                  moveSourceFolderToMavenStandard(project.logger, childPath, "visualizers")
                }
             }
          }
@@ -116,24 +101,9 @@ class IHMCBuildPlugin : Plugin<Project>
                   val childFile = File(project.projectDir, childDir)
                   val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
-                  revertSourceFolderFromMavenStandard(childPath, "main")
-                  revertSourceFolderFromMavenStandard(childPath, "test")
-                  revertSourceFolderFromMavenStandard(childPath, "visualizers")
-                  
-//                  val properties = IHMCBuildProperties(logger).load(childPath)
-//                  if (childPath.fileName.toString() == properties.hyphenatedName)
-//                  {
-//                     try
-//                     {
-//                        Files.move(childPath, project.projectDir.toPath().resolve(properties.pascalCasedName), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-//                     }
-//                     catch (e: IOException)
-//                     {
-//                        e.printStackTrace()
-//                     }
-//                     FileUtils.moveDirectory(childFile, tempFile)
-//                     FileUtils.moveDirectory(tempFile, File(project.projectDir, properties.pascalCasedName))
-//                  }
+                  revertSourceFolderFromMavenStandard(project.logger, childPath, "main")
+                  revertSourceFolderFromMavenStandard(project.logger, childPath, "test")
+                  revertSourceFolderFromMavenStandard(project.logger, childPath, "visualizers")
                }
             }
          }

@@ -2,27 +2,58 @@ package us.ihmc.build
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
+import org.gradle.api.logging.Logger
 import us.ihmc.commons.nio.FileTools
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.ArrayList
 
-fun writeProjectSettingsFile(directory: File)
+fun logQuiet(logger: Logger, message: Any)
+{
+   logger.quiet(ihmcBuildMessage(message))
+}
+
+fun logInfo(logger: Logger, message: Any)
+{
+   logger.info(ihmcBuildMessage(message))
+}
+
+fun logWarn(logger: Logger, message: Any)
+{
+   logger.warn(ihmcBuildMessage(message))
+}
+
+fun logDebug(logger: Logger, message: Any)
+{
+   logger.debug(ihmcBuildMessage(message))
+}
+
+fun logTrace(logger: Logger, trace: Any)
+{
+   logger.trace(trace.toString())
+}
+
+fun ihmcBuildMessage(message: Any): String
+{
+   return "[ihmc-build] " + message
+}
+
+fun writeProjectSettingsFile(logger: Logger, directory: File)
 {
    val settingsFile = directory.resolve("settings.gradle")
    
-   println("[ihmc-build] Generating project file: " + settingsFile.absolutePath)
+   logQuiet(logger, "Generating project file: " + settingsFile.absolutePath)
    
    val fileContent = IHMCBuildPlugin::class.java.getResource("/project_settings.gradle").readText()
    settingsFile.writeText(fileContent)
 }
 
-fun writeGroupSettingsFile(directory: File)
+fun writeGroupSettingsFile(logger: Logger, directory: File)
 {
    val settingsFile = directory.resolve("settings.gradle")
    
-   println("[ihmc-build] Generating group file: " + settingsFile.absolutePath)
+   logQuiet(logger, "Generating group file: " + settingsFile.absolutePath)
    
    val fileContent = IHMCBuildPlugin::class.java.getResource("/group_settings.gradle").readText()
    settingsFile.writeText(fileContent)
@@ -88,7 +119,7 @@ fun pascalCasedToPrehyphenated(pascalCased: String): String
 /**
  * Temporary tool for converting projects to new folder structure quickly.
  */
-fun moveSourceFolderToMavenStandard(projectDir: Path, sourceSetName: String)
+fun moveSourceFolderToMavenStandard(logger: Logger, projectDir: Path, sourceSetName: String)
 {
    val oldSourceFolder: Path
    if (sourceSetName == "main")
@@ -100,11 +131,11 @@ fun moveSourceFolderToMavenStandard(projectDir: Path, sourceSetName: String)
       oldSourceFolder = projectDir.resolve(sourceSetName)
    }
    val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
-   moveAPackage(oldSourceFolder, mavenFolder, "us")
-   moveAPackage(oldSourceFolder, mavenFolder, "optiTrack")
+   moveAPackage(logger, oldSourceFolder, mavenFolder, "us")
+   moveAPackage(logger, oldSourceFolder, mavenFolder, "optiTrack")
 }
 
-private fun moveAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+private fun moveAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: Path, packageName: String)
 {
    if (Files.exists(oldSourceFolder))
    {
@@ -113,9 +144,9 @@ private fun moveAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: 
       
       if (Files.exists(oldUs))
       {
-         printQuiet(mavenFolder)
-         printQuiet(oldUs)
-         printQuiet(newUs)
+         logQuiet(logger, mavenFolder)
+         logQuiet(logger, oldUs)
+         logQuiet(logger, newUs)
          
          FileTools.deleteQuietly(newUs)
          
@@ -125,68 +156,16 @@ private fun moveAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: 
          }
          catch (e: Exception)
          {
-            printQuiet("Failed: " + e.printStackTrace())
+            logTrace(logger, e.stackTrace)
          }
       }
-   }
-}
-
-fun moveCustomFolderToMavenStandard(projectPath: Path, customSourcePath: Path, toPath: Path)
-{
-   if (Files.exists(customSourcePath) && Files.isDirectory(customSourcePath))
-   {
-      val tempDir = projectPath.resolve("tempDir")
-      
-      printQuiet(customSourcePath)
-      printQuiet(toPath)
-      printQuiet(tempDir)
-   
-      FileTools.deleteQuietly(tempDir)
-      
-      try
-      {
-         FileUtils.moveDirectory(customSourcePath.toFile(), tempDir.toFile())
-         FileUtils.moveDirectory(tempDir.toFile(), toPath.toFile())
-      }
-      catch (e: Exception)
-      {
-         printQuiet("Failed: " + e.printStackTrace())
-      }
-   
-      FileTools.deleteQuietly(tempDir)
-   }
-}
-
-fun revertCustomFolderFromMavenStandard(projectPath: Path, customSourcePath: Path, toPath: Path)
-{
-   if (Files.exists(toPath) && Files.isDirectory(toPath))
-   {
-      val tempDir = projectPath.resolve("tempDir")
-   
-      printQuiet(customSourcePath)
-      printQuiet(toPath)
-      printQuiet(tempDir)
-   
-      FileTools.deleteQuietly(tempDir)
-      
-      try
-      {
-         FileUtils.moveDirectory(toPath.toFile(), tempDir.toFile())
-         FileUtils.moveDirectory(tempDir.toFile(), customSourcePath.toFile())
-      }
-      catch (e: Exception)
-      {
-         printQuiet("Failed: " + e.printStackTrace())
-      }
-   
-      FileTools.deleteQuietly(tempDir)
    }
 }
 
 /**
  * Temporary tool for converting projects to new folder structure quickly.
  */
-fun revertSourceFolderFromMavenStandard(projectDir: Path, sourceSetName: String)
+fun revertSourceFolderFromMavenStandard(logger: Logger, projectDir: Path, sourceSetName: String)
 {
    val oldSourceFolder: Path
    if (sourceSetName == "main")
@@ -200,25 +179,25 @@ fun revertSourceFolderFromMavenStandard(projectDir: Path, sourceSetName: String)
    val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
    if (Files.exists(oldSourceFolder))
    {
-      revertAPackage(oldSourceFolder, mavenFolder, "us")
-      revertAPackage(oldSourceFolder, mavenFolder, "optiTrack")
+      revertAPackage(logger, oldSourceFolder, mavenFolder, "us")
+      revertAPackage(logger, oldSourceFolder, mavenFolder, "optiTrack")
    }
    else
    {
-      println("File not exsiss: $oldSourceFolder")
+      logWarn(logger, "File not exist: $oldSourceFolder")
    }
 }
 
-private fun revertAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+private fun revertAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: Path, packageName: String)
 {
    val oldUs = oldSourceFolder.resolve(packageName)
    val newUs = mavenFolder.resolve(packageName)
    
    if (Files.exists(newUs))
    {
-      printQuiet(mavenFolder)
-      printQuiet(oldUs)
-      printQuiet(newUs)
+      logQuiet(logger, mavenFolder)
+      logQuiet(logger, oldUs)
+      logQuiet(logger, newUs)
       
       FileTools.deleteQuietly(oldUs)
       
@@ -228,17 +207,11 @@ private fun revertAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName
       }
       catch (e: Exception)
       {
-         printQuiet("Failed: " + e.printStackTrace())
+         logTrace(logger, e.stackTrace)
       }
    }
    else
    {
-   
-      println("File not exsiss: $oldUs")
+      logWarn(logger,"File not exist: $oldUs")
    }
-}
-
-fun printQuiet(message: Any)
-{
-   println("[ihmc-build] " + message)
 }
