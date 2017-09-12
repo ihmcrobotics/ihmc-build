@@ -7,6 +7,7 @@ import org.gradle.api.UnknownProjectException
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -129,25 +130,26 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureDependencyResolution()
    {
-      repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-      repository("http://dl.bintray.com/ihmcrobotics/maven-release")
-      repository("https://artifactory.ihmc.us/artifactory/releases/")
-      repository("https://artifactory.ihmc.us/artifactory/thirdparty/")
       repository("https://artifactory.ihmc.us/artifactory/snapshots/")
+      repository("https://artifactory.ihmc.us/artifactory/releases/")
+      repository("http://dl.bintray.com/ihmcrobotics/maven-release")
       if (!openSource)
       {
          repository("https://artifactory.ihmc.us/artifactory/proprietary/", artifactoryUsername, artifactoryPassword)
          repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
       }
+      project.allprojects {
+         (this as Project).run {
+            repositories.jcenter()
+            repositories.mavenCentral()
+            repositories.mavenLocal()
+         }
+      }
+      repository("https://artifactory.ihmc.us/artifactory/thirdparty/")
+      repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
       repository("http://clojars.org/repo/")
       repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
       repository("https://oss.sonatype.org/content/repositories/snapshots")
-      project.allprojects {
-         (this as Project).run {
-            addWorldMavenRepositories()
-            addLocalMavenRepository()
-         }
-      }
       
       setupJavaSourceSets()
       
@@ -186,17 +188,6 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
-   }
-   
-   private fun Project.addWorldMavenRepositories()
-   {
-      repositories.jcenter()
-      repositories.mavenCentral()
-   }
-   
-   private fun Project.addLocalMavenRepository()
-   {
-      repositories.mavenLocal()
    }
    
    fun configurePublications()
@@ -321,14 +312,21 @@ open class IHMCBuildExtension(val project: Project)
       return publishVersion
    }
    
-   fun thisProjectIsIncludedBuild(): Boolean
+   fun getIncludedBuilds(): Collection<IncludedBuild>
    {
-      return !project.gradle.startParameter.isSearchUpwards
+      if (project.gradle.startParameter.isSearchUpwards)
+      {
+         return project.gradle.includedBuilds
+      }
+      else
+      {
+         return project.gradle.parent.includedBuilds
+      }
    }
    
    fun artifactIsIncludedBuild(artifactId: String): Boolean
    {
-      for (includedBuild in project.gradle.includedBuilds)
+      for (includedBuild in getIncludedBuilds())
       {
          if (artifactId == includedBuild.name)
          {
@@ -355,11 +353,6 @@ open class IHMCBuildExtension(val project: Project)
       if (artifactIsIncludedBuild(artifactId))
       {
          return publishVersion
-      }
-      
-      if (thisProjectIsIncludedBuild())
-      {
-         return declaredVersion
       }
       
       // Use Bamboo variables to resolve the version
