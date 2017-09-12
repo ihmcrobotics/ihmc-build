@@ -321,7 +321,12 @@ open class IHMCBuildExtension(val project: Project)
       return publishVersion
    }
    
-   fun isIncludedBuild(artifactId: String): Boolean
+   fun thisProjectIsIncludedBuild(): Boolean
+   {
+      return !project.gradle.startParameter.isSearchUpwards
+   }
+   
+   fun artifactIsIncludedBuild(artifactId: String): Boolean
    {
       for (includedBuild in project.gradle.includedBuilds)
       {
@@ -347,9 +352,14 @@ open class IHMCBuildExtension(val project: Project)
    internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
    {
       // Make sure POM is correct
-      if (isIncludedBuild(artifactId))
+      if (artifactIsIncludedBuild(artifactId))
       {
          return publishVersion
+      }
+      
+      if (thisProjectIsIncludedBuild())
+      {
+         return declaredVersion
       }
       
       // Use Bamboo variables to resolve the version
