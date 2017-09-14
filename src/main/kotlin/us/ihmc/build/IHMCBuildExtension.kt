@@ -18,10 +18,14 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
+import org.jfrog.artifactory.client.model.Item
 import org.jfrog.artifactory.client.model.RepoPath
+import org.jfrog.artifactory.client.model.impl.FileImpl
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
+import java.time.Instant
+import java.time.LocalDateTime
 import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
@@ -38,8 +42,8 @@ open class IHMCBuildExtension(val project: Project)
    
    private val bintrayUser: String
    private val bintrayApiKey: String
-   private val artifactoryUsername: String
-   private val artifactoryPassword: String
+   private lateinit var artifactoryUsername: String
+   private lateinit var artifactoryPassword: String
    
    private val publishModeProperty: String
    private val hyphenatedNameProperty: String
@@ -51,6 +55,17 @@ open class IHMCBuildExtension(val project: Project)
    private lateinit var publishVersion: String
    private val isBranchBuild: Boolean
    private val branchName: String
+   
+   private val artifactory: Artifactory by lazy {
+      val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
+      builder.url = "https://artifactory.ihmc.us/artifactory"
+      if (!openSource)
+      {
+         builder.username = artifactoryUsername
+         builder.password = artifactoryPassword
+      }
+      builder.build()
+   }
    
    init
    {
@@ -190,6 +205,24 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   fun mainClassJarWithLibFolder(mainClass: String)
+   {
+      project.allprojects {
+         (this as Project).run {
+            configureJarManifest(maintainer, companyName, licenseURL, mainClass, true)
+         }
+      }
+   }
+   
+   fun jarWithLibFolder()
+   {
+      project.allprojects {
+         (this as Project).run {
+            configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", true)
+         }
+      }
+   }
+   
    fun configurePublications()
    {
       if (openSource)
@@ -205,7 +238,7 @@ open class IHMCBuildExtension(val project: Project)
             publishVersion = getPublishVersion()
             version = publishVersion
             
-            configureJarManifest(maintainer, companyName, licenseURL)
+            configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
             
             if (publishModeProperty == "SNAPSHOT")
             {
@@ -312,9 +345,19 @@ open class IHMCBuildExtension(val project: Project)
       return publishVersion
    }
    
+   fun isBuildRoot(): Boolean
+   {
+      return project.gradle.startParameter.isSearchUpwards
+   }
+   
+   fun thisProjectIsIncludedBuild(): Boolean
+   {
+      return !project.gradle.startParameter.isSearchUpwards
+   }
+   
    fun getIncludedBuilds(): Collection<IncludedBuild>
    {
-      if (project.gradle.startParameter.isSearchUpwards)
+      if (isBuildRoot())
       {
          return project.gradle.includedBuilds
       }
@@ -358,7 +401,8 @@ open class IHMCBuildExtension(val project: Project)
       // Use Bamboo variables to resolve the version
       if (declaredVersion.contains("BAMBOO"))
       {
-         if (isChildBuild) // Match to parent build, enforcing branch
+         var closestVersion = "NOT-FOUND"
+         if (isChildBuild) // Match to parent build, exact branch and version
          {
             var childVersion = "SNAPSHOT"
             if (isBranchBuild)
@@ -366,21 +410,17 @@ open class IHMCBuildExtension(val project: Project)
                childVersion += "-$branchName"
             }
             childVersion += "-$buildNumber"
-            return matchVersionFromArtifactory(groupId, artifactId, childVersion)
+            closestVersion = matchVersionFromArtifactory(groupId, artifactId, childVersion)
          }
-         else
+         if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
          {
-            var latestVersion = "NOT-FOUND"
-            if (isBranchBuild) // Try to match the same branch
-            {
-               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT-$branchName")
-            }
-            if (latestVersion.contains("NOT-FOUND")) // Give up on the branch, use any latest
-            {
-               latestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT")
-            }
-            return latestVersion
+            closestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT-$branchName")
          }
+         if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
+         {
+            closestVersion = latestVersionFromArtifactory(groupId, artifactId, "SNAPSHOT")
+         }
+         return closestVersion
       }
       
       // For users
@@ -388,7 +428,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          return latestVersionFromArtifactory(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
       }
-      else if (declaredVersion.startsWith("SNAPSHOT")) // Not going to be exact match
+      else if (declaredVersion.startsWith("SNAPSHOT")) // Get exact match on end of string
       {
          return matchVersionFromArtifactory(groupId, artifactId, declaredVersion)
       }
@@ -462,16 +502,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun searchArtifactoryRepository(repository: String, groupId: String, artifactId: String): List<RepoPath>
    {
-      val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
-      builder.url = "https://artifactory.ihmc.us/artifactory"
-      if (!openSource)
-      {
-         builder.username = artifactoryUsername
-         builder.password = artifactoryPassword
-      }
-      val artifactory: Artifactory = builder.build()
-      val snapshots: List<RepoPath> = artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
-      return snapshots
+      return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
    }
    
    private fun itemPathToVersion(itemPath: String, artifactId: String): String
@@ -484,7 +515,7 @@ open class IHMCBuildExtension(val project: Project)
       return version
    }
    
-   private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String)
+   private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
       tasks.getByName("jar") {
          (this as Jar).run {
@@ -498,6 +529,20 @@ open class IHMCBuildExtension(val project: Project)
                put("Bundle-Version", version)
                put("Bundle-License", licenseURL)
                put("Bundle-Vendor", companyName)
+               
+               if (!thisProjectIsIncludedBuild() && libFolder)
+               {
+                  var dependencyJarLocations = " "
+                  for (file in configurations.getByName("runtime"))
+                  {
+                     dependencyJarLocations += "lib/" + file.name + " "
+                  }
+                  put("Class-Path", dependencyJarLocations.trim())
+               }
+               if (!thisProjectIsIncludedBuild() && mainClass != "NO_MAIN")
+               {
+                  put("Main-Class", mainClass)
+               }
             }
          }
       }
