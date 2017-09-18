@@ -19,11 +19,15 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
+import org.jfrog.artifactory.client.model.RepoPath
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
 import java.nio.file.Paths
 import java.util.*
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.XMLStreamReader
 
 open class IHMCBuildExtension(val project: Project)
 {
@@ -68,6 +72,10 @@ open class IHMCBuildExtension(val project: Project)
       builder.build()
    }
    private val repositoryVersions: HashMap<String, TreeSet<String>> = hashMapOf()
+   private val pomDependencies: HashMap<String, ArrayList<ArrayList<String>>> = hashMapOf()
+   private val documentBuilderFactory by lazy {
+      DocumentBuilderFactory.newInstance()
+   }
    
    init
    {
@@ -415,7 +423,7 @@ open class IHMCBuildExtension(val project: Project)
                }
             }
          }
-   
+         
          includedBuildMap[artifactId] = false
          return false
       }
@@ -451,11 +459,11 @@ open class IHMCBuildExtension(val project: Project)
             }
             if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
             {
-               closestVersion = latestVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
             }
             if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
             {
-               closestVersion = latestVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
             }
             return closestVersion
          }
@@ -463,7 +471,7 @@ open class IHMCBuildExtension(val project: Project)
          // For users
          if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
          {
-            return latestVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
+            return latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
          }
          else // Get exact match on end of string
          {
@@ -522,6 +530,97 @@ open class IHMCBuildExtension(val project: Project)
       return repositoryVersions["$groupId:$artifactId"]!!
    }
    
+   private fun anyVersionExists(groupId: String, artifactId: String): Boolean
+   {
+      return !searchRepositories(groupId, artifactId).isEmpty()
+   }
+   
+   private fun versionExists(groupId: String, artifactId: String, version: String): Boolean
+   {
+      return searchRepositories(groupId, artifactId).contains(version)
+   }
+   
+   private fun parsePOMDependencies(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
+   {
+      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
+      {
+         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
+         
+         var pomPath: RepoPath
+         for (repository in getSnapshotRepositoryList())
+         {
+            for (repoPath in artifactory.searches().artifactsByGavc().repositories(repository)
+                  .groupId(groupId).artifactId(artifactId).version(versionToCheck).doSearch())
+            {
+               if (repoPath.itemPath.matches(Regex(".*\\d\\.pom$")))
+               {
+                  logInfo(logger, "Hitting Artifactory for POM: " + repoPath.itemPath)
+                  val inputStream = artifactory.repository(repository).download(repoPath.itemPath).doDownload()
+                  
+                  try
+                  {
+                     val documentBuilder = documentBuilderFactory.newDocumentBuilder()
+                     val document = documentBuilder.parse(inputStream);
+                     
+                     val dependencyTags = document.getElementsByTagName("dependency")
+                     for (i in 0 until dependencyTags.length)
+                     {
+                        val dependencyGroupId = dependencyTags.item(i).childNodes.item(1).textContent
+                        val dependencyArtifactId = dependencyTags.item(i).childNodes.item(3).textContent
+                        val dependencyVersion = dependencyTags.item(i).childNodes.item(5).textContent
+                        
+                        if (dependencyVersion.contains("SNAPSHOT") && anyVersionExists(dependencyGroupId, dependencyArtifactId))
+                        {
+                           val arrayDependency: ArrayList<String> = arrayListOf()
+                           arrayDependency.add(dependencyGroupId)
+                           arrayDependency.add(dependencyArtifactId)
+                           arrayDependency.add(dependencyVersion)
+   
+                           pomDependencies["$groupId:$artifactId:$versionToCheck"]!!.add(arrayDependency)
+                        }
+                     }
+                  }
+                  catch (e: Exception)
+                  {
+                     e.printStackTrace()
+                  }
+               }
+            }
+         }
+      }
+      
+      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
+   }
+   
+   private fun performPOMCheck(groupId: String, artifactId: String, versionToCheck: String): Boolean
+   {
+      if (offline)
+      {
+         logInfo(logger, "Offline. Skipping POM check: $groupId:$artifactId:$versionToCheck")
+         return true
+      }
+      else
+      {
+         if (!versionExists(groupId, artifactId, versionToCheck))
+         {
+            logInfo(logger, "Version doesn't exist: $groupId:$artifactId:$versionToCheck")
+            return false
+         }
+         else
+         {
+            for (dependency in parsePOMDependencies(groupId, artifactId, versionToCheck))
+            {
+               if (!performPOMCheck(dependency[0], dependency[1], dependency[2]))
+               {
+                  return false
+               }
+            }
+            
+            return true
+         }
+      }
+   }
+   
    private fun itemPathToVersion(itemPath: String, artifactId: String): String
    {
       val split: List<String> = itemPath.split("/")
@@ -545,7 +644,24 @@ open class IHMCBuildExtension(val project: Project)
       return "MATCH-NOT-FOUND-$versionMatcher"
    }
    
-   private fun latestVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
+   private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
+   {
+      var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
+      
+      if (highestVersion.contains("NOT-FOUND"))
+         return highestVersion
+      
+      if (!performPOMCheck(groupId, artifactId, highestVersion))
+      {
+         logInfo(logger, "Failed POM check: $groupId:$artifactId:$highestVersion")
+         repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
+         return highestBuildNumberVersion(groupId, artifactId, versionMatcher)
+      }
+      
+      return highestVersion
+   }
+   
+   private fun highestBuildNumberVersion(groupId: String, artifactId: String, versionMatcher: String): String
    {
       var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
       var highestBuildNumber: Int = -1
