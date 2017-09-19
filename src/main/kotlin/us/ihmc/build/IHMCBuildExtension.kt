@@ -1,6 +1,7 @@
 package us.ihmc.build
 
 import com.mashape.unirest.http.Unirest
+import com.mashape.unirest.request.HttpRequest
 import groovy.util.Eval
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
@@ -115,9 +116,30 @@ open class IHMCBuildExtension(val project: Project)
    {
       val ciDatabaseServer = Unirest.get("http://alcaniz.ihmc.us:8087")
       val request = ciDatabaseServer.queryString("globalBuildNumber", buildKey)
-      val globalBuildNumber = request.asString().getBody()
+   
+      var tryCount = 0
+      var globalBuildNumber = "ERROR"
+      while (tryCount < 5 && globalBuildNumber != "ERROR")
+      {
+         globalBuildNumber = tryGlobalBuildNumberRequest(request)
+         tryCount++
+      }
+      
       logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
-      return globalBuildNumber
+      return globalBuildNumber.toString()
+   }
+   
+   private fun tryGlobalBuildNumberRequest(request: HttpRequest): String
+   {
+      try
+      {
+         return request.asString().getBody()
+      }
+      catch (e: IllegalStateException)
+      {
+         logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
+         return "ERROR"
+      }
    }
    
    fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
