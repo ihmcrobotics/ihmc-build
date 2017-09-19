@@ -1,6 +1,8 @@
 package us.ihmc.build
 
 import com.mashape.unirest.http.Unirest
+import com.mashape.unirest.http.exceptions.UnirestException
+import com.mashape.unirest.http.options.Options
 import com.mashape.unirest.request.HttpRequest
 import groovy.util.Eval
 import org.gradle.api.JavaVersion
@@ -21,9 +23,11 @@ import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
+import us.ihmc.commons.ThreadTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
+import java.io.IOException
 import java.nio.file.Paths
 import java.util.*
 import javax.xml.parsers.DocumentBuilderFactory
@@ -114,30 +118,37 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun requestGlobalBuildNumberFromCIDatabase(buildKey: String): String
    {
-      val ciDatabaseServer = Unirest.get("http://alcaniz.ihmc.us:8087")
-      val request = ciDatabaseServer.queryString("globalBuildNumber", buildKey)
-   
       var tryCount = 0
       var globalBuildNumber = "ERROR"
-      while (tryCount < 5 && globalBuildNumber != "ERROR")
+      while (tryCount < 5 && globalBuildNumber == "ERROR")
       {
-         globalBuildNumber = tryGlobalBuildNumberRequest(request)
+         globalBuildNumber = tryGlobalBuildNumberRequest(buildKey)
          tryCount++
+         logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
       }
       
-      logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
       return globalBuildNumber.toString()
    }
    
-   private fun tryGlobalBuildNumberRequest(request: HttpRequest): String
+   private fun tryGlobalBuildNumberRequest(buildKey: String): String
    {
       try
       {
-         return request.asString().getBody()
+         return Unirest.get("http://alcaniz.ihmc.us:8087").queryString("globalBuildNumber", buildKey).asString().getBody()
       }
-      catch (e: IllegalStateException)
+      catch (e: UnirestException)
       {
          logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
+         ThreadTools.sleep(100)
+         try
+         {
+            Unirest.shutdown();
+            Options.refresh();
+         }
+         catch (ioException: IOException)
+         {
+            ioException.printStackTrace();
+         }
          return "ERROR"
       }
    }
