@@ -393,6 +393,37 @@ open class IHMCBuildExtension(val project: Project)
 //      }
    }
    
+   fun javaDirectory(sourceSetName: String, directory: String)
+   {
+      var modifiedDirectory = directory
+      if (sourceSetName == "main")
+         modifiedDirectory = "src/main/" + directory
+      
+      sourceSet(sourceSetName).java.srcDir(modifiedDirectory)
+   }
+   
+   fun resourceDirectory(sourceSetName: String, directory: String)
+   {
+      var modifiedDirectory = directory
+      if (sourceSetName == "main")
+         modifiedDirectory = "src/main/" + directory
+      
+      sourceSet(sourceSetName).resources.srcDir(modifiedDirectory)
+   }
+   
+   fun sourceSet(sourceSetName: String): SourceSet
+   {
+      return sourceSetProject(sourceSetName).convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+   }
+   
+   fun sourceSetProject(sourceSetName: String): Project
+   {
+      if (sourceSetName == "main")
+         return project
+      else
+         return project.project(project.name + "-" + sourceSetName)
+   }
+   
    private fun getPublishVersion(): String
    {
       var publishVersion = version
@@ -608,7 +639,7 @@ open class IHMCBuildExtension(val project: Project)
                            arrayDependency.add(dependencyGroupId)
                            arrayDependency.add(dependencyArtifactId)
                            arrayDependency.add(dependencyVersion)
-   
+                           
                            pomDependencies["$groupId:$artifactId:$versionToCheck"]!!.add(arrayDependency)
                         }
                      }
