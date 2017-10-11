@@ -795,7 +795,7 @@ open class IHMCBuildExtension(val project: Project)
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "BintrayRelease"
-         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + name)
+         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + project.name)
          credentials.username = bintrayUser
          credentials.password = bintrayApiKey
       })
