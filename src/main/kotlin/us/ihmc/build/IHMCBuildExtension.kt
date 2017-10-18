@@ -3,7 +3,6 @@ package us.ihmc.build
 import com.mashape.unirest.http.Unirest
 import com.mashape.unirest.http.exceptions.UnirestException
 import com.mashape.unirest.http.options.Options
-import com.mashape.unirest.request.HttpRequest
 import groovy.util.Eval
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
@@ -17,6 +16,7 @@ import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
@@ -31,8 +31,6 @@ import java.io.IOException
 import java.nio.file.Paths
 import java.util.*
 import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.stream.XMLInputFactory
-import javax.xml.stream.XMLStreamReader
 
 open class IHMCBuildExtension(val project: Project)
 {
@@ -365,6 +363,12 @@ open class IHMCBuildExtension(val project: Project)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))
+         
+         if (subproject.name.endsWith("test"))
+         {
+            val test = subproject.tasks.findByPath("test") as Test
+            test.testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
+         }
       }
 
 //      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
