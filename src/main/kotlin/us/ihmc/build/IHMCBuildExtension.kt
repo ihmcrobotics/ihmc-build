@@ -464,7 +464,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         return project.gradle.parent.includedBuilds
+         return project.gradle.parent!!.includedBuilds
       }
    }
    
@@ -736,7 +736,7 @@ open class IHMCBuildExtension(val project: Project)
       
       for (repositoryVersion in searchRepositories(groupId, artifactId))
       {
-         if (repositoryVersion.contains(versionMatcher))
+         if (repositoryVersion.matches(Regex("$versionMatcher-\\d+")))
          {
             val buildNumberFromArtifactory: Int = Integer.parseInt(repositoryVersion.split("-").last())
             if (buildNumberFromArtifactory > highestBuildNumber)

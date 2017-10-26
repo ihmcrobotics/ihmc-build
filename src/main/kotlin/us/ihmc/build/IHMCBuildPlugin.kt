@@ -8,6 +8,7 @@ import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
+import org.gradle.api.tasks.TaskReference
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
@@ -52,6 +53,18 @@ class IHMCBuildPlugin : Plugin<Project>
                }
             })
          }
+      }
+   
+      if (project.hasProperty("taskName"))
+      {
+         project.task("compositeTask", closureOf<Task> {
+            val taskReferences = hashSetOf<TaskReference>()
+            for (includedBuild in project.gradle.includedBuilds)
+            {
+               taskReferences.add(includedBuild.task(":" + project.property("taskName") as String))
+            }
+            dependsOn(taskReferences)
+         })
       }
    }
    

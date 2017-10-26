@@ -23,19 +23,19 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
    }
    private val dynamicMethods = DynamicMethods()
    
-   private fun add(configurationName: String, dependencyNotation: Object)
+   private fun add(configurationName: String, dependencyNotation: Any)
    {
       val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
       projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation)
    }
    
-   private fun add(configurationName: String, dependencyNotation: Object, configureClosure: Closure<Any>)
+   private fun add(configurationName: String, dependencyNotation: Any, configureClosure: Closure<Any>)
    {
       val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
       projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation, configureClosure)
    }
    
-   private fun processDependencyDeclaration(configurationName: String, dependencyNotation: Object): Object
+   private fun processDependencyDeclaration(configurationName: String, dependencyNotation: Any): Any
    {
       val modifiedDependencyNotation = modifyDependency(dependencyNotation)
    
@@ -49,7 +49,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
       return modifiedDependencyNotation
    }
    
-   private fun modifyDependency(dependencyNotation: Any): Object
+   private fun modifyDependency(dependencyNotation: Any): Any
    {
       if (dependencyNotation is String)
       {
@@ -75,7 +75,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
             }
          }
          
-         return modifiedString as Object
+         return modifiedString
       }
       else if (dependencyNotation is Map<*, *>)
       {
@@ -89,7 +89,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          }
          else
          {
-            return dependencyNotation as Object
+            return dependencyNotation
          }
          if (dependencyNotation.contains("name") && dependencyNotation.get("name") is String)
          {
@@ -97,7 +97,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          }
          else
          {
-            return dependencyNotation as Object
+            return dependencyNotation
          }
          if (dependencyNotation.contains("version") && dependencyNotation.get("version") is String)
          {
@@ -105,7 +105,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          }
          else
          {
-            return dependencyNotation as Object
+            return dependencyNotation
          }
          
          val modifiedVersion = ihmcBuildExtension.getExternalDependencyVersion(groupId, artifactName, dependencyMode)
@@ -118,11 +118,11 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          }
          modifiedMap.put("version", modifiedVersion)
          
-         return modifiedMap as Object
+         return modifiedMap
       }
       else
       {
-         return dependencyNotation as Object
+         return dependencyNotation
       }
    }
    
@@ -148,17 +148,17 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          val normalizedArgs = CollectionUtils.flattenCollections(*arguments)
          if (normalizedArgs.size == 2 && normalizedArgs[1] is Closure<*>)
          {
-            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Object, normalizedArgs[1] as Closure<Any>))
+            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Any, normalizedArgs[1] as Closure<Any>))
          }
          else if (normalizedArgs.size == 1)
          {
-            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Object))
+            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Any))
          }
          else
          {
             for (arg in normalizedArgs)
             {
-               add(configuration.name, arg as Object)
+               add(configuration.name, arg as Any)
             }
             return DynamicInvokeResult.found()
          }

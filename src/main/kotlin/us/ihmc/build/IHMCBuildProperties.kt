@@ -50,11 +50,11 @@ class IHMCBuildProperties(val logger: Logger)
          }
       }
       
-      if (pascalCasedName == null)
+      if (pascalCasedName.isEmpty())
       {
          pascalCasedName = toPascalCased(projectPath.fileName.toString())
       }
-      if (hyphenatedName == null)
+      if (hyphenatedName.isEmpty())
       {
          hyphenatedName = toHyphenated(projectPath.fileName.toString())
       }

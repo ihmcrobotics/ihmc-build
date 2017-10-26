@@ -84,7 +84,7 @@ fun pascalCasedToPrehyphenated(pascalCased: String): String
    val parts = ArrayList<String>();
    var part = "";
    
-   for (i in 0..pascalCased.length)
+   for (i in 0 until pascalCased.length)
    {
       var character = pascalCased[i].toString();
       if (StringUtils.isAllUpperCase(character) || StringUtils.isNumeric(character))
@@ -106,7 +106,7 @@ fun pascalCasedToPrehyphenated(pascalCased: String): String
    }
    
    var hyphenated = "";
-   for (i in 0..parts.size)
+   for (i in 0 until parts.size)
    {
       hyphenated += '-';
       hyphenated += parts.get(i);

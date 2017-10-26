@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.9.10"
+version = "0.9.11"
 
 gradlePlugin {
    (plugins) {
@@ -53,6 +53,6 @@ dependencies {
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
    compile("us.ihmc:ihmc-ci-plugin:0.16.11")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
-   compile("gradle.plugin.org.gradle.kotlin:gradle-kotlin-dsl-plugins:0.10.9")
-   compile("org.gradle:gradle-kotlin-dsl:0.10.3")
+   compile("gradle.plugin.org.gradle.kotlin:gradle-kotlin-dsl-plugins:0.11.2")
+   compile(gradleKotlinDsl())
 }
