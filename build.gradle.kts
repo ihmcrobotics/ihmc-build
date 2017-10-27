@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.9.14"
+version = "0.9.15"
 
 gradlePlugin {
    (plugins) {
@@ -46,15 +46,12 @@ repositories {
    maven {
       url = uri("https://repo.gradle.org/gradle/libs-snapshots-local")
    }
-   maven {
-      url = uri("http://dl.bintray.com/ihmcrobotics/maven-release")
-   }
 }
 
 dependencies {
    compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.0")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
-   compile("us.ihmc:ihmc-ci-plugin:0.16.13")
+   compile("us.ihmc:ihmc-ci-plugin:0.16.15")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile("gradle.plugin.org.gradle.kotlin:gradle-kotlin-dsl-plugins:0.11.2")
    compile(gradleKotlinDsl())
