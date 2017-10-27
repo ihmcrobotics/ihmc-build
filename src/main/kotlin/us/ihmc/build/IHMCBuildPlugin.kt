@@ -44,8 +44,9 @@ class IHMCBuildPlugin : Plugin<Project>
             extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension))
             for (subproject in project.subprojects)
             {
-               val sourceSetName = subproject.name.split("-").last()
-               extensions.add(sourceSetName + "Dependencies", IHMCDependenciesExtension(project, sourceSetName, ihmcBuildExtension))
+               val sourceSetKebabCasedName = toSourceSetName(subproject)
+               val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
+               extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
             }
             project.task("generateSettings", closureOf<Task> {
                doLast {

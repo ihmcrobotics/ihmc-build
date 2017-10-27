@@ -2,6 +2,7 @@ package us.ihmc.build
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
+import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import us.ihmc.commons.nio.FileTools
 import java.io.File
@@ -59,9 +60,14 @@ fun writeGroupSettingsFile(logger: Logger, directory: File)
    settingsFile.writeText(fileContent)
 }
 
-fun toPascalCased(hyphenated: String): String
+fun toSourceSetName(subproject: Project): String
 {
-   val split = hyphenated.split("-")
+   return toKebabCased(subproject.name.substringAfter(subproject.parent!!.name + "-"))
+}
+
+fun toPascalCased(anyCased: String): String
+{
+   val split = anyCased.split("-")
    var pascalCased = ""
    for (section in split)
    {
@@ -70,23 +76,38 @@ fun toPascalCased(hyphenated: String): String
    return pascalCased
 }
 
-fun toHyphenated(pascalCased: String): String
+fun toCamelCased(anyCased: String): String
 {
-   var hyphenated = pascalCasedToPrehyphenated(pascalCased);
-   
-   hyphenated = hyphenated.substring(1, hyphenated.length - 1);
-   
-   return hyphenated;
+   val split = anyCased.split("-")
+   var camelCased = ""
+   if (split.size > 0)
+   {
+      camelCased += split[0].decapitalize()
+   }
+   for (i in 1 until split.size)
+   {
+      camelCased += StringUtils.capitalize(split[i])
+   }
+   return camelCased
 }
 
-fun pascalCasedToPrehyphenated(pascalCased: String): String
+fun toKebabCased(anyCased: String): String
+{
+   var kebabCased = toPreKababWithBookendHandles(anyCased);
+   
+   kebabCased = kebabCased.substring(1, kebabCased.length - 1);
+   
+   return kebabCased;
+}
+
+fun toPreKababWithBookendHandles(anyCased: String): String
 {
    val parts = ArrayList<String>();
    var part = "";
    
-   for (i in 0 until pascalCased.length)
+   for (i in 0 until anyCased.length)
    {
-      var character = pascalCased[i].toString();
+      var character = anyCased[i].toString();
       if (StringUtils.isAllUpperCase(character) || StringUtils.isNumeric(character))
       {
          if (!part.isEmpty())
@@ -105,15 +126,15 @@ fun pascalCasedToPrehyphenated(pascalCased: String): String
       parts.add(part.toLowerCase());
    }
    
-   var hyphenated = "";
+   var kebab = "";
    for (i in 0 until parts.size)
    {
-      hyphenated += '-';
-      hyphenated += parts.get(i);
+      kebab += '-';
+      kebab += parts.get(i);
    }
-   hyphenated += '-';
+   kebab += '-';
    
-   return hyphenated;
+   return kebab;
 }
 
 /**

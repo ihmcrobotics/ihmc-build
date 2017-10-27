@@ -56,7 +56,7 @@ class IHMCBuildProperties(val logger: Logger)
       }
       if (hyphenatedName.isEmpty())
       {
-         hyphenatedName = toHyphenated(projectPath.fileName.toString())
+         hyphenatedName = toKebabCased(projectPath.fileName.toString())
       }
       
       return this

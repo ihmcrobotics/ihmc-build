@@ -359,7 +359,7 @@ open class IHMCBuildExtension(val project: Project)
             sourceSet.java.setSrcDirs(emptySet<File>())
             sourceSet.resources.setSrcDirs(emptySet<File>())
          }
-         val sourceSetName = subproject.name.split("-").last()
+         val sourceSetName = toSourceSetName(subproject)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))
@@ -799,7 +799,7 @@ open class IHMCBuildExtension(val project: Project)
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "BintrayRelease"
-         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + project.name)
+         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + rootProject.name)
          credentials.username = bintrayUser
          credentials.password = bintrayApiKey
       })
