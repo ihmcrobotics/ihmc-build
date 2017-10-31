@@ -2,9 +2,11 @@
 
 Conversion of our build plugin to Kotlin. Very active development.
 
-Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.build.ihmc-build
+Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.ihmc-build
 
-## Goals
+Documentation on Confluence: https://confluence.ihmc.us/display/BUILD/New+Build+Configuration+Documentation
+
+## Project Goals
 
 - Get strongly typed build scripts working in IntelliJ and Eclipse
 - Utilize composite builds to make each project standalone by default
