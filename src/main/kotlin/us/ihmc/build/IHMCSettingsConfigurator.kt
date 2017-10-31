@@ -2,6 +2,7 @@ package us.ihmc.build
 
 import groovy.lang.MissingPropertyException
 import groovy.util.Eval
+import org.gradle.api.GradleException
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -23,6 +24,13 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    {
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
+      
+      if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
+      {
+         val message = "Please upgrade to Gradle version 4.1 or higher! (Recommended versions: 4.1, 4.2.1, or later)"
+         logError(logger, message)
+         throw GradleException(message)
+      }
    }
    
    fun configureAsGroupOfProjects()

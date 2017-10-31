@@ -25,6 +25,11 @@ fun logWarn(logger: Logger, message: Any)
    logger.warn(ihmcBuildMessage(message))
 }
 
+fun logError(logger: Logger, message: Any)
+{
+   logger.error(ihmcBuildMessage(message))
+}
+
 fun logDebug(logger: Logger, message: Any)
 {
    logger.debug(ihmcBuildMessage(message))
