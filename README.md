@@ -14,3 +14,7 @@ Presentation outlining the purpose of this project: https://docs.google.com/pres
 - Get strongly typed build scripts working in IntelliJ and Eclipse
 - Utilize composite builds to make each project standalone by default
 - Keep Bamboo CI configuration powerful, minimal, and flexible
+
+## Future Plans
+
+Unfortunately, this project has hardcoded parameters specific to IHMC. making it hard for others to use. It's mostly open sourced for reference and ideas for other people. Feel free to fork it or copy code! In the next year, I would like to turn it into something easy to use for others. Furthermore, hopefully this project will shrink into non-existence as Gradle and Maven get better.
