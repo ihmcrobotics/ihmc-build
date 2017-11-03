@@ -8,6 +8,7 @@ Documentation on Confluence: https://confluence.ihmc.us/display/BUILD/New+Build+
 
 ## Project Goals
 
+- Seperate source set classpaths when building projects in IDEs
 - Get strongly typed build scripts working in IntelliJ and Eclipse
 - Utilize composite builds to make each project standalone by default
 - Keep Bamboo CI configuration powerful, minimal, and flexible
