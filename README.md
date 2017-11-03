@@ -6,6 +6,8 @@ Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.ihmc-build
 
 Documentation on Confluence: https://confluence.ihmc.us/display/BUILD/New+Build+Configuration+Documentation
 
+Presentation outlining the purpose of this project: https://docs.google.com/presentation/d/1xH8kKYqLaBkRXms_04nb_yyoV6MRchLO8EAtz9WqfZA/edit?usp=sharing
+
 ## Project Goals
 
 - Seperate source set classpaths when building projects in IDEs
