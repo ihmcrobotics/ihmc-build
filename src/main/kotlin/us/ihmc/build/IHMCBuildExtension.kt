@@ -433,7 +433,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       var publishVersion = version
       
-      if (publishModeProperty != "STABLE")
+      if (publishModeProperty == "SNAPSHOT")
       {
          publishVersion = "SNAPSHOT"
          
@@ -620,16 +620,19 @@ open class IHMCBuildExtension(val project: Project)
          return true
       }
       
-      for (repository in getSnapshotRepositoryList())
+      if (!offline)
       {
-         if (artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch().size > 0)
+         for (repository in getSnapshotRepositoryList())
          {
-            if (repositoryVersions.containsKey("$groupId:$artifactId"))
+            if (artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch().size > 0)
             {
-               repositoryVersions["$groupId:$artifactId"]!!.add(version)
+               if (repositoryVersions.containsKey("$groupId:$artifactId"))
+               {
+                  repositoryVersions["$groupId:$artifactId"]!!.add(version)
+               }
+               logInfo(logger, "Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
+               return true
             }
-            logInfo(logger, "Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
-            return true
          }
       }
       
@@ -711,7 +714,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
          
-         logInfo(logger, "Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1$groupId/$artifactId/$versionToCheck")
+         logInfo(logger, "Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
          val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
          val versionPath = gradleCache.resolve(groupId).resolve(artifactId).resolve(versionToCheck)
          
