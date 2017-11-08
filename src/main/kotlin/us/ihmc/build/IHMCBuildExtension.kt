@@ -431,20 +431,24 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun getPublishVersion(): String
    {
-      var publishVersion = version
-      
-      if (publishModeProperty == "SNAPSHOT")
+      if (publishModeProperty == "STABLE")
       {
-         publishVersion = "SNAPSHOT"
-         
+         return version
+      }
+      else if (publishModeProperty == "SNAPSHOT")
+      {
+         var publishVersion = "SNAPSHOT"
          if (isBranchBuild)
          {
             publishVersion += "-$branchName"
          }
-         
          publishVersion += "-$buildNumber"
+         return publishVersion
       }
-      return publishVersion
+      else
+      {
+         return publishModeProperty
+      }
    }
    
    fun isBuildRoot(): Boolean
