@@ -162,10 +162,10 @@ open class IHMCBuildExtension(val project: Project)
       {
          if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
          {
-            if (openSource)
-               logInfo(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
-            else
+            if (!openSource)
+            {
                logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
+            }
          }
          if (propertyName == "bintray_user" || propertyName == "bintray_key")
          {
@@ -210,12 +210,12 @@ open class IHMCBuildExtension(val project: Project)
    fun configureDependencyResolution()
    {
       repository("https://artifactory.ihmc.us/artifactory/snapshots/")
-      repository("https://artifactory.ihmc.us/artifactory/releases/")
       repository("http://dl.bintray.com/ihmcrobotics/maven-release")
       if (!openSource)
       {
-         repository("https://artifactory.ihmc.us/artifactory/proprietary/", artifactoryUsername, artifactoryPassword)
+         repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
          repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
+         repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
       }
       project.allprojects {
          (this as Project).run {
@@ -224,7 +224,6 @@ open class IHMCBuildExtension(val project: Project)
             repositories.mavenLocal()
          }
       }
-      repository("https://artifactory.ihmc.us/artifactory/thirdparty/")
       repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
       repository("http://clojars.org/repo/")
       repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
