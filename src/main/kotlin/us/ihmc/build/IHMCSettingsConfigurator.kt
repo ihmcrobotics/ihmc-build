@@ -6,16 +6,13 @@ import org.gradle.api.GradleException
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
-import org.gradle.kotlin.dsl.extra
 import java.io.File
 
 class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val ext: ExtraPropertiesExtension)
 {
-   lateinit var hyphenatedName: String
    lateinit var pascalCasedName: String
    lateinit var extraSourceSets: ArrayList<String>
    lateinit var publishMode: String
-   lateinit var dependencyMode: String
    var depthFromWorkspaceDirectory: Int = 1
    var includeBuildsFromWorkspace: Boolean = true
    var excludeFromCompositeBuild: Boolean = false
@@ -35,19 +32,14 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    
    fun configureAsGroupOfProjects()
    {
+      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
       checkForPropertyInternal("isProjectGroup", "true")
-      checkForPropertyInternal("hyphenatedName", "your-project-hyphenated")
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
       checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
-   }
-   
-   fun configureProjectName(hyphenatedName: String)
-   {
-      settings.rootProject.name = hyphenatedName
    }
    
    fun configureExtraSourceSets(dummyVar2: Any?)
@@ -88,7 +80,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    
    fun checkRequiredPropertiesAreSet()
    {
-      checkForPropertyInternal("hyphenatedName", "your-project-hyphenated")
+      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
@@ -108,7 +100,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       {
          when (property)
          {
-            "hyphenatedName"              -> hyphenatedName = ext.get(property) as String
             "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
             "publishMode"                 -> publishMode = ext.get(property) as String

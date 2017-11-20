@@ -52,7 +52,7 @@ open class IHMCBuildExtension(val project: Project)
    private lateinit var artifactoryPassword: String
    
    private val publishModeProperty: String
-   private val hyphenatedNameProperty: String
+   private val kebabCasedNameProperty: String
    private val groupDependencyVersionProperty: String
    
    // Bamboo variables
@@ -90,7 +90,7 @@ open class IHMCBuildExtension(val project: Project)
       
       groupDependencyVersionProperty = setupPropertyWithDefault("groupDependencyVersion", "SNAPSHOT-LATEST")
       publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
-      hyphenatedNameProperty = setupPropertyWithDefault("hyphenatedName", "")
+      kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
       val bambooPlanKeyProperty = setupPropertyWithDefault("bambooPlanKey", "UNKNOWN-KEY")
@@ -233,7 +233,7 @@ open class IHMCBuildExtension(val project: Project)
       
       try
       {
-         val testProject = project.project(":" + hyphenatedNameProperty + "-test")
+         val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
             add("compile", project)
             add("compile", "us.ihmc:ihmc-ci-core-api:0.16.13")
@@ -921,11 +921,19 @@ open class IHMCBuildExtension(val project: Project)
    }
    
    /**
-    * Used for artifact-test-runner to keep easy Bamboo configuration.
-    * Job names are pascal cased on Bamboo and use this method to
-    * resolve their hyphenated artifact counterparts.
+    * @deprecated Use convertJobNameToKebabCasedName instead.
     */
    fun convertJobNameToHyphenatedName(jobName: String): String
+   {
+      return convertJobNameToKebabCasedName(jobName)
+   }
+   
+   /**
+    * Used for artifact-test-runner to keep easy Bamboo configuration.
+    * Job names are pascal cased on Bamboo and use this method to
+    * resolve their kebab cased artifact counterparts.
+    */
+   fun convertJobNameToKebabCasedName(jobName: String): String
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }

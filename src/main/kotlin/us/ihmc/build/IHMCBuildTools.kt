@@ -4,11 +4,12 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
+import org.gradle.api.plugins.ExtraPropertiesExtension
 import us.ihmc.commons.nio.FileTools
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.ArrayList
+import java.util.*
 
 fun logQuiet(logger: Logger, message: Any)
 {
@@ -43,6 +44,25 @@ fun logTrace(logger: Logger, trace: Any)
 fun ihmcBuildMessage(message: Any): String
 {
    return "[ihmc-build] " + message
+}
+
+fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraPropertiesExtension): String
+{
+   if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))
+   {
+      return ext.get("kebabCasedName") as String
+   }
+   else if (ext.has("hyphenatedName") && !(ext.get("hyphenatedName") as String).startsWith("$"))
+   {
+      return ext.get("hyphenatedName") as String
+   }
+   else
+   {
+      val defaultValue = toKebabCased(projectName)
+      logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
+      ext.set("kebabCasedName", defaultValue)
+      return defaultValue
+   }
 }
 
 fun writeProjectSettingsFile(logger: Logger, directory: File)

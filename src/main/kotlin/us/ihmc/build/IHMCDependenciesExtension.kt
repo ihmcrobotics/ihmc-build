@@ -5,12 +5,13 @@ import org.gradle.api.Project
 import org.gradle.internal.metaobject.DynamicInvokeResult
 import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
+import org.gradle.kotlin.dsl.extra
 import org.gradle.util.CollectionUtils
 
 open class IHMCDependenciesExtension(private val rootProject: Project, private val name: String, private val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
 {
    private val logger = rootProject.logger
-   private val hyphenatedName: String = rootProject.property("hyphenatedName") as String
+   private val kebabCasedName: String = kebabCasedNameCompatibility(rootProject.name, logger, rootProject.extra)
    private val projectToConfigure by lazy {
       if (name == "main")
       {
@@ -18,7 +19,7 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
       }
       else
       {
-         rootProject.project(":$hyphenatedName-$name")
+         rootProject.project(":$kebabCasedName-$name")
       }
    }
    private val dynamicMethods = DynamicMethods()

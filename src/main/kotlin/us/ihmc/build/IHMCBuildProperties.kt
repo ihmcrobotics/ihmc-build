@@ -8,7 +8,7 @@ import java.util.*
 
 class IHMCBuildProperties(val logger: Logger)
 {
-   var hyphenatedName: String = ""
+   var kebabCasedName: String = ""
    var pascalCasedName: String = ""
    var exclude = false
    var isProjectGroup: Boolean = false
@@ -42,7 +42,7 @@ class IHMCBuildProperties(val logger: Logger)
          }
          if (propertyKey == "hyphenatedName")
          {
-            hyphenatedName = properties.get(propertyKey)!! as String
+            kebabCasedName = properties.get(propertyKey)!! as String
          }
          if (propertyKey == "extraSourceSets")
          {
@@ -54,9 +54,9 @@ class IHMCBuildProperties(val logger: Logger)
       {
          pascalCasedName = toPascalCased(projectPath.fileName.toString())
       }
-      if (hyphenatedName.isEmpty())
+      if (kebabCasedName.isEmpty())
       {
-         hyphenatedName = toKebabCased(projectPath.fileName.toString())
+         kebabCasedName = toKebabCased(projectPath.fileName.toString())
       }
       
       return this

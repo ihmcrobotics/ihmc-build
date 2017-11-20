@@ -147,12 +147,12 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       val buildToCheckProperties = buildFolderNameToPropertiesMap[buildFolderNameToCheck]!!
       
       if (dependencyNameAsDeclared == buildToCheckProperties.pascalCasedName) return true
-      if (dependencyNameAsDeclared == buildToCheckProperties.hyphenatedName) return true
+      if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName) return true
       
       for (extraSourceSet in buildToCheckProperties.extraSourceSets)
       {
          if (dependencyNameAsDeclared == buildToCheckProperties.pascalCasedName + extraSourceSet.capitalize()) return true
-         if (dependencyNameAsDeclared == buildToCheckProperties.hyphenatedName + "-" + extraSourceSet) return true
+         if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName + "-" + extraSourceSet) return true
       }
       
       return false
