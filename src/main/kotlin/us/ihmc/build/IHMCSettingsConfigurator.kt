@@ -30,19 +30,13 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       }
    }
    
-   fun configureAsGroupOfProjects()
+   @Deprecated("Here for backwards compatibility.")
+   fun configureProjectName(dummy: Any?)
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
-      checkForPropertyInternal("isProjectGroup", "true")
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
-      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
-      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
-      checkForPropertyInternal("org.gradle.workers.max", "200")
+      // to be deleted
    }
    
-   fun configureExtraSourceSets(dummyVar2: Any?)
+   fun configureExtraSourceSets(vararg dummy: Any?)
    {
       for (sourceSetName in extraSourceSets)
       {
@@ -76,6 +70,18 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
             settings.includeBuild(buildToInclude)
          }
       }
+   }
+   
+   fun configureAsGroupOfProjects()
+   {
+      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
+      checkForPropertyInternal("isProjectGroup", "true")
+      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
+      checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
+      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
+      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
+      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
+      checkForPropertyInternal("org.gradle.workers.max", "200")
    }
    
    fun checkRequiredPropertiesAreSet()

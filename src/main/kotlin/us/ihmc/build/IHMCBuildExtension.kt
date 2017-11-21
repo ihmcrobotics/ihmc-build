@@ -4,10 +4,7 @@ import com.mashape.unirest.http.Unirest
 import com.mashape.unirest.http.exceptions.UnirestException
 import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
-import org.gradle.api.JavaVersion
-import org.gradle.api.Project
-import org.gradle.api.UnknownProjectException
-import org.gradle.api.XmlProvider
+import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.initialization.IncludedBuild
@@ -597,7 +594,7 @@ open class IHMCBuildExtension(val project: Project)
          {
             for (repository in getSnapshotRepositoryList())
             {
-               for (repoPath in artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch())
+               for (repoPath in searchArtifactory(repository, groupId, artifactId))
                {
                   if (repoPath.itemPath.matches(Regex(".*\\d\\.jar$")))
                   {
@@ -627,7 +624,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          for (repository in getSnapshotRepositoryList())
          {
-            if (artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch().size > 0)
+            if (searchArtifactory(repository, groupId, artifactId, version).size > 0)
             {
                if (repositoryVersions.containsKey("$groupId:$artifactId"))
                {
@@ -663,13 +660,12 @@ open class IHMCBuildExtension(val project: Project)
          var pomPath: RepoPath
          for (repository in getSnapshotRepositoryList())
          {
-            for (repoPath in artifactory.searches().artifactsByGavc().repositories(repository)
-                  .groupId(groupId).artifactId(artifactId).version(versionToCheck).doSearch())
+            for (repoPath in searchArtifactory(repository, groupId, artifactId, versionToCheck))
             {
                if (repoPath.itemPath.matches(Regex(".*\\d\\.pom$")))
                {
                   logInfo(logger, "Hitting Artifactory for POM: " + repoPath.itemPath)
-                  val inputStream = artifactory.repository(repository).download(repoPath.itemPath).doDownload()
+                  val inputStream = downloadItemFromArtifactory(repository, repoPath)
                   
                   parsePOMInputStream(inputStream, groupId, artifactId, versionToCheck)
                }
@@ -678,6 +674,47 @@ open class IHMCBuildExtension(val project: Project)
       }
       
       return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
+   }
+   
+   private fun searchArtifactory(repository: String, groupId: String, artifactId: String): List<RepoPath>
+   {
+      try
+      {
+         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
+      }
+      catch (e: IllegalArgumentException)
+      {
+         throw artifactoryException("$repository/$groupId/$artifactId/$version")
+      }
+   }
+   
+   private fun searchArtifactory(repository: String, groupId: String, artifactId: String, version: String): List<RepoPath>
+   {
+      try
+      {
+         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch()
+      }
+      catch (e: IllegalArgumentException)
+      {
+         throw artifactoryException("$repository/$groupId/$artifactId/$version")
+      }
+   }
+   
+   private fun downloadItemFromArtifactory(repository: String, repoPath: RepoPath): InputStream
+   {
+      try
+      {
+         return artifactory.repository(repository).download(repoPath.itemPath).doDownload()
+      }
+      catch (e: IllegalArgumentException)
+      {
+         throw artifactoryException("$repository/$repoPath")
+      }
+   }
+   
+   private fun artifactoryException(path: String): GradleException
+   {
+      return  GradleException("Problem authenticating or retrieving item from Artifactory: $path. Try logging into artifactory.ihmc.us with the credentials used (artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
    }
    
    private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
