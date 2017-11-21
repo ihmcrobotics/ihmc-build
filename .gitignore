@@ -10,7 +10,7 @@
 **/bin
 **/out
 */target
-**/build
+*/build
 
 # directories to always ignore
 **/.gradle
