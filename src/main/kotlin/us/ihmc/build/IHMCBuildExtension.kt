@@ -20,7 +20,7 @@ import org.gradle.kotlin.dsl.extra
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
-import us.ihmc.commons.ThreadTools
+import us.ihmc.commons.thread.ThreadTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
@@ -233,7 +233,7 @@ open class IHMCBuildExtension(val project: Project)
          val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
             add("compile", project)
-            add("compile", "us.ihmc:ihmc-ci-core-api:0.16.13")
+            add("compile", "us.ihmc:ihmc-ci-core-api:0.16.17")
          }
       }
       catch (e: UnknownProjectException)
