@@ -48,11 +48,6 @@ class IHMCBuildPlugin : Plugin<Project>
                val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
                extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
             }
-            project.task("generateSettings", closureOf<Task> {
-               doLast {
-                  us.ihmc.build.writeProjectSettingsFile(logger, project.projectDir)
-               }
-            })
          }
       }
    
@@ -77,19 +72,6 @@ class IHMCBuildPlugin : Plugin<Project>
    
    private fun configureProjectGroup(project: Project)
    {
-      project.task("generateSettings", closureOf<Task> {
-         doLast {
-            writeGroupSettingsFile(logger, project.projectDir)
-            
-            for (childDir in project.projectDir.list())
-            {
-               if (File(project.projectDir, childDir + "/build.gradle").exists())
-               {
-                  writeProjectSettingsFile(logger, File(project.projectDir, childDir))
-               }
-            }
-         }
-      })
       project.task("convertStructure", closureOf<Task> {
          doLast {
             for (childDir in project.projectDir.list())

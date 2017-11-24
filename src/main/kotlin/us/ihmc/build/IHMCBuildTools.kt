@@ -65,26 +65,6 @@ fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraP
    }
 }
 
-fun writeProjectSettingsFile(logger: Logger, directory: File)
-{
-   val settingsFile = directory.resolve("settings.gradle")
-   
-   logQuiet(logger, "Generating project file: " + settingsFile.absolutePath)
-   
-   val fileContent = IHMCBuildPlugin::class.java.getResource("/project_settings.gradle").readText()
-   settingsFile.writeText(fileContent)
-}
-
-fun writeGroupSettingsFile(logger: Logger, directory: File)
-{
-   val settingsFile = directory.resolve("settings.gradle")
-   
-   logQuiet(logger, "Generating group file: " + settingsFile.absolutePath)
-   
-   val fileContent = IHMCBuildPlugin::class.java.getResource("/group_settings.gradle").readText()
-   settingsFile.writeText(fileContent)
-}
-
 fun toSourceSetName(subproject: Project): String
 {
    return toKebabCased(subproject.name.substringAfter(subproject.parent!!.name + "-"))

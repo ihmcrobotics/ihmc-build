@@ -4,11 +4,11 @@ plugins {
    `java-gradle-plugin`
    `kotlin-dsl`
    `maven-publish`
-   id("com.gradle.plugin-publish") version "0.9.7"
+   id("com.gradle.plugin-publish") version "0.9.9"
 }
 
 group = "us.ihmc"
-version = "0.10.8"
+version = "0.10.9"
 
 gradlePlugin {
    (plugins) {
