@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.10.9"
+version = "0.10.10"
 
 gradlePlugin {
    (plugins) {
@@ -31,6 +31,8 @@ pluginBundle {
       plugin.displayName = "IHMC Build Plugin"
       add(plugin)
    })
+   
+   mavenCoordinates.groupId = group as String
 }
 
 java {
