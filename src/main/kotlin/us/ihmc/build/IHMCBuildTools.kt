@@ -241,3 +241,8 @@ private fun revertAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: P
       logWarn(logger,"File not exist: $oldUs")
    }
 }
+
+fun isBuildRoot(project: Project): Boolean
+{
+   return project.gradle.startParameter.isSearchUpwards
+}
