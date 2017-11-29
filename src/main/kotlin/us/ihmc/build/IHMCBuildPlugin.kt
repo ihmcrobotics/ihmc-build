@@ -2,16 +2,12 @@ package us.ihmc.build
 
 import ca.cutterslade.gradle.analyze.AnalyzeDependenciesPlugin
 import com.dorongold.gradle.tasktree.TaskTreePlugin
-import org.gradle.api.InvalidUserDataException
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.Task
+import org.gradle.api.*
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.Delete
-import org.gradle.api.tasks.TaskReference
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
@@ -69,15 +65,16 @@ class IHMCBuildPlugin : Plugin<Project>
          allproject.tasks.getByName("clean", closureOf<Delete> {
             delete(allproject.projectDir.resolve("out"))
             delete(allproject.projectDir.resolve("bin"))
+            delete(allproject.projectDir.resolve(".settings"))
          })
       }
-   
-      defineGlobalTask("cleanAll", arrayListOf("clean", "cleanIdea", "cleanEclipse"), project)
       
-      setupCompositeTasks(project)
+      defineDeepCompositeTask("cleanAll", arrayListOf("clean", "cleanIdea", "cleanEclipse"), project)
+      
+      defineDynamicCompositeTask(project)
    }
    
-   private fun setupCompositeTasks(project: Project)
+   private fun defineDynamicCompositeTask(project: Project)
    {
       if (project.hasProperty("taskName") || project.hasProperty("taskNames"))
       {
@@ -95,7 +92,7 @@ class IHMCBuildPlugin : Plugin<Project>
          
          if (taskNames.size > 0)
          {
-            defineGlobalTask("compositeTask", taskNames, project)
+            defineDeepCompositeTask("compositeTask", taskNames, project)
          }
       }
    }
@@ -104,62 +101,65 @@ class IHMCBuildPlugin : Plugin<Project>
     * Create a task that will run a set of tasks if they exist in all subprojects, and all
     * projects in all included builds.
     */
-   private fun defineGlobalTask(globalTaskName: String, taskNames: ArrayList<String>, project: Project)
+   private fun defineDeepCompositeTask(globalTaskName: String, targetTaskNames: ArrayList<String>, project: Project)
    {
       // Configure every project to have at least an empty task with the names
-      for (taskName in taskNames)
+      for (targetTaskName in targetTaskNames)
       {
-         try
-         {
-            project.tasks.findByPath(taskName)
-         }
-         catch (e: NullPointerException)
+         for (allproject in project.allprojects)
          {
             try
             {
-               for (allproject in project.allprojects)
-               {
-                  allproject.task(taskName, closureOf<Task> {
-                     // Declare empty task if it doesn't exist
-                     logInfo(project.logger, "${allproject.name}: Declaring empty task: $taskName")
-                  })
-               }
+               allproject.tasks.findByPath(targetTaskName)
+               allproject.tasks.getByName(targetTaskName)
             }
-            catch (e: InvalidUserDataException)
+            catch (e: NullPointerException)
             {
-               // do nothing
+               configureEmptySubprojectTask(allproject, targetTaskName, project)
+            }
+            catch (e: UnknownTaskException)
+            {
+               configureEmptySubprojectTask(allproject, targetTaskName, project)
             }
          }
-         
-         // Make composite task references depend on their subproject tasks
-         val subprojectTasks = hashSetOf<Task>()
-         for (subproject in project.subprojects)
-         {
-            subprojectTasks.add(subproject.tasks.getByName(taskName))
-         }
-         project.tasks.getByName(taskName).dependsOn(subprojectTasks)
       }
       
-      // Declare the global task in the build root (where the user is calling this from)
+      // Configure every project to have a global task that depends on all the task names
+      project.task(globalTaskName, closureOf<Task> {
+         for (targetTaskName in targetTaskNames)
+         {
+            for (allproject in project.allprojects)
+            {
+               dependsOn(allproject.tasks.getByName(targetTaskName))
+            }
+         }
+      })
+      
+      // For the build root, make the global task depend on all the included build global tasks
       if (isBuildRoot(project))
       {
-         project.task(globalTaskName, closureOf<Task> {
-            val taskReferences = hashSetOf<TaskReference>()
+         project.tasks.getByName(globalTaskName, closureOf<Task> {
             for (includedBuild in project.gradle.includedBuilds)
             {
-               for (taskName in taskNames)
-               {
-                  taskReferences.add(includedBuild.task(":$taskName"))
-               }
-            }
-            dependsOn(taskReferences)
-            
-            // don't forget to include this projects tasks!
-            for (taskName in taskNames)
-            {
-               dependsOn(project.tasks.getByName(taskName))
+               dependsOn(includedBuild.task(":$globalTaskName"))
             }
          })
+      }
+   }
+   
+   private fun configureEmptySubprojectTask(subproject: Project, targetTaskName: String, project: Project)
+   {
+      try
+      {
+         subproject.task(targetTaskName, closureOf<Task> {
+            // Declare empty task if it doesn't exist
+            logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
+         })
+      }
+      catch (e: InvalidUserDataException)
+      {
+         // if the task exists or something else goes wrong
+         logInfo(project.logger, "${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
       }
    }
    
