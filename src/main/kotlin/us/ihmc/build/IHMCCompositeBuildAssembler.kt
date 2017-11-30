@@ -37,8 +37,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       logInfo(logger, "Workspace dir: " + workspacePath)
       
-      if (Files.isDirectory(workspacePath) && Files.exists(workspacePath.resolve("build.gradle"))
-            && Files.exists(workspacePath.resolve("gradle.properties")) && Files.exists(workspacePath.resolve("settings.gradle")))
+      if (pathQualifiesToBeInTheBuild(workspacePath))
       {
          buildFolderNameToPathMap.put(workspacePath.fileName.toString(), workspacePath)
          buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCBuildProperties(logger).load(workspacePath))
@@ -115,6 +114,9 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       val matched = ArrayList<String>()
       for (buildFolderNameToCheck in buildFolderNameToPathMap.keys)
       {
+         // Since this method is gathering more build folder names, make sure this folder isn't already in the set.
+         // If it is, you save some computation on name matching.
+         // Make sure the names match up. See {@link #matchNames}
          if (!transitiveBuildFolderNames.contains(buildFolderNameToCheck) && matchNames(buildFolderNameToCheck, dependencyNameAsDeclared))
          {
             logInfo(logger, "Matched: " + dependencyNameAsDeclared + " to " + buildFolderNameToCheck + "  " + toPascalCased(dependencyNameAsDeclared))
@@ -129,8 +131,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       for (subdirectory in Files.list(directory))
       {
-         if (Files.isDirectory(subdirectory) && Files.exists(subdirectory.resolve("build.gradle"))
-               && Files.exists(subdirectory.resolve("gradle.properties")) && Files.exists(subdirectory.resolve("settings.gradle")))
+         if (pathQualifiesToBeInTheBuild(subdirectory))
          {
             buildFolderNameToPathMap.put(subdirectory.fileName.toString(), subdirectory)
             buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCBuildProperties(logger).load(subdirectory))
@@ -138,6 +139,19 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             mapDirectory(subdirectory)
          }
       }
+   }
+   
+   /**
+    *  Here, we could make the project more friendly by not having such harsh requirements.
+    */
+   private fun pathQualifiesToBeInTheBuild(subdirectory: Path): Boolean
+   {
+      return (Files.isDirectory(subdirectory)
+            && subdirectory.fileName.toString() != "bin"
+            && subdirectory.fileName.toString() != "out"
+            && Files.exists(subdirectory.resolve("build.gradle"))
+            && Files.exists(subdirectory.resolve("gradle.properties"))
+            && Files.exists(subdirectory.resolve("settings.gradle")))
    }
    
    private fun matchNames(buildFolderNameToCheck: String, dependencyNameAsDeclared: String): Boolean
