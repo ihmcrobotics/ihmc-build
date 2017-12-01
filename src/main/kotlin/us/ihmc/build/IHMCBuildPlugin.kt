@@ -66,6 +66,7 @@ class IHMCBuildPlugin : Plugin<Project>
             delete(allproject.projectDir.resolve("out"))
             delete(allproject.projectDir.resolve("bin"))
             delete(allproject.projectDir.resolve(".settings"))
+            delete(allproject.projectDir.resolve(".gradle"))
          })
       }
       
