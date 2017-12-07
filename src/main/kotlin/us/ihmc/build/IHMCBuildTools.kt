@@ -1,12 +1,17 @@
 package us.ihmc.build
 
+import com.mashape.unirest.http.Unirest
+import com.mashape.unirest.http.exceptions.UnirestException
+import com.mashape.unirest.http.options.Options
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import us.ihmc.commons.nio.FileTools
+import us.ihmc.commons.thread.ThreadTools
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -238,11 +243,48 @@ private fun revertAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: P
    }
    else
    {
-      logWarn(logger,"File not exist: $oldUs")
+      logWarn(logger, "File not exist: $oldUs")
    }
 }
 
 fun isBuildRoot(project: Project): Boolean
 {
    return project.gradle.startParameter.isSearchUpwards
+}
+
+fun requestGlobalBuildNumberFromCIDatabase(logger: Logger, buildKey: String): String
+{
+   var tryCount = 0
+   var globalBuildNumber = "ERROR"
+   while (tryCount < 5 && globalBuildNumber == "ERROR")
+   {
+      globalBuildNumber = tryGlobalBuildNumberRequest(logger, buildKey)
+      tryCount++
+      logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
+   }
+   
+   return globalBuildNumber.toString()
+}
+
+private fun tryGlobalBuildNumberRequest(logger: Logger, buildKey: String): String
+{
+   try
+   {
+      return Unirest.get("http://alcaniz.ihmc.us:8087").queryString("globalBuildNumber", buildKey).asString().getBody()
+   }
+   catch (e: UnirestException)
+   {
+      logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
+      ThreadTools.sleep(100)
+      try
+      {
+         Unirest.shutdown();
+         Options.refresh();
+      }
+      catch (ioException: IOException)
+      {
+         ioException.printStackTrace();
+      }
+      return "ERROR"
+   }
 }

@@ -1,13 +1,12 @@
 package us.ihmc.build
 
-import com.mashape.unirest.http.Unirest
-import com.mashape.unirest.http.exceptions.UnirestException
-import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
-import org.gradle.api.*
+import org.gradle.api.JavaVersion
+import org.gradle.api.Project
+import org.gradle.api.UnknownProjectException
+import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -17,23 +16,16 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
-import org.jfrog.artifactory.client.Artifactory
-import org.jfrog.artifactory.client.ArtifactoryClientBuilder
-import org.jfrog.artifactory.client.model.RepoPath
-import us.ihmc.commons.thread.ThreadTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
-import java.io.IOException
-import java.io.InputStream
-import java.nio.file.Paths
 import java.util.*
-import javax.xml.parsers.DocumentBuilderFactory
 
 open class IHMCBuildExtension(val project: Project)
 {
-   private val logger = project.logger
-   private val offline: Boolean = project.gradle.startParameter.isOffline
+   internal val logger = project.logger
+   internal val offline: Boolean = project.gradle.startParameter.isOffline
+   val isBuildRoot = isBuildRoot(project)
    var group = "unset.group"
    var version = "UNSET-VERSION"
    var vcsUrl: String = "unset_vcs_url"
@@ -45,38 +37,22 @@ open class IHMCBuildExtension(val project: Project)
    
    private val bintrayUser: String
    private val bintrayApiKey: String
-   private lateinit var artifactoryUsername: String
-   private lateinit var artifactoryPassword: String
+   internal lateinit var artifactoryUsername: String
+   internal lateinit var artifactoryPassword: String
    
    private val publishModeProperty: String
    private val kebabCasedNameProperty: String
    private val groupDependencyVersionProperty: String
    
    // Bamboo variables
-   private val isChildBuild: Boolean
-   private val isBambooBuild: Boolean
-   private val buildNumber: String
-   private lateinit var publishVersion: String
-   private val isBranchBuild: Boolean
-   private val branchName: String
+   internal val isChildBuild: Boolean
+   internal val isBambooBuild: Boolean
+   internal val buildNumber: String
+   internal lateinit var publishVersion: String
+   internal val isBranchBuild: Boolean
+   internal val branchName: String
    
-   private val includedBuildMap: HashMap<String, Boolean> = hashMapOf()
-   
-   private val artifactory: Artifactory by lazy {
-      val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
-      builder.url = "https://artifactory.ihmc.us/artifactory"
-      if (!openSource)
-      {
-         builder.username = artifactoryUsername
-         builder.password = artifactoryPassword
-      }
-      builder.build()
-   }
-   private val repositoryVersions: HashMap<String, TreeSet<String>> = hashMapOf()
-   private val pomDependencies: HashMap<String, ArrayList<ArrayList<String>>> = hashMapOf()
-   private val documentBuilderFactory by lazy {
-      DocumentBuilderFactory.newInstance()
-   }
+   internal val versionFilter: IHMCVersionFilter
    
    init
    {
@@ -102,51 +78,16 @@ open class IHMCBuildExtension(val project: Project)
       }
       else if (isChildBuild)
       {
-         buildNumber = requestGlobalBuildNumberFromCIDatabase(bambooParentBuildKeyProperty)
+         buildNumber = requestGlobalBuildNumberFromCIDatabase(logger, bambooParentBuildKeyProperty)
       }
       else
       {
-         buildNumber = requestGlobalBuildNumberFromCIDatabase("$bambooPlanKeyProperty-$bambooBuildNumberProperty")
+         buildNumber = requestGlobalBuildNumberFromCIDatabase(logger, "$bambooPlanKeyProperty-$bambooBuildNumberProperty")
       }
       isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
       branchName = bambooBranchNameProperty.replace("/", "-")
-   }
-   
-   private fun requestGlobalBuildNumberFromCIDatabase(buildKey: String): String
-   {
-      var tryCount = 0
-      var globalBuildNumber = "ERROR"
-      while (tryCount < 5 && globalBuildNumber == "ERROR")
-      {
-         globalBuildNumber = tryGlobalBuildNumberRequest(buildKey)
-         tryCount++
-         logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
-      }
       
-      return globalBuildNumber.toString()
-   }
-   
-   private fun tryGlobalBuildNumberRequest(buildKey: String): String
-   {
-      try
-      {
-         return Unirest.get("http://alcaniz.ihmc.us:8087").queryString("globalBuildNumber", buildKey).asString().getBody()
-      }
-      catch (e: UnirestException)
-      {
-         logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
-         ThreadTools.sleep(100)
-         try
-         {
-            Unirest.shutdown();
-            Options.refresh();
-         }
-         catch (ioException: IOException)
-         {
-            ioException.printStackTrace();
-         }
-         return "ERROR"
-      }
+      versionFilter = IHMCVersionFilter(this, project)
    }
    
    fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
@@ -447,417 +388,7 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   fun isBuildRoot(): Boolean
-   {
-      return project.gradle.startParameter.isSearchUpwards
-   }
-   
-   fun thisProjectIsIncludedBuild(): Boolean
-   {
-      return !project.gradle.startParameter.isSearchUpwards
-   }
-   
-   fun getIncludedBuilds(): Collection<IncludedBuild>
-   {
-      if (isBuildRoot())
-      {
-         return project.gradle.includedBuilds
-      }
-      else
-      {
-         return project.gradle.parent!!.includedBuilds
-      }
-   }
-   
-   fun artifactIsIncludedBuild(artifactId: String): Boolean
-   {
-      if (!includedBuildMap.containsKey(artifactId))
-      {
-         for (includedBuild in getIncludedBuilds())
-         {
-            if (artifactId == includedBuild.name)
-            {
-               includedBuildMap[artifactId] = true
-               return true
-            }
-            else if (artifactId.startsWith(includedBuild.name))
-            {
-               for (extraSourceSet in IHMCBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).extraSourceSets)
-               {
-                  if (artifactId == (includedBuild.name + "-$extraSourceSet"))
-                  {
-                     includedBuildMap[artifactId] = true
-                     return true
-                  }
-               }
-            }
-         }
-         
-         includedBuildMap[artifactId] = false
-         return false
-      }
-      
-      return includedBuildMap[artifactId]!!
-   }
-   
-   internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
-   {
-      var externalDependencyVersion: String
-      
-      // Make sure POM is correct
-      if (artifactIsIncludedBuild(artifactId))
-      {
-         externalDependencyVersion = publishVersion
-      }
-      else
-      {
-         if (declaredVersion.startsWith("SNAPSHOT"))
-         {
-            var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "")
-            
-            // Use Bamboo variables to resolve the version
-            if (isBambooBuild)
-            {
-               var closestVersion = "NOT-FOUND"
-               if (isChildBuild) // Match to parent build, exact branch and version
-               {
-                  var childVersion = "SNAPSHOT"
-                  if (isBranchBuild)
-                  {
-                     childVersion += "-$branchName"
-                  }
-                  childVersion += "-$buildNumber"
-                  closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
-               }
-               if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
-               {
-                  closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-               }
-               if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-               {
-                  closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
-               }
-               externalDependencyVersion = closestVersion
-            }
-            else
-            {
-               // For users
-               if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
-               {
-                  externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
-               }
-               else // Get exact match on end of string
-               {
-                  externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
-               }
-            }
-         }
-         else // Pass directly to gradle as declared
-         {
-            externalDependencyVersion = declaredVersion
-         }
-      }
-      
-      logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
-      return externalDependencyVersion
-   }
-   
-   private fun getSnapshotRepositoryList(): List<String>
-   {
-      if (openSource)
-      {
-         return listOf("snapshots")
-      }
-      else
-      {
-         return listOf("snapshots", "proprietary-snapshots")
-      }
-   }
-   
-   private fun searchRepositories(groupId: String, artifactId: String): Set<String>
-   {
-      if (!repositoryVersions.containsKey("$groupId:$artifactId"))
-      {
-         repositoryVersions["$groupId:$artifactId"] = sortedSetOf<String>()
-         
-         if (offline)
-         {
-            val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
-            val artifactPath = gradleCache.resolve(groupId).resolve(artifactId)
-            
-            for (entry in artifactPath.toFile().list())
-            {
-               repositoryVersions["$groupId:$artifactId"]!!.add(entry)
-            }
-         }
-         else
-         {
-            for (repository in getSnapshotRepositoryList())
-            {
-               for (repoPath in searchArtifactory(repository, groupId, artifactId))
-               {
-                  if (repoPath.itemPath.matches(Regex(".*\\d\\.jar$")))
-                  {
-                     repositoryVersions["$groupId:$artifactId"]!!.add(itemPathToVersion(repoPath.itemPath, artifactId))
-                  }
-               }
-            }
-         }
-      }
-      
-      return repositoryVersions["$groupId:$artifactId"]!!
-   }
-   
-   private fun anyVersionExists(groupId: String, artifactId: String): Boolean
-   {
-      return !searchRepositories(groupId, artifactId).isEmpty()
-   }
-   
-   private fun versionExists(groupId: String, artifactId: String, version: String): Boolean
-   {
-      if (repositoryVersions.containsKey("$groupId:$artifactId") && repositoryVersions["$groupId:$artifactId"]!!.contains(version))
-      {
-         return true
-      }
-      
-      if (!offline)
-      {
-         for (repository in getSnapshotRepositoryList())
-         {
-            if (searchArtifactory(repository, groupId, artifactId, version).size > 0)
-            {
-               if (repositoryVersions.containsKey("$groupId:$artifactId"))
-               {
-                  repositoryVersions["$groupId:$artifactId"]!!.add(version)
-               }
-               logInfo(logger, "Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
-               return true
-            }
-         }
-      }
-      
-      return false
-   }
-   
-   private fun loadPOMDependencies(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (offline)
-      {
-         return loadPOMDependenciesMavenLocal(groupId, artifactId, versionToCheck)
-      }
-      else
-      {
-         return loadPOMDependenciesArtifactory(groupId, artifactId, versionToCheck)
-      }
-   }
-   
-   private fun loadPOMDependenciesArtifactory(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
-      {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
-         
-         var pomPath: RepoPath
-         for (repository in getSnapshotRepositoryList())
-         {
-            for (repoPath in searchArtifactory(repository, groupId, artifactId, versionToCheck))
-            {
-               if (repoPath.itemPath.matches(Regex(".*\\d\\.pom$")))
-               {
-                  logInfo(logger, "Hitting Artifactory for POM: " + repoPath.itemPath)
-                  val inputStream = downloadItemFromArtifactory(repository, repoPath)
-                  
-                  parsePOMInputStream(inputStream, groupId, artifactId, versionToCheck)
-               }
-            }
-         }
-      }
-      
-      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
-   }
-   
-   private fun searchArtifactory(repository: String, groupId: String, artifactId: String): List<RepoPath>
-   {
-      try
-      {
-         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
-      }
-      catch (e: IllegalArgumentException)
-      {
-         throw artifactoryException("$repository/$groupId/$artifactId/$version")
-      }
-   }
-   
-   private fun searchArtifactory(repository: String, groupId: String, artifactId: String, version: String): List<RepoPath>
-   {
-      try
-      {
-         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch()
-      }
-      catch (e: IllegalArgumentException)
-      {
-         throw artifactoryException("$repository/$groupId/$artifactId/$version")
-      }
-   }
-   
-   private fun downloadItemFromArtifactory(repository: String, repoPath: RepoPath): InputStream
-   {
-      try
-      {
-         return artifactory.repository(repository).download(repoPath.itemPath).doDownload()
-      }
-      catch (e: IllegalArgumentException)
-      {
-         throw artifactoryException("$repository/$repoPath")
-      }
-   }
-   
-   private fun artifactoryException(path: String): GradleException
-   {
-      return  GradleException("Problem authenticating or retrieving item from Artifactory: $path. Try logging into artifactory.ihmc.us with the credentials used (artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
-   }
-   
-   private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
-   {
-      try
-      {
-         val documentBuilder = documentBuilderFactory.newDocumentBuilder()
-         val document = documentBuilder.parse(inputStream);
-         
-         val dependencyTags = document.getElementsByTagName("dependency")
-         for (i in 0 until dependencyTags.length)
-         {
-            val dependencyGroupId = dependencyTags.item(i).childNodes.item(1).textContent
-            val dependencyArtifactId = dependencyTags.item(i).childNodes.item(3).textContent
-            val dependencyVersion = dependencyTags.item(i).childNodes.item(5).textContent
-            
-            if (dependencyVersion.contains("SNAPSHOT") && anyVersionExists(dependencyGroupId, dependencyArtifactId))
-            {
-               val arrayDependency: ArrayList<String> = arrayListOf()
-               arrayDependency.add(dependencyGroupId)
-               arrayDependency.add(dependencyArtifactId)
-               arrayDependency.add(dependencyVersion)
-               
-               pomDependencies["$groupId:$artifactId:$versionToCheck"]!!.add(arrayDependency)
-            }
-         }
-      }
-      catch (e: Exception)
-      {
-         e.printStackTrace()
-      }
-   }
-   
-   private fun loadPOMDependenciesMavenLocal(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
-      {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
-         
-         logInfo(logger, "Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
-         val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
-         val versionPath = gradleCache.resolve(groupId).resolve(artifactId).resolve(versionToCheck)
-         
-         var pomFile: File? = null
-         for (hashEntry in versionPath.toFile().list())
-         {
-            for (fileEntry in versionPath.resolve(hashEntry).toFile().list())
-            {
-               if (fileEntry.endsWith(".pom"))
-               {
-                  pomFile = versionPath.resolve(hashEntry).resolve(fileEntry).toFile()
-               }
-            }
-         }
-         
-         parsePOMInputStream(FileInputStream(pomFile), groupId, artifactId, versionToCheck)
-      }
-      
-      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
-   }
-   
-   private fun performPOMCheck(groupId: String, artifactId: String, versionToCheck: String): Boolean
-   {
-      if (!versionExists(groupId, artifactId, versionToCheck))
-      {
-         logInfo(logger, "Version doesn't exist: $groupId:$artifactId:$versionToCheck")
-         return false
-      }
-      else
-      {
-         for (dependency in loadPOMDependencies(groupId, artifactId, versionToCheck))
-         {
-            if (!performPOMCheck(dependency[0], dependency[1], dependency[2]))
-            {
-               return false
-            }
-         }
-         
-         return true
-      }
-   }
-   
-   private fun itemPathToVersion(itemPath: String, artifactId: String): String
-   {
-      val split: List<String> = itemPath.split("/")
-      val artifact: String = split[split.size - 1]
-      val withoutDotJar: String = artifact.split(".jar")[0]
-      val version: String = withoutDotJar.substring(artifactId.length + 1)
-      
-      return version
-   }
-   
-   private fun matchVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
-   {
-      for (repositoryVersion in searchRepositories(groupId, artifactId))
-      {
-         if (repositoryVersion.endsWith(versionMatcher))
-         {
-            return repositoryVersion
-         }
-      }
-      
-      return "MATCH-NOT-FOUND-$versionMatcher"
-   }
-   
-   private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
-   {
-      var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
-      
-      if (highestVersion.contains("NOT-FOUND"))
-         return highestVersion
-      
-      while (!performPOMCheck(groupId, artifactId, highestVersion))
-      {
-         logInfo(logger, "Failed POM check: $groupId:$artifactId:$highestVersion")
-         repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
-         highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
-         logInfo(logger, "Rolling back to: $groupId:$artifactId:$highestVersion")
-      }
-      
-      return highestVersion
-   }
-   
-   private fun highestBuildNumberVersion(groupId: String, artifactId: String, versionMatcher: String): String
-   {
-      var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
-      var highestBuildNumber: Int = -1
-      
-      for (repositoryVersion in searchRepositories(groupId, artifactId))
-      {
-         if (repositoryVersion.matches(Regex("$versionMatcher-\\d+")))
-         {
-            val buildNumberFromArtifactory: Int = Integer.parseInt(repositoryVersion.split("-").last())
-            if (buildNumberFromArtifactory > highestBuildNumber)
-            {
-               matchedVersion = repositoryVersion
-               highestBuildNumber = buildNumberFromArtifactory
-            }
-         }
-      }
-      
-      return matchedVersion
-   }
+
    
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
@@ -874,7 +405,7 @@ open class IHMCBuildExtension(val project: Project)
                put("Bundle-License", licenseURL)
                put("Bundle-Vendor", companyName)
                
-               if (!thisProjectIsIncludedBuild() && libFolder)
+               if (isBuildRoot && libFolder)
                {
                   var dependencyJarLocations = " "
                   for (file in configurations.getByName("runtime"))
@@ -883,7 +414,7 @@ open class IHMCBuildExtension(val project: Project)
                   }
                   put("Class-Path", dependencyJarLocations.trim())
                }
-               if (!thisProjectIsIncludedBuild() && mainClass != "NO_MAIN")
+               if (isBuildRoot && mainClass != "NO_MAIN")
                {
                   put("Main-Class", mainClass)
                }
