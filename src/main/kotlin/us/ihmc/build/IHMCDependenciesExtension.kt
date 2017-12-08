@@ -24,6 +24,18 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
    }
    private val dynamicMethods = DynamicMethods()
    
+   /**
+    * Public API supporting:
+    *
+    * compile module("main")
+    * compile module("test")
+    * compile module("visualizers")
+    */
+   fun module(moduleName: String): Project
+   {
+      return ihmcBuildExtension.sourceSetProject(moduleName)
+   }
+   
    private fun add(configurationName: String, dependencyNotation: Any)
    {
       val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
@@ -56,27 +68,27 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
       {
          val split = dependencyNotation.split(":")
          
-         val modifiedVersion = ihmcBuildExtension.versionFilter.getExternalDependencyVersion(split[0], split[1], split[2])
+         val filteredVersion = ihmcBuildExtension.versionFilter.filterVersion(split[0], split[1], split[2])
          
-         var modifiedString = ""
+         var filteredString = ""
          for (i in split.indices)
          {
             if (i == 2)
             {
-               modifiedString += modifiedVersion
+               filteredString += filteredVersion
             }
             else
             {
-               modifiedString += split[i]
+               filteredString += split[i]
             }
             
             if (i < split.size - 1)
             {
-               modifiedString += ":"
+               filteredString += ":"
             }
          }
          
-         return modifiedString
+         return filteredString
       }
       else if (dependencyNotation is Map<*, *>)
       {
@@ -109,17 +121,17 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
             return dependencyNotation
          }
          
-         val modifiedVersion = ihmcBuildExtension.versionFilter.getExternalDependencyVersion(groupId, artifactName, dependencyMode)
+         val filteredVersion = ihmcBuildExtension.versionFilter.filterVersion(groupId, artifactName, dependencyMode)
          
-         var modifiedMap = hashMapOf<String, Any?>()
+         var filteredMap = hashMapOf<String, Any?>()
          
          for (entry in dependencyNotation)
          {
-            modifiedMap.put(entry.key as String, entry.value)
+            filteredMap.put(entry.key as String, entry.value)
          }
-         modifiedMap.put("version", modifiedVersion)
+         filteredMap.put("version", filteredVersion)
          
-         return modifiedMap
+         return filteredMap
       }
       else
       {

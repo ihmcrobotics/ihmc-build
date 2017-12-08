@@ -25,7 +25,6 @@ open class IHMCBuildExtension(val project: Project)
 {
    internal val logger = project.logger
    internal val offline: Boolean = project.gradle.startParameter.isOffline
-   val isBuildRoot = isBuildRoot(project)
    var group = "unset.group"
    var version = "UNSET-VERSION"
    var vcsUrl: String = "unset_vcs_url"
@@ -358,12 +357,22 @@ open class IHMCBuildExtension(val project: Project)
       return sourceSetProject(sourceSetName).convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
    }
    
+   @Deprecated("Use module() instead.")
+   /** Public API. */
    fun sourceSetProject(sourceSetName: String): Project
    {
-      if (sourceSetName == "main")
+      return module(sourceSetName)
+   }
+   
+   /**
+    * Public API. Gets a module by name.
+    */
+   fun module(moduleName: String): Project
+   {
+      if (moduleName == "main")
          return project
       else
-         return project.project(project.name + "-" + sourceSetName)
+         return project.project(project.name + "-" + moduleName)
    }
    
    private fun getPublishVersion(): String
@@ -405,7 +414,7 @@ open class IHMCBuildExtension(val project: Project)
                put("Bundle-License", licenseURL)
                put("Bundle-Vendor", companyName)
                
-               if (isBuildRoot && libFolder)
+               if (isBuildRoot() && libFolder)
                {
                   var dependencyJarLocations = " "
                   for (file in configurations.getByName("runtime"))
@@ -414,7 +423,7 @@ open class IHMCBuildExtension(val project: Project)
                   }
                   put("Class-Path", dependencyJarLocations.trim())
                }
-               if (isBuildRoot && mainClass != "NO_MAIN")
+               if (isBuildRoot() && mainClass != "NO_MAIN")
                {
                   put("Main-Class", mainClass)
                }
@@ -504,5 +513,13 @@ open class IHMCBuildExtension(val project: Project)
    fun convertJobNameToKebabCasedName(jobName: String): String
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
+   }
+   
+   /**
+    * Public API.
+    */
+   fun isBuildRoot(): Boolean
+   {
+      return isBuildRoot(project)
    }
 }

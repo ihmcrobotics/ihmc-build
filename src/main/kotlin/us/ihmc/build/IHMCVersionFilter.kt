@@ -33,14 +33,14 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
       DocumentBuilderFactory.newInstance()
    }
    
-   internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
+   internal fun filterVersion(groupId: String, artifactId: String, declaredVersion: String): String
    {
-      var externalDependencyVersion: String
+      var filteredVersion: String
       
       // Make sure POM is correct
       if (artifactIsIncludedBuild(artifactId))
       {
-         externalDependencyVersion = ihmcBuildExtension.publishVersion
+         filteredVersion = ihmcBuildExtension.publishVersion
       }
       else
       {
@@ -70,29 +70,29 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
                {
                   closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
                }
-               externalDependencyVersion = closestVersion
+               filteredVersion = closestVersion
             }
             else
             {
                // For users
                if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
                {
-                  externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
+                  filteredVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
                }
                else // Get exact match on end of string
                {
-                  externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
+                  filteredVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
                }
             }
          }
          else // Pass directly to gradle as declared
          {
-            externalDependencyVersion = declaredVersion
+            filteredVersion = declaredVersion
          }
       }
       
-      logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
-      return externalDependencyVersion
+      logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$filteredVersion")
+      return filteredVersion
    }
    
    private fun artifactIsIncludedBuild(artifactId: String): Boolean
@@ -128,7 +128,7 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
    
    fun getIncludedBuilds(): Collection<IncludedBuild>
    {
-      if (ihmcBuildExtension.isBuildRoot)
+      if (ihmcBuildExtension.isBuildRoot())
       {
          return project.gradle.includedBuilds
       }
