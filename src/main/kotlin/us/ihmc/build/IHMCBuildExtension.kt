@@ -89,67 +89,7 @@ open class IHMCBuildExtension(val project: Project)
       versionFilter = IHMCVersionFilter(this, project)
    }
    
-   fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
-   {
-      if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
-      {
-         return project.property(propertyName) as String
-      }
-      else
-      {
-         if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
-         {
-            if (!openSource)
-            {
-               logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
-            }
-         }
-         if (propertyName == "bintray_user" || propertyName == "bintray_key")
-         {
-            logInfo(logger, "Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
-         }
-         
-         logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
-         project.extra.set(propertyName, defaultValue)
-         return defaultValue
-      }
-   }
-   
-   /**
-    * Public API.
-    */
-   fun loadProductProperties(propertiesFilePath: String)
-   {
-      val properties = Properties()
-      properties.load(FileInputStream(project.projectDir.toPath().resolve(propertiesFilePath).toFile()))
-      for (property in properties)
-      {
-         if (property.key as String == "group")
-         {
-            group = property.value as String
-            logInfo(logger, "Loaded group: " + group)
-         }
-         if (property.key as String == "version")
-         {
-            version = property.value as String
-            logInfo(logger, "Loaded version: " + version)
-         }
-         if (property.key as String == "vcsUrl")
-         {
-            vcsUrl = property.value as String
-            logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
-         }
-         if (property.key as String == "openSource")
-         {
-            openSource = Eval.me(property.value as String) as Boolean
-            logInfo(logger, "Loaded openSource: " + openSource)
-         }
-      }
-   }
-   
-   /**
-    * Public API.
-    */
+   /** Public API. */
    fun configureDependencyResolution()
    {
       repository("https://artifactory.ihmc.us/artifactory/snapshots/")
@@ -160,12 +100,11 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
          repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
       }
-      project.allprojects {
-         (this as Project).run {
-            repositories.jcenter()
-            repositories.mavenCentral()
-            repositories.mavenLocal()
-         }
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.jcenter()
+         allproject.repositories.mavenCentral()
+         allproject.repositories.mavenLocal()
       }
       repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
       repository("http://clojars.org/repo/")
@@ -187,62 +126,7 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   /**
-    * Public API.
-    */
-   fun repository(url: String)
-   {
-      project.allprojects {
-         (this as Project).run {
-            repositories.run {
-               maven {}.url = uri(url)
-            }
-         }
-      }
-   }
-   
-   /**
-    * Public API.
-    */
-   fun repository(url: String, username: String, password: String)
-   {
-      project.allprojects {
-         (this as Project).run {
-            repositories.run {
-               val maven = maven {}
-               maven.url = uri(url)
-               maven.credentials.username = username
-               maven.credentials.password = password
-            }
-         }
-      }
-   }
-   
-   /**
-    * Public API.
-    */
-   fun mainClassJarWithLibFolder(mainClass: String)
-   {
-      for (allproject in project.allprojects)
-      {
-         configureJarManifest(allproject, maintainer, companyName, licenseURL, mainClass, true)
-      }
-   }
-   
-   /**
-    * Public API.
-    */
-   fun jarWithLibFolder()
-   {
-      for (allproject in project.allprojects)
-      {
-         configureJarManifest(allproject, maintainer, companyName, licenseURL, "NO_MAIN", true)
-      }
-   }
-   
-   /**
-    * Public API.
-    */
+   /** Public API. */
    fun configurePublications()
    {
       if (openSource)
@@ -287,6 +171,72 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   private fun getPublishVersion(): String
+   {
+      if (publishModeProperty == "STABLE")
+      {
+         return version
+      }
+      else if (publishModeProperty == "SNAPSHOT")
+      {
+         var publishVersion = "SNAPSHOT"
+         if (isBranchBuild)
+         {
+            publishVersion += "-$branchName"
+         }
+         publishVersion += "-$buildNumber"
+         return publishVersion
+      }
+      else
+      {
+         return publishModeProperty
+      }
+   }
+   
+   private fun declarePublication(project: Project)
+   {
+      val sourceSet = project.convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+      val publishing = project.extensions.getByType(PublishingExtension::class.java)
+      val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
+      publication.groupId = group
+      publication.artifactId = project.name
+      publication.version = version
+      
+      publication.pom.withXml() {
+         (this as XmlProvider).run {
+            val dependenciesNode = asNode().appendNode("dependencies")
+            
+            project.configurations.getByName("compile").allDependencies.forEach {
+               if (it.name != "unspecified")
+               {
+                  val dependencyNode = dependenciesNode.appendNode("dependency")
+                  dependencyNode.appendNode("groupId", it.group)
+                  dependencyNode.appendNode("artifactId", it.name)
+                  dependencyNode.appendNode("version", it.version)
+               }
+            }
+            
+            asNode().appendNode("name", project.name)
+            asNode().appendNode("url", vcsUrl)
+            val licensesNode = asNode().appendNode("licenses")
+            
+            val licenseNode = licensesNode.appendNode("license")
+            licenseNode.appendNode("name", licenseName)
+            licenseNode.appendNode("url", licenseURL)
+            licenseNode.appendNode("distribution", "repo")
+         }
+      }
+      
+      publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
+         from(sourceSet.output)
+      }))
+      
+      publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
+         from(sourceSet.allJava)
+         classifier = "sources"
+      }))
+   }
+   
    fun setupJavaSourceSets()
    {
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
@@ -322,31 +272,49 @@ open class IHMCBuildExtension(val project: Project)
             test.testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
          }
       }
-
-//      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
-//      {
-//         if (project.hasProperty("extraSourceSets"))
-//         {
-//            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
-//
-//            for (extraSourceSet in extraSourceSets)
-//            {
-//               if (extraSourceSet == "test")
-//               {
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/src")))
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
-//               }
-//               else
-//               {
-//                  java.sourceSets.create(extraSourceSet)
-//                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
-//               }
-//            }
-//         }
-//      }
+   }
+   
+   /** Public API. */
+   fun repository(url: String)
+   {
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.run {
+            maven {}.url = allproject.uri(url)
+         }
+      }
+   }
+   
+   /** Public API. */
+   fun repository(url: String, username: String, password: String)
+   {
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.run {
+            val maven = maven {}
+            maven.url = allproject.uri(url)
+            maven.credentials.username = username
+            maven.credentials.password = password
+         }
+      }
+   }
+   
+   /** Public API. */
+   fun mainClassJarWithLibFolder(mainClass: String)
+   {
+      for (allproject in project.allprojects)
+      {
+         configureJarManifest(allproject, maintainer, companyName, licenseURL, mainClass, true)
+      }
+   }
+   
+   /** Public API. */
+   fun jarWithLibFolder()
+   {
+      for (allproject in project.allprojects)
+      {
+         configureJarManifest(allproject, maintainer, companyName, licenseURL, "NO_MAIN", true)
+      }
    }
    
    fun javaDirectory(sourceSetName: String, directory: String)
@@ -388,28 +356,6 @@ open class IHMCBuildExtension(val project: Project)
          return project
       else
          return project.project(project.name + "-" + moduleName)
-   }
-   
-   private fun getPublishVersion(): String
-   {
-      if (publishModeProperty == "STABLE")
-      {
-         return version
-      }
-      else if (publishModeProperty == "SNAPSHOT")
-      {
-         var publishVersion = "SNAPSHOT"
-         if (isBranchBuild)
-         {
-            publishVersion += "-$branchName"
-         }
-         publishVersion += "-$buildNumber"
-         return publishVersion
-      }
-      else
-      {
-         return publishModeProperty
-      }
    }
    
    private fun configureJarManifest(project: Project, maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
@@ -467,50 +413,6 @@ open class IHMCBuildExtension(val project: Project)
       })
    }
    
-   private fun declarePublication(project: Project)
-   {
-      val sourceSet = project.convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-      val publishing = project.extensions.getByType(PublishingExtension::class.java)
-      val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
-      publication.groupId = group
-      publication.artifactId = project.name
-      publication.version = version
-      
-      publication.pom.withXml() {
-         (this as XmlProvider).run {
-            val dependenciesNode = asNode().appendNode("dependencies")
-            
-            project.configurations.getByName("compile").allDependencies.forEach {
-               if (it.name != "unspecified")
-               {
-                  val dependencyNode = dependenciesNode.appendNode("dependency")
-                  dependencyNode.appendNode("groupId", it.group)
-                  dependencyNode.appendNode("artifactId", it.name)
-                  dependencyNode.appendNode("version", it.version)
-               }
-            }
-            
-            asNode().appendNode("name", project.name)
-            asNode().appendNode("url", vcsUrl)
-            val licensesNode = asNode().appendNode("licenses")
-            
-            val licenseNode = licensesNode.appendNode("license")
-            licenseNode.appendNode("name", licenseName)
-            licenseNode.appendNode("url", licenseURL)
-            licenseNode.appendNode("distribution", "repo")
-         }
-      }
-      
-      publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
-         from(sourceSet.output)
-      }))
-      
-      publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
-         from(sourceSet.allJava)
-         classifier = "sources"
-      }))
-   }
-   
    /**
     * @deprecated Use convertJobNameToKebabCasedName instead.
     */
@@ -529,11 +431,65 @@ open class IHMCBuildExtension(val project: Project)
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
    
-   /**
-    * Public API.
-    */
+   /** Public API. */
    fun isBuildRoot(): Boolean
    {
       return isBuildRoot(project)
+   }
+   
+   /** Public API. */
+   fun loadProductProperties(propertiesFilePath: String)
+   {
+      val properties = Properties()
+      properties.load(FileInputStream(project.projectDir.toPath().resolve(propertiesFilePath).toFile()))
+      for (property in properties)
+      {
+         if (property.key as String == "group")
+         {
+            group = property.value as String
+            logInfo(logger, "Loaded group: " + group)
+         }
+         if (property.key as String == "version")
+         {
+            version = property.value as String
+            logInfo(logger, "Loaded version: " + version)
+         }
+         if (property.key as String == "vcsUrl")
+         {
+            vcsUrl = property.value as String
+            logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
+         }
+         if (property.key as String == "openSource")
+         {
+            openSource = Eval.me(property.value as String) as Boolean
+            logInfo(logger, "Loaded openSource: " + openSource)
+         }
+      }
+   }
+   
+   private fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
+   {
+      if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
+      {
+         return project.property(propertyName) as String
+      }
+      else
+      {
+         if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
+         {
+            if (!openSource)
+            {
+               logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
+            }
+         }
+         if (propertyName == "bintray_user" || propertyName == "bintray_key")
+         {
+            logInfo(logger, "Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
+         }
+         
+         logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
+         project.extra.set(propertyName, defaultValue)
+         return defaultValue
+      }
    }
 }
