@@ -115,6 +115,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun loadProductProperties(propertiesFilePath: String)
    {
       val properties = Properties()
@@ -144,6 +147,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun configureDependencyResolution()
    {
       repository("https://artifactory.ihmc.us/artifactory/snapshots/")
@@ -181,6 +187,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun repository(url: String)
    {
       project.allprojects {
@@ -192,6 +201,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun repository(url: String, username: String, password: String)
    {
       project.allprojects {
@@ -206,6 +218,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun mainClassJarWithLibFolder(mainClass: String)
    {
       project.allprojects {
@@ -215,6 +230,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun jarWithLibFolder()
    {
       project.allprojects {
@@ -224,6 +242,9 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /**
+    * Public API.
+    */
    fun configurePublications()
    {
       if (openSource)
@@ -397,8 +418,6 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-
-   
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
       tasks.getByName("jar") {
@@ -506,7 +525,7 @@ open class IHMCBuildExtension(val project: Project)
    }
    
    /**
-    * Used for artifact-test-runner to keep easy Bamboo configuration.
+    * Public API. Used for artifact-test-runner to keep easy Bamboo configuration.
     * Job names are pascal cased on Bamboo and use this method to
     * resolve their kebab cased artifact counterparts.
     */
