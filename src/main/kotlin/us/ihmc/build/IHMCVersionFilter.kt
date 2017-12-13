@@ -42,6 +42,11 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
       {
          filteredVersion = ihmcBuildExtension.publishVersion
       }
+      else if (declaredVersion.toLowerCase().contains("source"))
+      {
+         hardCrash(logger, "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please clone $artifactId next to this one to build it from source.")
+         filteredVersion = declaredVersion
+      }
       else
       {
          if (declaredVersion.startsWith("SNAPSHOT"))

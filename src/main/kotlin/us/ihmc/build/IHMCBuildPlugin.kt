@@ -12,7 +12,6 @@ import org.gradle.kotlin.dsl.closureOf
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import us.ihmc.continuousIntegration.IHMCContinuousIntegrationGradlePlugin
-import java.io.File
 
 class IHMCBuildPlugin : Plugin<Project>
 {

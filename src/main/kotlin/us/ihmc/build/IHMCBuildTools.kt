@@ -5,6 +5,7 @@ import com.mashape.unirest.http.exceptions.UnirestException
 import com.mashape.unirest.http.options.Options
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -44,6 +45,12 @@ fun logDebug(logger: Logger, message: Any)
 fun logTrace(logger: Logger, trace: Any)
 {
    logger.trace(trace.toString())
+}
+
+fun hardCrash(logger: Logger,  message: Any)
+{
+   logError(logger, message)
+   throw GradleException("[ihmc-build] " + message as String)
 }
 
 fun ihmcBuildMessage(message: Any): String
