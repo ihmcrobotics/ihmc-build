@@ -5,7 +5,6 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.UnknownProjectException
 import org.gradle.api.XmlProvider
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
@@ -19,6 +18,8 @@ import org.gradle.kotlin.dsl.extra
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
@@ -39,9 +40,8 @@ open class IHMCBuildExtension(val project: Project)
    internal lateinit var artifactoryUsername: String
    internal lateinit var artifactoryPassword: String
    
-   private val publishModeProperty: String
+   private val snapshotPublishMode: Boolean
    private val kebabCasedNameProperty: String
-   private val groupDependencyVersionProperty: String
    
    // Bamboo variables
    internal val isChildBuild: Boolean
@@ -60,8 +60,7 @@ open class IHMCBuildExtension(val project: Project)
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       
-      groupDependencyVersionProperty = setupPropertyWithDefault("groupDependencyVersion", "SNAPSHOT-LATEST")
-      publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
+      snapshotPublishMode = setupPropertyWithDefault("publishMode", "stable").toLowerCase() == "snapshot"
       kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
@@ -135,16 +134,15 @@ open class IHMCBuildExtension(val project: Project)
          licenseName = "Apache License, Version 2.0"
       }
       
-      val productGroup = group
       for (allproject in project.allprojects)
       {
-         allproject.group = productGroup
+         allproject.group = group
          publishVersion = getPublishVersion()
          allproject.version = publishVersion
          
          configureJarManifest(allproject, maintainer, companyName, licenseURL, "NO_MAIN", false)
          
-         if (publishModeProperty == "SNAPSHOT")
+         if (snapshotPublishMode)
          {
             if (openSource)
             {
@@ -155,7 +153,7 @@ open class IHMCBuildExtension(val project: Project)
                declareArtifactory(allproject, "proprietary-snapshots")
             }
          }
-         else if (publishModeProperty == "STABLE")
+         else
          {
             if (openSource)
             {
@@ -173,11 +171,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun getPublishVersion(): String
    {
-      if (publishModeProperty == "STABLE")
-      {
-         return version
-      }
-      else if (publishModeProperty == "SNAPSHOT")
+      if (snapshotPublishMode)
       {
          var publishVersion = "SNAPSHOT"
          if (isBranchBuild)
@@ -189,7 +183,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         return publishModeProperty
+         return version
       }
    }
    
@@ -218,12 +212,15 @@ open class IHMCBuildExtension(val project: Project)
             
             asNode().appendNode("name", project.name)
             asNode().appendNode("url", vcsUrl)
-            val licensesNode = asNode().appendNode("licenses")
             
+            val licensesNode = asNode().appendNode("licenses")
             val licenseNode = licensesNode.appendNode("license")
             licenseNode.appendNode("name", licenseName)
             licenseNode.appendNode("url", licenseURL)
             licenseNode.appendNode("distribution", "repo")
+            
+            asNode().appendNode("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+            asNode().appendNode("branch", branchName)
          }
       }
       
