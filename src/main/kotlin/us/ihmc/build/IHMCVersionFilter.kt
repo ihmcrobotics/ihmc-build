@@ -17,6 +17,7 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
 {
    private val logger = project.logger
    private val includedBuildMap: HashMap<String, Boolean> = hashMapOf()
+   private val includedBuildPropertiesMap: HashMap<String, Boolean> =
    private val artifactory: Artifactory by lazy {
       val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
       builder.url = "https://artifactory.ihmc.us/artifactory"
@@ -106,6 +107,10 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
       {
          for (includedBuild in getIncludedBuilds())
          {
+            for (module in IHMCIncludedBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).modules)
+            {
+            
+            }
             if (artifactId == includedBuild.name)
             {
                includedBuildMap[artifactId] = true
@@ -113,9 +118,9 @@ class IHMCVersionFilter(val ihmcBuildExtension: IHMCBuildExtension, val project:
             }
             else if (artifactId.startsWith(includedBuild.name))
             {
-               for (extraSourceSet in IHMCBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).extraSourceSets)
+               for (module in IHMCIncludedBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).modules)
                {
-                  if (artifactId == (includedBuild.name + "-$extraSourceSet"))
+                  if (module != "main" && artifactId == (includedBuild.name + "-$module"))
                   {
                      includedBuildMap[artifactId] = true
                      return true

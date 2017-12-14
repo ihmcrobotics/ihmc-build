@@ -16,15 +16,17 @@ import java.util.*
 class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
    val logger = configurator.logger
-   val depthFromWorkspaceDirectory = configurator.depthFromWorkspaceDirectory
+   val properties = configurator.properties
+   val depthFromWorkspaceDirectory: Int
    val rootProjectPath: Path = configurator.settings.rootProject.projectDir.toPath()
    var workspacePath: Path
    val buildFolderNameToPathMap = HashMap<String, Path>()
-   private val buildFolderNameToPropertiesMap = HashMap<String, IHMCBuildProperties>()
+   private val buildFolderNameToPropertiesMap = HashMap<String, IHMCIncludedBuildProperties>()
    val transitiveBuildFolderNames = TreeSet<String>()
    
    init
    {
+      depthFromWorkspaceDirectory = depthFromWorkspaceDirectoryCompatibility(properties)
       workspacePath = rootProjectPath
       for (i in 1..depthFromWorkspaceDirectory)
       {
@@ -40,7 +42,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       if (pathQualifiesToBeInTheBuild(workspacePath))
       {
          buildFolderNameToPathMap.put(workspacePath.fileName.toString(), workspacePath)
-         buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCBuildProperties(logger).load(workspacePath))
+         buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCIncludedBuildProperties(logger).load(workspacePath))
       }
       mapDirectory(workspacePath)
       for (buildFolderName in buildFolderNameToPathMap.keys)
@@ -52,7 +54,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       findTransitivesRecursive(rootProjectPath)
       for (transitiveKey in transitiveBuildFolderNames)
       {
-         if (!buildFolderNameToPropertiesMap[transitiveKey]!!.exclude)
+         if (!buildFolderNameToPropertiesMap[transitiveKey]!!.excludeFromCompositeBuild)
          {
             val relativizedPathName: String = rootProjectPath.relativize(buildFolderNameToPathMap.get(transitiveKey)).toString()
             if (!relativizedPathName.isEmpty()) // Including itself
@@ -134,7 +136,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          if (pathQualifiesToBeInTheBuild(subdirectory))
          {
             buildFolderNameToPathMap.put(subdirectory.fileName.toString(), subdirectory)
-            buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCBuildProperties(logger).load(subdirectory))
+            buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCIncludedBuildProperties(logger).load(subdirectory))
             
             mapDirectory(subdirectory)
          }
@@ -160,13 +162,10 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       val buildToCheckProperties = buildFolderNameToPropertiesMap[buildFolderNameToCheck]!!
       
-      if (dependencyNameAsDeclared == buildToCheckProperties.pascalCasedName) return true
-      if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName) return true
-      
-      for (extraSourceSet in buildToCheckProperties.extraSourceSets)
+      for (module in buildToCheckProperties.modules)
       {
-         if (dependencyNameAsDeclared == buildToCheckProperties.pascalCasedName + extraSourceSet.capitalize()) return true
-         if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName + "-" + extraSourceSet) return true
+         if (dependencyNameAsDeclared == module.pascalCasedName) return true
+         if (dependencyNameAsDeclared == module.kebabCasedName) return true
       }
       
       return false

@@ -1,65 +1,40 @@
 package us.ihmc.build
 
 import groovy.lang.MissingPropertyException
-import groovy.util.Eval
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
-import java.io.File
 
-class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val ext: ExtraPropertiesExtension)
+class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, ext: ExtraPropertiesExtension)
 {
-   lateinit var pascalCasedName: String
-   lateinit var extraSourceSets: ArrayList<String>
-   lateinit var publishMode: String
-   var depthFromWorkspaceDirectory: Int = 1
-   var includeBuildsFromWorkspace: Boolean = true
-   var excludeFromCompositeBuild: Boolean = false
+   val properties = IHMCPropertyInterface().initWithExt(ext, settings.rootProject.name)
    
    init
    {
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
-      ext["org.gradle.workers.max"] = 200
       
       if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
       {
          hardCrash(logger, "Please upgrade to Gradle version 4.1 or higher! (Recommended versions: 4.1, 4.2.1, or later)")
       }
+   
+      if (!properties.has("org.gradle.workers.max"))
+      {
+         throw MissingPropertyException("Please set org.gradle.workers.max = 200 in GRADLE_USER_HOME/gradle.properties.")
+      }
    }
    
-   @Deprecated("Here for backwards compatibility.")
-   fun configureProjectName(dummy: Any?)
+   fun evaluate()
    {
-      // to be deleted
-   }
-   
-   fun configureExtraSourceSets(vararg dummy: Any?)
-   {
-      for (sourceSetName in extraSourceSets)
+      for (module in modulesCompatibility(logger, properties))
       {
-         val dir1 = File(settings.rootProject.projectDir, "src/$sourceSetName")
-         dir1.mkdir()
-         File(dir1, "java").mkdir()
-      }
-      
-      if (ext.has("useLegacySourceSets") && ext.get("useLegacySourceSets") as String == "true")
-      {
-      
-      }
-      else
-      {
-         for (sourceSetName in extraSourceSets)
-         {
-            val kebabCasedSourceSetName = toKebabCased(sourceSetName)
-            settings.include(arrayOf("src/$kebabCasedSourceSetName"))
-            settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
-         }
+         module.evaluate(logger, settings, properties)
       }
    }
    
    fun findAndIncludeCompositeBuilds()
    {
-      if (settings.startParameter.isSearchUpwards)
+      if (isBuildRoot(settings.startParameter))
       {
          val compositeBuildAssembler = IHMCCompositeBuildAssembler(this)
          for (buildToInclude in compositeBuildAssembler.findCompositeBuilds())
@@ -69,44 +44,29 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       }
    }
    
+   @Deprecated("Will be removed in 0.15.")
    fun configureAsGroupOfProjects()
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
-      checkForPropertyInternal("isProjectGroup", "true")
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
-      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
-      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
-      checkForPropertyInternal("org.gradle.workers.max", "200")
+      deprecationMessage(logger, "In ${settings.rootProject.name} settings.gradle, \"configureAsGroupOfProjects(?)\"", "0.15", "Please use evaluate() instead.")
+      evaluate()
    }
    
+   @Deprecated("Will be removed in 0.15.")
    fun checkRequiredPropertiesAreSet()
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
-      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
-      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
-      checkForPropertyInternal("org.gradle.workers.max", "200")
+      deprecationMessage(logger, "In ${settings.rootProject.name} settings.gradle, \"checkRequiredPropertiesAreSet(?)\"", "0.15", "Please use evaluate() instead.")
+      evaluate()
    }
    
-   private fun checkForPropertyInternal(property: String, message: String)
+   @Deprecated("Will be removed in 0.15.")
+   fun configureProjectName(dummy: Any?)
    {
-      if (!ext.has(property))
-      {
-         throw MissingPropertyException("Please set $property = $message in gradle.properties.")
-      }
-      else
-      {
-         when (property)
-         {
-            "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
-            "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
-            "depthFromWorkspaceDirectory" -> depthFromWorkspaceDirectory = (ext.get(property) as String).toInt()
-            "includeBuildsFromWorkspace"  -> includeBuildsFromWorkspace = (ext.get(property) as String).toBoolean()
-            "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
-         }
-      }
+      deprecationMessage(logger, "In ${settings.rootProject.name} settings.gradle, \"configureProjectName(?)\"", "0.15", "Please just remove this call. It does nothing.")
+   }
+   
+   @Deprecated("Use configureModules() instead.")
+   fun configureExtraSourceSets(vararg dummy: Any?)
+   {
+      deprecationMessage(logger, "In ${settings.rootProject.name} settings.gradle, \"configureExtraSourceSets(?)\"", "0.15", "Please just remove this call. It does nothing.")
    }
 }

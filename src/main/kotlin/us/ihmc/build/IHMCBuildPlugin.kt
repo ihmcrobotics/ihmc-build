@@ -46,11 +46,11 @@ class IHMCBuildPlugin : Plugin<Project>
          val ihmcBuildExtension = IHMCBuildExtension(mainModule)
          mainModule.extensions.add("ihmc", ihmcBuildExtension)
          mainModule.extensions.add("mainDependencies", IHMCDependenciesExtension(mainModule, "main", ihmcBuildExtension))
-         for (subproject in mainModule.subprojects)
+         for (subModule in mainModule.subprojects)
          {
-            val sourceSetKebabCasedName = toSourceSetName(subproject)
-            val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
-            mainModule.extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(mainModule, sourceSetKebabCasedName, ihmcBuildExtension))
+            val subModuleKebabCasedName = toModuleIdentifier(subModule)
+            val subModuleCamelCasedName = toCamelCased(subModuleKebabCasedName)
+            mainModule.extensions.add(subModuleCamelCasedName + "Dependencies", IHMCDependenciesExtension(mainModule, subModuleKebabCasedName, ihmcBuildExtension))
          }
       }
       

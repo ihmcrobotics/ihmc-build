@@ -37,8 +37,8 @@ open class IHMCBuildExtension(val project: Project)
    
    private val bintrayUser: String
    private val bintrayApiKey: String
-   internal lateinit var artifactoryUsername: String
-   internal lateinit var artifactoryPassword: String
+   internal val artifactoryUsername: String
+   internal val artifactoryPassword: String
    
    private val snapshotPublishMode: Boolean
    private val kebabCasedNameProperty: String
@@ -258,7 +258,7 @@ open class IHMCBuildExtension(val project: Project)
             sourceSet.java.setSrcDirs(emptySet<File>())
             sourceSet.resources.setSrcDirs(emptySet<File>())
          }
-         val sourceSetName = toSourceSetName(subproject)
+         val sourceSetName = toModuleIdentifier(subproject)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))

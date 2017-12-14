@@ -3,18 +3,15 @@ package us.ihmc.build
 import com.mashape.unirest.http.Unirest
 import com.mashape.unirest.http.exceptions.UnirestException
 import com.mashape.unirest.http.options.Options
-import org.apache.commons.io.FileUtils
+import groovy.lang.MissingPropertyException
+import groovy.util.Eval
 import org.apache.commons.lang3.StringUtils
+import org.gradle.StartParameter
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
-import org.gradle.api.plugins.ExtraPropertiesExtension
-import us.ihmc.commons.nio.FileTools
 import us.ihmc.commons.thread.ThreadTools
-import java.io.File
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
 
 fun logQuiet(logger: Logger, message: Any)
@@ -53,33 +50,147 @@ fun hardCrash(logger: Logger,  message: Any)
    throw GradleException("[ihmc-build] " + message as String)
 }
 
+val userHasBeenWarnedMap = hashSetOf<String>()
+
+fun deprecationMessage(logger: Logger, thing: String, removalVersion: String, suggestedAction: String)
+{
+   if (!userHasBeenWarnedMap.contains("$thing$removalVersion$suggestedAction"))
+   {
+      logInfo(logger, "$thing has been deprecated and will be removed in $removalVersion. $suggestedAction")
+      
+      userHasBeenWarnedMap.add("$thing$removalVersion$suggestedAction")
+   }
+}
+
 fun ihmcBuildMessage(message: Any): String
 {
    return "[ihmc-build] " + message
 }
 
-fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraPropertiesExtension): String
+fun kebabCasedNameCompatibility(logger: Logger, properties: IHMCPropertyInterface): String
 {
-   if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))
+   if (properties.has("kebabCasedName") && !properties.get("kebabCasedName").startsWith("$"))
    {
-      return ext.get("kebabCasedName") as String
+      return properties.get("kebabCasedName")
    }
-   else if (ext.has("hyphenatedName") && !(ext.get("hyphenatedName") as String).startsWith("$"))
+   else if (properties.has("hyphenatedName") && !properties.get("hyphenatedName").startsWith("$"))
    {
-      return ext.get("hyphenatedName") as String
+      deprecationMessage(logger, "In ${rootProjectFolderName(properties)} gradle.properties, \"hyphenatedName\"", "0.15", "Please use \"kebabCasedName\" instead.")
+      return properties.get("hyphenatedName")
    }
    else
    {
-      val defaultValue = toKebabCased(projectName)
+      val defaultValue = toKebabCased(rootProjectFolderName(properties))
       logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
-      ext.set("kebabCasedName", defaultValue)
+      properties.set("kebabCasedName", defaultValue)
       return defaultValue
    }
 }
 
-fun toSourceSetName(subproject: Project): String
+fun pascalCasedNameCompatibility(logger: Logger, properties: IHMCPropertyInterface): String
+{
+   if (properties.has("pascalCasedName") && !properties.get("pascalCasedName").startsWith("$"))
+   {
+      return properties.get("pascalCasedName")
+   }
+   else
+   {
+      val defaultValue = toPascalCased(rootProjectFolderName(properties))
+      logInfo(logger, "No value found for pascalCasedName. Using default value: $defaultValue")
+      properties.set("pascalCasedName", defaultValue)
+      return defaultValue
+   }
+}
+
+fun isProjectGroupCompatibility(logger: Logger, properties: IHMCPropertyInterface): Boolean
+{
+   if (properties.has("isProjectGroup") && !properties.get("isProjectGroup").startsWith("$"))
+   {
+      return properties.get("isProjectGroup")!!.toBoolean()
+   }
+   else
+   {
+      val defaultValue = false
+      logInfo(logger, "No value found for isProjectGroup. Using default value: $defaultValue")
+      properties.set("pascalCasedName", defaultValue.toString())
+      return defaultValue
+   }
+}
+
+fun depthFromWorkspaceDirectoryCompatibility(properties: IHMCPropertyInterface): Int
+{
+   if (properties.has("depthFromWorkspaceDirectory") && !properties.get("depthFromWorkspaceDirectory").startsWith("$"))
+   {
+      return properties.get("depthFromWorkspaceDirectory")!!.toInt()
+   }
+   else
+   {
+      throw MissingPropertyException("Please set depthFromWorkspaceDirectory = 1 (default) in gradle.properties.")
+   }
+}
+
+fun includeBuildsFromWorkspaceCompatibility(properties: IHMCPropertyInterface): Boolean
+{
+   if (properties.has("includeBuildsFromWorkspace") && !properties.get("includeBuildsFromWorkspace").startsWith("$"))
+   {
+      return properties.get("includeBuildsFromWorkspace")!!.toBoolean()
+   }
+   else
+   {
+      throw MissingPropertyException("Please set includeBuildsFromWorkspace = true (default) in gradle.properties.")
+   }
+}
+
+fun excludeFromCompositeBuildCompatibility(properties: IHMCPropertyInterface): Boolean
+{
+   if (properties.has("excludeFromCompositeBuild") && !properties.get("excludeFromCompositeBuild").startsWith("$"))
+   {
+      return properties.get("excludeFromCompositeBuild")!!.toBoolean()
+   }
+   else
+   {
+      throw MissingPropertyException("Please set excludeFromCompositeBuild = false (default) in gradle.properties.")
+   }
+}
+
+fun modulesCompatibility(logger: Logger, properties: IHMCPropertyInterface): Collection<IHMCModule>
+{
+   if (properties.has("modules") && !properties.get("modules").startsWith("$"))
+   {
+      return modulesFromRawProperty(logger, properties.get("modules"), properties)
+   }
+   else if (properties.has("extraSourceSets") && !properties.get("extraSourceSets").startsWith("$"))
+   {
+      deprecationMessage(logger, "In ${rootProjectFolderName(properties)} gradle.properties, \"extraSourceSets\"", "0.15", "Please use \"modules\" instead.")
+      return modulesFromRawProperty(logger, properties.get("extraSourceSets"), properties)
+   }
+   else
+   {
+      throw MissingPropertyException("Please set modules = [] (ex. [\"test\", \"visualizers\"] in gradle.properties.")
+   }
+}
+
+fun modulesFromRawProperty(logger: Logger, propertyValue: String, properties: IHMCPropertyInterface) : Collection<IHMCModule>
+{
+   val userModuleIdentifiers = linkedSetOf("main")
+   userModuleIdentifiers.addAll(Eval.me(propertyValue) as ArrayList<String>)
+   
+   val modules = arrayListOf<IHMCModule>()
+   for (userModuleIdentifier in userModuleIdentifiers)
+   {
+      modules.add(IHMCModule(logger, userModuleIdentifier, properties))
+   }
+   return modules
+}
+
+fun toModuleIdentifier(subproject: Project): String
 {
    return toKebabCased(subproject.name.substringAfter(subproject.parent!!.name + "-"))
+}
+
+fun rootProjectFolderName(properties: IHMCPropertyInterface): String
+{
+   return properties.get("rootProjectFolderName")
 }
 
 fun toPascalCased(anyCased: String): String
@@ -156,7 +267,12 @@ fun toPreKababWithBookendHandles(anyCased: String): String
 
 fun isBuildRoot(project: Project): Boolean
 {
-   return project.gradle.startParameter.isSearchUpwards
+   return isBuildRoot(project.gradle.startParameter)
+}
+
+fun isBuildRoot(startParameter: StartParameter): Boolean
+{
+   return startParameter.isSearchUpwards
 }
 
 fun requestGlobalBuildNumberFromCIDatabase(logger: Logger, buildKey: String): String
