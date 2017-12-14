@@ -509,6 +509,11 @@ open class IHMCBuildExtension(val project: Project)
       {
          externalDependencyVersion = publishVersion
       }
+      else if (declaredVersion.toLowerCase().contains("source"))
+      {
+         hardCrash(logger, "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please clone $artifactId next to this one to build it from source.")
+         externalDependencyVersion = declaredVersion
+      }
       else
       {
          if (declaredVersion.startsWith("SNAPSHOT"))
