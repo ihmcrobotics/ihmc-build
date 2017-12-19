@@ -159,7 +159,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
          {
-            if (!openSource)
+            if (!openSource && isBambooBuild)
             {
                logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
             }
