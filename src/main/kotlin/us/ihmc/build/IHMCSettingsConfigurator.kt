@@ -2,6 +2,7 @@ package us.ihmc.build
 
 import groovy.lang.MissingPropertyException
 import groovy.util.Eval
+import org.gradle.api.GradleException
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -23,7 +24,9 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       
       if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
       {
-         hardCrash(logger, "Please upgrade to Gradle version 4.1 or higher! (Recommended versions: 4.1, 4.2.1, or later)")
+         val message = "Please upgrade to Gradle version 4.1 or higher! (Recommended versions: 4.1, 4.2.1, or later)"
+         logError(logger, message)
+         throw GradleException(message)
       }
    }
    
@@ -74,6 +77,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
       checkForPropertyInternal("isProjectGroup", "true")
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
+      checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
       checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
@@ -85,6 +89,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
+      checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
       checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
@@ -103,6 +108,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          {
             "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
+            "publishMode"                 -> publishMode = ext.get(property) as String
             "depthFromWorkspaceDirectory" -> depthFromWorkspaceDirectory = (ext.get(property) as String).toInt()
             "includeBuildsFromWorkspace"  -> includeBuildsFromWorkspace = (ext.get(property) as String).toBoolean()
             "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()

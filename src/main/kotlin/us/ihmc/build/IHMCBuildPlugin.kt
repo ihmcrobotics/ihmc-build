@@ -12,82 +12,87 @@ import org.gradle.kotlin.dsl.closureOf
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import us.ihmc.continuousIntegration.IHMCContinuousIntegrationGradlePlugin
+import java.io.File
 
 class IHMCBuildPlugin : Plugin<Project>
 {
-   override fun apply(mainModule: Project)
+   override fun apply(project: Project)
    {
-      if (mainModule.hasProperty("isProjectGroup") && (mainModule.property("isProjectGroup") as String).toBoolean())
+      if (project.hasProperty("isProjectGroup") && (project.property("isProjectGroup") as String).toBoolean())
       {
-         for (allModule in mainModule.allprojects)
-         {
-            maybeApplyPlugin(allModule, BasePlugin::class.java)
-            maybeApplyPlugin(allModule, EclipsePlugin::class.java)
-            maybeApplyPlugin(allModule, IdeaPlugin::class.java)
-            maybeApplyPlugin(allModule, TaskTreePlugin::class.java)
+         configureProjectGroup(project)
+         
+         project.run {
+            allprojects {
+               maybeApplyPlugin(BasePlugin::class.java)
+               maybeApplyPlugin(EclipsePlugin::class.java)
+               maybeApplyPlugin(IdeaPlugin::class.java)
+               maybeApplyPlugin(TaskTreePlugin::class.java)
+            }
          }
       }
       else
       {
-         for (allModule in mainModule.allprojects)
-         {
-            maybeApplyPlugin(allModule, JavaPlugin::class.java)
-            maybeApplyPlugin(allModule, IvyPublishPlugin::class.java)
-            maybeApplyPlugin(allModule, MavenPublishPlugin::class.java)
-            maybeApplyPlugin(allModule, AnalyzeDependenciesPlugin::class.java)
-            maybeApplyPlugin(allModule, EclipsePlugin::class.java)
-            maybeApplyPlugin(allModule, IdeaPlugin::class.java)
-            maybeApplyPlugin(allModule, TaskTreePlugin::class.java)
-         }
-         
-         // Only apply to main. This plugin assumes test is a source set, not a project
-         maybeApplyPlugin(mainModule, IHMCContinuousIntegrationGradlePlugin::class.java)
-         
-         val ihmcBuildExtension = IHMCBuildExtension(mainModule)
-         mainModule.extensions.add("ihmc", ihmcBuildExtension)
-         mainModule.extensions.add("mainDependencies", IHMCDependenciesExtension(mainModule, "main", ihmcBuildExtension))
-         for (subproject in mainModule.subprojects)
-         {
-            val sourceSetKebabCasedName = toSourceSetName(subproject)
-            val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
-            mainModule.extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(mainModule, sourceSetKebabCasedName, ihmcBuildExtension))
+         project.run {
+            allprojects {
+               maybeApplyPlugin(JavaPlugin::class.java)
+               maybeApplyPlugin(IvyPublishPlugin::class.java)
+               maybeApplyPlugin(MavenPublishPlugin::class.java)
+               maybeApplyPlugin(AnalyzeDependenciesPlugin::class.java)
+               maybeApplyPlugin(EclipsePlugin::class.java)
+               maybeApplyPlugin(IdeaPlugin::class.java)
+               maybeApplyPlugin(TaskTreePlugin::class.java)
+            }
+            
+            // Only apply to main
+            maybeApplyPlugin(IHMCContinuousIntegrationGradlePlugin::class.java)
+            
+            val ihmcBuildExtension = IHMCBuildExtension(project)
+            extensions.add("ihmc", ihmcBuildExtension)
+            extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension))
+            for (subproject in project.subprojects)
+            {
+               val sourceSetKebabCasedName = toSourceSetName(subproject)
+               val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
+               extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
+            }
          }
       }
       
-      // Setup clean to not only clean "build", but out and bin too
-      for (allModule in mainModule.allprojects)
+      // setup clean to not only clean "build", but out and bin too
+      for (allproject in project.allprojects)
       {
-         allModule.tasks.getByName("clean", closureOf<Delete> {
-            delete(allModule.projectDir.resolve("out"))
-            delete(allModule.projectDir.resolve("bin"))
-            delete(allModule.projectDir.resolve(".settings"))
+         allproject.tasks.getByName("clean", closureOf<Delete> {
+            delete(allproject.projectDir.resolve("out"))
+            delete(allproject.projectDir.resolve("bin"))
+            delete(allproject.projectDir.resolve(".settings"))
          })
       }
       
-      defineDeepCompositeTask("cleanAll", arrayListOf("clean", "cleanIdea", "cleanEclipse"), mainModule)
+      defineDeepCompositeTask("cleanAll", arrayListOf("clean", "cleanIdea", "cleanEclipse"), project)
       
-      defineDynamicCompositeTask(mainModule)
+      defineDynamicCompositeTask(project)
    }
    
-   private fun defineDynamicCompositeTask(module: Project)
+   private fun defineDynamicCompositeTask(project: Project)
    {
-      if (module.hasProperty("taskName") || module.hasProperty("taskNames"))
+      if (project.hasProperty("taskName") || project.hasProperty("taskNames"))
       {
          val taskNames = arrayListOf<String>()
          
-         if (module.hasProperty("taskName"))
+         if (project.hasProperty("taskName"))
          {
-            taskNames.addAll((module.property("taskName") as String).split(","))
+            taskNames.addAll((project.property("taskName") as String).split(","))
          }
          
-         if (module.hasProperty("taskNames"))
+         if (project.hasProperty("taskNames"))
          {
-            taskNames.addAll((module.property("taskNames") as String).split(","))
+            taskNames.addAll((project.property("taskNames") as String).split(","))
          }
          
          if (taskNames.size > 0)
          {
-            defineDeepCompositeTask("compositeTask", taskNames, module)
+            defineDeepCompositeTask("compositeTask", taskNames, project)
          }
       }
    }
@@ -96,45 +101,45 @@ class IHMCBuildPlugin : Plugin<Project>
     * Create a task that will run a set of tasks if they exist in all subprojects, and all
     * projects in all included builds.
     */
-   private fun defineDeepCompositeTask(globalTaskName: String, targetTaskNames: ArrayList<String>, mainModule: Project)
+   private fun defineDeepCompositeTask(globalTaskName: String, targetTaskNames: ArrayList<String>, project: Project)
    {
-      // Configure every module to have at least an empty task with the names
+      // Configure every project to have at least an empty task with the names
       for (targetTaskName in targetTaskNames)
       {
-         for (allModule in mainModule.allprojects)
+         for (allproject in project.allprojects)
          {
             try
             {
-               allModule.tasks.findByPath(targetTaskName)
-               allModule.tasks.getByName(targetTaskName)
+               allproject.tasks.findByPath(targetTaskName)
+               allproject.tasks.getByName(targetTaskName)
             }
             catch (e: NullPointerException)
             {
-               configureEmptyChildModuleTask(allModule, targetTaskName, mainModule)
+               configureEmptySubprojectTask(allproject, targetTaskName, project)
             }
             catch (e: UnknownTaskException)
             {
-               configureEmptyChildModuleTask(allModule, targetTaskName, mainModule)
+               configureEmptySubprojectTask(allproject, targetTaskName, project)
             }
          }
       }
       
-      // Configure every module to have a global task that depends on all the task names
-      mainModule.task(globalTaskName, closureOf<Task> {
+      // Configure every project to have a global task that depends on all the task names
+      project.task(globalTaskName, closureOf<Task> {
          for (targetTaskName in targetTaskNames)
          {
-            for (allModule in mainModule.allprojects)
+            for (allproject in project.allprojects)
             {
-               dependsOn(allModule.tasks.getByName(targetTaskName))
+               dependsOn(allproject.tasks.getByName(targetTaskName))
             }
          }
       })
       
       // For the build root, make the global task depend on all the included build global tasks
-      if (isBuildRoot(mainModule))
+      if (isBuildRoot(project))
       {
-         mainModule.tasks.getByName(globalTaskName, closureOf<Task> {
-            for (includedBuild in mainModule.gradle.includedBuilds)
+         project.tasks.getByName(globalTaskName, closureOf<Task> {
+            for (includedBuild in project.gradle.includedBuilds)
             {
                dependsOn(includedBuild.task(":$globalTaskName"))
             }
@@ -142,25 +147,61 @@ class IHMCBuildPlugin : Plugin<Project>
       }
    }
    
-   private fun configureEmptyChildModuleTask(childModule: Project, targetTaskName: String, mainModule: Project)
+   private fun configureEmptySubprojectTask(subproject: Project, targetTaskName: String, project: Project)
    {
       try
       {
-         childModule.task(targetTaskName, closureOf<Task> {
+         subproject.task(targetTaskName, closureOf<Task> {
             // Declare empty task if it doesn't exist
-            logInfo(mainModule.logger, "${childModule.name}: Declaring empty task: $targetTaskName")
+            logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
          })
       }
       catch (e: InvalidUserDataException)
       {
          // if the task exists or something else goes wrong
-         logInfo(mainModule.logger, "${childModule.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
+         logInfo(project.logger, "${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
       }
    }
    
-   private fun <K : Project, T : Plugin<K>> maybeApplyPlugin(project: Project, pluginClass: Class<T>)
+   private fun <K : Project, T : Plugin<K>> Project.maybeApplyPlugin(pluginClass: Class<T>)
    {
-      if (!project.plugins.hasPlugin(pluginClass))
-         project.plugins.apply(pluginClass)
+      if (!plugins.hasPlugin(pluginClass))
+         plugins.apply(pluginClass)
+   }
+   
+   private fun configureProjectGroup(project: Project)
+   {
+      project.task("convertStructure", closureOf<Task> {
+         doLast {
+            for (childDir in project.projectDir.list())
+            {
+               if (File(project.projectDir, childDir + "/build.gradle").exists())
+               {
+                  val childFile = File(project.projectDir, childDir)
+                  val tempFile = File(project.projectDir, "TMP" + childDir)
+                  val childPath = childFile.toPath()
+                  moveSourceFolderToMavenStandard(project.logger, childPath, "main")
+                  moveSourceFolderToMavenStandard(project.logger, childPath, "test")
+                  moveSourceFolderToMavenStandard(project.logger, childPath, "visualizers")
+               }
+            }
+         }
+      })
+      project.task("revertStructure", closureOf<Task> {
+         doLast {
+            for (childDir in project.projectDir.list())
+            {
+               if (File(project.projectDir, childDir + "/build.gradle").exists())
+               {
+                  val childFile = File(project.projectDir, childDir)
+                  val tempFile = File(project.projectDir, "TMP" + childDir)
+                  val childPath = childFile.toPath()
+                  revertSourceFolderFromMavenStandard(project.logger, childPath, "main")
+                  revertSourceFolderFromMavenStandard(project.logger, childPath, "test")
+                  revertSourceFolderFromMavenStandard(project.logger, childPath, "visualizers")
+               }
+            }
+         }
+      })
    }
 }

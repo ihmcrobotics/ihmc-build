@@ -1,18 +1,12 @@
 package us.ihmc.build
 
-import com.mashape.unirest.http.Unirest
-import com.mashape.unirest.http.exceptions.UnirestException
-import com.mashape.unirest.http.options.Options
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
-import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import us.ihmc.commons.nio.FileTools
-import us.ihmc.commons.thread.ThreadTools
 import java.io.File
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -45,12 +39,6 @@ fun logDebug(logger: Logger, message: Any)
 fun logTrace(logger: Logger, trace: Any)
 {
    logger.trace(trace.toString())
-}
-
-fun hardCrash(logger: Logger,  message: Any)
-{
-   logError(logger, message)
-   throw GradleException("[ihmc-build] " + message as String)
 }
 
 fun ihmcBuildMessage(message: Any): String
@@ -154,44 +142,107 @@ fun toPreKababWithBookendHandles(anyCased: String): String
    return kebab;
 }
 
+/**
+ * Temporary tool for converting projects to new folder structure quickly.
+ */
+fun moveSourceFolderToMavenStandard(logger: Logger, projectDir: Path, sourceSetName: String)
+{
+   val oldSourceFolder: Path
+   if (sourceSetName == "main")
+   {
+      oldSourceFolder = projectDir.resolve("src")
+   }
+   else
+   {
+      oldSourceFolder = projectDir.resolve(sourceSetName)
+   }
+   val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
+   moveAPackage(logger, oldSourceFolder, mavenFolder, "us")
+   moveAPackage(logger, oldSourceFolder, mavenFolder, "optiTrack")
+}
+
+private fun moveAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+{
+   if (Files.exists(oldSourceFolder))
+   {
+      val oldUs = oldSourceFolder.resolve(packageName)
+      val newUs = mavenFolder.resolve(packageName)
+      
+      if (Files.exists(oldUs))
+      {
+         logQuiet(logger, mavenFolder)
+         logQuiet(logger, oldUs)
+         logQuiet(logger, newUs)
+         
+         FileTools.deleteQuietly(newUs)
+         
+         try
+         {
+            FileUtils.moveDirectory(oldUs.toFile(), newUs.toFile())
+         }
+         catch (e: Exception)
+         {
+            logTrace(logger, e.stackTrace)
+         }
+      }
+   }
+}
+
+/**
+ * Temporary tool for converting projects to new folder structure quickly.
+ */
+fun revertSourceFolderFromMavenStandard(logger: Logger, projectDir: Path, sourceSetName: String)
+{
+   val oldSourceFolder: Path
+   if (sourceSetName == "main")
+   {
+      oldSourceFolder = projectDir.resolve("src")
+   }
+   else
+   {
+      oldSourceFolder = projectDir.resolve(sourceSetName)
+   }
+   val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
+   if (Files.exists(oldSourceFolder))
+   {
+      revertAPackage(logger, oldSourceFolder, mavenFolder, "us")
+      revertAPackage(logger, oldSourceFolder, mavenFolder, "optiTrack")
+   }
+   else
+   {
+      logWarn(logger, "File not exist: $oldSourceFolder")
+   }
+}
+
+private fun revertAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+{
+   val oldUs = oldSourceFolder.resolve(packageName)
+   val newUs = mavenFolder.resolve(packageName)
+   
+   if (Files.exists(newUs))
+   {
+      logQuiet(logger, mavenFolder)
+      logQuiet(logger, oldUs)
+      logQuiet(logger, newUs)
+      
+      FileTools.deleteQuietly(oldUs)
+      
+      try
+      {
+         FileUtils.moveDirectory(newUs.toFile(), oldUs.toFile())
+      }
+      catch (e: Exception)
+      {
+         logTrace(logger, e.stackTrace)
+      }
+   }
+   else
+   {
+      logWarn(logger,"File not exist: $oldUs")
+   }
+}
+
 fun isBuildRoot(project: Project): Boolean
 {
    return project.gradle.startParameter.isSearchUpwards
-}
-
-fun requestGlobalBuildNumberFromCIDatabase(logger: Logger, buildKey: String): String
-{
-   var tryCount = 0
-   var globalBuildNumber = "ERROR"
-   while (tryCount < 5 && globalBuildNumber == "ERROR")
-   {
-      globalBuildNumber = tryGlobalBuildNumberRequest(logger, buildKey)
-      tryCount++
-      logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
-   }
-   
-   return globalBuildNumber.toString()
-}
-
-private fun tryGlobalBuildNumberRequest(logger: Logger, buildKey: String): String
-{
-   try
-   {
-      return Unirest.get("http://alcaniz.ihmc.us:8087").queryString("globalBuildNumber", buildKey).asString().getBody()
-   }
-   catch (e: UnirestException)
-   {
-      logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
-      ThreadTools.sleep(100)
-      try
-      {
-         Unirest.shutdown();
-         Options.refresh();
-      }
-      catch (ioException: IOException)
-      {
-         ioException.printStackTrace();
-      }
-      return "ERROR"
-   }
 }

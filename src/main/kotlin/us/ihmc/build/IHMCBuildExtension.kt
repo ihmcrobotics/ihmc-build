@@ -1,11 +1,13 @@
 package us.ihmc.build
 
+import com.mashape.unirest.http.Unirest
+import com.mashape.unirest.http.exceptions.UnirestException
+import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
-import org.gradle.api.JavaVersion
-import org.gradle.api.Project
-import org.gradle.api.UnknownProjectException
-import org.gradle.api.XmlProvider
+import org.gradle.api.*
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -15,17 +17,23 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
+import org.jfrog.artifactory.client.Artifactory
+import org.jfrog.artifactory.client.ArtifactoryClientBuilder
+import org.jfrog.artifactory.client.model.RepoPath
+import us.ihmc.commons.thread.ThreadTools
 import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.io.IOException
+import java.io.InputStream
+import java.nio.file.Paths
 import java.util.*
+import javax.xml.parsers.DocumentBuilderFactory
 
 open class IHMCBuildExtension(val project: Project)
 {
-   internal val logger = project.logger
-   internal val offline: Boolean = project.gradle.startParameter.isOffline
+   private val logger = project.logger
+   private val offline: Boolean = project.gradle.startParameter.isOffline
    var group = "unset.group"
    var version = "UNSET-VERSION"
    var vcsUrl: String = "unset_vcs_url"
@@ -37,21 +45,38 @@ open class IHMCBuildExtension(val project: Project)
    
    private val bintrayUser: String
    private val bintrayApiKey: String
-   internal lateinit var artifactoryUsername: String
-   internal lateinit var artifactoryPassword: String
+   private lateinit var artifactoryUsername: String
+   private lateinit var artifactoryPassword: String
    
-   private val snapshotPublishMode: Boolean
+   private val publishModeProperty: String
    private val kebabCasedNameProperty: String
+   private val groupDependencyVersionProperty: String
    
    // Bamboo variables
-   internal val isChildBuild: Boolean
-   internal val isBambooBuild: Boolean
-   internal val buildNumber: String
-   internal lateinit var publishVersion: String
-   internal val isBranchBuild: Boolean
-   internal val branchName: String
+   private val isChildBuild: Boolean
+   private val isBambooBuild: Boolean
+   private val buildNumber: String
+   private lateinit var publishVersion: String
+   private val isBranchBuild: Boolean
+   private val branchName: String
    
-   internal val versionFilter: IHMCVersionFilter
+   private val includedBuildMap: HashMap<String, Boolean> = hashMapOf()
+   
+   private val artifactory: Artifactory by lazy {
+      val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
+      builder.url = "https://artifactory.ihmc.us/artifactory"
+      if (!openSource)
+      {
+         builder.username = artifactoryUsername
+         builder.password = artifactoryPassword
+      }
+      builder.build()
+   }
+   private val repositoryVersions: HashMap<String, TreeSet<String>> = hashMapOf()
+   private val pomDependencies: HashMap<String, ArrayList<ArrayList<String>>> = hashMapOf()
+   private val documentBuilderFactory by lazy {
+      DocumentBuilderFactory.newInstance()
+   }
    
    init
    {
@@ -60,7 +85,8 @@ open class IHMCBuildExtension(val project: Project)
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       
-      snapshotPublishMode = setupPropertyWithDefault("publishMode", "stable").toLowerCase() == "snapshot"
+      groupDependencyVersionProperty = setupPropertyWithDefault("groupDependencyVersion", "SNAPSHOT-LATEST")
+      publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
       kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
@@ -76,19 +102,108 @@ open class IHMCBuildExtension(val project: Project)
       }
       else if (isChildBuild)
       {
-         buildNumber = requestGlobalBuildNumberFromCIDatabase(logger, bambooParentBuildKeyProperty)
+         buildNumber = requestGlobalBuildNumberFromCIDatabase(bambooParentBuildKeyProperty)
       }
       else
       {
-         buildNumber = requestGlobalBuildNumberFromCIDatabase(logger, "$bambooPlanKeyProperty-$bambooBuildNumberProperty")
+         buildNumber = requestGlobalBuildNumberFromCIDatabase("$bambooPlanKeyProperty-$bambooBuildNumberProperty")
       }
       isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
       branchName = bambooBranchNameProperty.replace("/", "-")
-      
-      versionFilter = IHMCVersionFilter(this, project)
    }
    
-   /** Public API. */
+   private fun requestGlobalBuildNumberFromCIDatabase(buildKey: String): String
+   {
+      var tryCount = 0
+      var globalBuildNumber = "ERROR"
+      while (tryCount < 5 && globalBuildNumber == "ERROR")
+      {
+         globalBuildNumber = tryGlobalBuildNumberRequest(buildKey)
+         tryCount++
+         logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
+      }
+      
+      return globalBuildNumber.toString()
+   }
+   
+   private fun tryGlobalBuildNumberRequest(buildKey: String): String
+   {
+      try
+      {
+         return Unirest.get("http://alcaniz.ihmc.us:8087").queryString("globalBuildNumber", buildKey).asString().getBody()
+      }
+      catch (e: UnirestException)
+      {
+         logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
+         ThreadTools.sleep(100)
+         try
+         {
+            Unirest.shutdown();
+            Options.refresh();
+         }
+         catch (ioException: IOException)
+         {
+            ioException.printStackTrace();
+         }
+         return "ERROR"
+      }
+   }
+   
+   fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
+   {
+      if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
+      {
+         return project.property(propertyName) as String
+      }
+      else
+      {
+         if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
+         {
+            if (!openSource)
+            {
+               logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
+            }
+         }
+         if (propertyName == "bintray_user" || propertyName == "bintray_key")
+         {
+            logInfo(logger, "Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
+         }
+         
+         logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
+         project.extra.set(propertyName, defaultValue)
+         return defaultValue
+      }
+   }
+   
+   fun loadProductProperties(propertiesFilePath: String)
+   {
+      val properties = Properties()
+      properties.load(FileInputStream(project.projectDir.toPath().resolve(propertiesFilePath).toFile()))
+      for (property in properties)
+      {
+         if (property.key as String == "group")
+         {
+            group = property.value as String
+            logInfo(logger, "Loaded group: " + group)
+         }
+         if (property.key as String == "version")
+         {
+            version = property.value as String
+            logInfo(logger, "Loaded version: " + version)
+         }
+         if (property.key as String == "vcsUrl")
+         {
+            vcsUrl = property.value as String
+            logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
+         }
+         if (property.key as String == "openSource")
+         {
+            openSource = Eval.me(property.value as String) as Boolean
+            logInfo(logger, "Loaded openSource: " + openSource)
+         }
+      }
+   }
+   
    fun configureDependencyResolution()
    {
       repository("https://artifactory.ihmc.us/artifactory/snapshots/")
@@ -99,11 +214,12 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
          repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
       }
-      for (allproject in project.allprojects)
-      {
-         allproject.repositories.jcenter()
-         allproject.repositories.mavenCentral()
-         allproject.repositories.mavenLocal()
+      project.allprojects {
+         (this as Project).run {
+            repositories.jcenter()
+            repositories.mavenCentral()
+            repositories.mavenLocal()
+         }
       }
       repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
       repository("http://clojars.org/repo/")
@@ -125,7 +241,49 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   /** Public API. */
+   fun repository(url: String)
+   {
+      project.allprojects {
+         (this as Project).run {
+            repositories.run {
+               maven {}.url = uri(url)
+            }
+         }
+      }
+   }
+   
+   fun repository(url: String, username: String, password: String)
+   {
+      project.allprojects {
+         (this as Project).run {
+            repositories.run {
+               val maven = maven {}
+               maven.url = uri(url)
+               maven.credentials.username = username
+               maven.credentials.password = password
+            }
+         }
+      }
+   }
+   
+   fun mainClassJarWithLibFolder(mainClass: String)
+   {
+      project.allprojects {
+         (this as Project).run {
+            configureJarManifest(maintainer, companyName, licenseURL, mainClass, true)
+         }
+      }
+   }
+   
+   fun jarWithLibFolder()
+   {
+      project.allprojects {
+         (this as Project).run {
+            configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", true)
+         }
+      }
+   }
+   
    fun configurePublications()
    {
       if (openSource)
@@ -134,104 +292,44 @@ open class IHMCBuildExtension(val project: Project)
          licenseName = "Apache License, Version 2.0"
       }
       
-      for (allproject in project.allprojects)
-      {
-         allproject.group = group
-         publishVersion = getPublishVersion()
-         allproject.version = publishVersion
-         
-         configureJarManifest(allproject, maintainer, companyName, licenseURL, "NO_MAIN", false)
-         
-         if (snapshotPublishMode)
-         {
-            if (openSource)
-            {
-               declareArtifactory(allproject, "snapshots")
-            }
-            else
-            {
-               declareArtifactory(allproject, "proprietary-snapshots")
-            }
-         }
-         else
-         {
-            if (openSource)
-            {
-               declareBintray(allproject)
-            }
-            else
-            {
-               declareArtifactory(allproject, "proprietary")
-            }
-         }
-         
-         declarePublication(allproject)
-      }
-   }
-   
-   private fun getPublishVersion(): String
-   {
-      if (snapshotPublishMode)
-      {
-         var publishVersion = "SNAPSHOT"
-         if (isBranchBuild)
-         {
-            publishVersion += "-$branchName"
-         }
-         publishVersion += "-$buildNumber"
-         return publishVersion
-      }
-      else
-      {
-         return version
-      }
-   }
-   
-   private fun declarePublication(project: Project)
-   {
-      val sourceSet = project.convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-      val publishing = project.extensions.getByType(PublishingExtension::class.java)
-      val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
-      publication.groupId = group
-      publication.artifactId = project.name
-      publication.version = version
-      
-      publication.pom.withXml() {
-         (this as XmlProvider).run {
-            val dependenciesNode = asNode().appendNode("dependencies")
+      val productGroup = group
+      project.allprojects {
+         (this as Project).run {
+            group = productGroup
+            publishVersion = getPublishVersion()
+            version = publishVersion
             
-            project.configurations.getByName("compile").allDependencies.forEach {
-               if (it.name != "unspecified")
+            configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
+            
+            if (publishModeProperty == "SNAPSHOT")
+            {
+               if (openSource)
                {
-                  val dependencyNode = dependenciesNode.appendNode("dependency")
-                  dependencyNode.appendNode("groupId", it.group)
-                  dependencyNode.appendNode("artifactId", it.name)
-                  dependencyNode.appendNode("version", it.version)
+                  declareArtifactory("snapshots")
+               }
+               else
+               {
+                  declareArtifactory("proprietary-snapshots")
+                  
+               }
+            }
+            else if (publishModeProperty == "STABLE")
+            {
+               if (openSource)
+               {
+                  declareBintray()
+               }
+               else
+               {
+                  declareArtifactory("proprietary")
                }
             }
             
-            asNode().appendNode("name", project.name)
-            asNode().appendNode("url", vcsUrl)
+            val java = convention.getPlugin(JavaPluginConvention::class.java)
             
-            val licensesNode = asNode().appendNode("licenses")
-            val licenseNode = licensesNode.appendNode("license")
-            licenseNode.appendNode("name", licenseName)
-            licenseNode.appendNode("url", licenseURL)
-            licenseNode.appendNode("distribution", "repo")
-            
-            asNode().appendNode("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-            asNode().appendNode("branch", branchName)
+            declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
-      
-      publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
-         from(sourceSet.output)
-      }))
-      
-      publication.artifact(project.task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
-         from(sourceSet.allJava)
-         classifier = "sources"
-      }))
    }
    
    fun setupJavaSourceSets()
@@ -269,49 +367,31 @@ open class IHMCBuildExtension(val project: Project)
             test.testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
          }
       }
-   }
-   
-   /** Public API. */
-   fun repository(url: String)
-   {
-      for (allproject in project.allprojects)
-      {
-         allproject.repositories.run {
-            maven {}.url = allproject.uri(url)
-         }
-      }
-   }
-   
-   /** Public API. */
-   fun repository(url: String, username: String, password: String)
-   {
-      for (allproject in project.allprojects)
-      {
-         allproject.repositories.run {
-            val maven = maven {}
-            maven.url = allproject.uri(url)
-            maven.credentials.username = username
-            maven.credentials.password = password
-         }
-      }
-   }
-   
-   /** Public API. */
-   fun mainClassJarWithLibFolder(mainClass: String)
-   {
-      for (allproject in project.allprojects)
-      {
-         configureJarManifest(allproject, maintainer, companyName, licenseURL, mainClass, true)
-      }
-   }
-   
-   /** Public API. */
-   fun jarWithLibFolder()
-   {
-      for (allproject in project.allprojects)
-      {
-         configureJarManifest(allproject, maintainer, companyName, licenseURL, "NO_MAIN", true)
-      }
+
+//      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
+//      {
+//         if (project.hasProperty("extraSourceSets"))
+//         {
+//            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
+//
+//            for (extraSourceSet in extraSourceSets)
+//            {
+//               if (extraSourceSet == "test")
+//               {
+//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
+//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/src")))
+//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
+//               }
+//               else
+//               {
+//                  java.sourceSets.create(extraSourceSet)
+//                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
+//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
+//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
+//               }
+//            }
+//         }
+//      }
    }
    
    fun javaDirectory(sourceSetName: String, directory: String)
@@ -334,30 +414,454 @@ open class IHMCBuildExtension(val project: Project)
    
    fun sourceSet(sourceSetName: String): SourceSet
    {
-      return module(sourceSetName).convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+      return sourceSetProject(sourceSetName).convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
    }
    
-   @Deprecated("Use module() instead.")
-         /** Public API. */
    fun sourceSetProject(sourceSetName: String): Project
    {
-      return module(sourceSetName)
-   }
-   
-   /**
-    * Public API. Gets a module by name.
-    */
-   fun module(moduleName: String): Project
-   {
-      if (moduleName == "main")
+      if (sourceSetName == "main")
          return project
       else
-         return project.project(project.name + "-" + moduleName)
+         return project.project(project.name + "-" + sourceSetName)
    }
    
-   private fun configureJarManifest(project: Project, maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
+   private fun getPublishVersion(): String
    {
-      project.tasks.getByName("jar") {
+      if (publishModeProperty == "STABLE")
+      {
+         return version
+      }
+      else if (publishModeProperty == "SNAPSHOT")
+      {
+         var publishVersion = "SNAPSHOT"
+         if (isBranchBuild)
+         {
+            publishVersion += "-$branchName"
+         }
+         publishVersion += "-$buildNumber"
+         return publishVersion
+      }
+      else
+      {
+         return publishModeProperty
+      }
+   }
+   
+   fun isBuildRoot(): Boolean
+   {
+      return project.gradle.startParameter.isSearchUpwards
+   }
+   
+   fun thisProjectIsIncludedBuild(): Boolean
+   {
+      return !project.gradle.startParameter.isSearchUpwards
+   }
+   
+   fun getIncludedBuilds(): Collection<IncludedBuild>
+   {
+      if (isBuildRoot())
+      {
+         return project.gradle.includedBuilds
+      }
+      else
+      {
+         return project.gradle.parent!!.includedBuilds
+      }
+   }
+   
+   fun artifactIsIncludedBuild(artifactId: String): Boolean
+   {
+      if (!includedBuildMap.containsKey(artifactId))
+      {
+         for (includedBuild in getIncludedBuilds())
+         {
+            if (artifactId == includedBuild.name)
+            {
+               includedBuildMap[artifactId] = true
+               return true
+            }
+            else if (artifactId.startsWith(includedBuild.name))
+            {
+               for (extraSourceSet in IHMCBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).extraSourceSets)
+               {
+                  if (artifactId == (includedBuild.name + "-$extraSourceSet"))
+                  {
+                     includedBuildMap[artifactId] = true
+                     return true
+                  }
+               }
+            }
+         }
+         
+         includedBuildMap[artifactId] = false
+         return false
+      }
+      
+      return includedBuildMap[artifactId]!!
+   }
+   
+   internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
+   {
+      var externalDependencyVersion: String
+      
+      // Make sure POM is correct
+      if (artifactIsIncludedBuild(artifactId))
+      {
+         externalDependencyVersion = publishVersion
+      }
+      else
+      {
+         if (declaredVersion.startsWith("SNAPSHOT"))
+         {
+            var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "")
+            
+            // Use Bamboo variables to resolve the version
+            if (isBambooBuild)
+            {
+               var closestVersion = "NOT-FOUND"
+               if (isChildBuild) // Match to parent build, exact branch and version
+               {
+                  var childVersion = "SNAPSHOT"
+                  if (isBranchBuild)
+                  {
+                     childVersion += "-$branchName"
+                  }
+                  childVersion += "-$buildNumber"
+                  closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
+               }
+               if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
+               {
+                  closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
+               }
+               if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
+               {
+                  closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+               }
+               externalDependencyVersion = closestVersion
+            }
+            else
+            {
+               // For users
+               if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
+               {
+                  externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
+               }
+               else // Get exact match on end of string
+               {
+                  externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
+               }
+            }
+         }
+         else // Pass directly to gradle as declared
+         {
+            externalDependencyVersion = declaredVersion
+         }
+      }
+      
+      logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
+      return externalDependencyVersion
+   }
+   
+   private fun getSnapshotRepositoryList(): List<String>
+   {
+      if (openSource)
+      {
+         return listOf("snapshots")
+      }
+      else
+      {
+         return listOf("snapshots", "proprietary-snapshots")
+      }
+   }
+   
+   private fun searchRepositories(groupId: String, artifactId: String): Set<String>
+   {
+      if (!repositoryVersions.containsKey("$groupId:$artifactId"))
+      {
+         repositoryVersions["$groupId:$artifactId"] = sortedSetOf<String>()
+         
+         if (offline)
+         {
+            val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
+            val artifactPath = gradleCache.resolve(groupId).resolve(artifactId)
+            
+            for (entry in artifactPath.toFile().list())
+            {
+               repositoryVersions["$groupId:$artifactId"]!!.add(entry)
+            }
+         }
+         else
+         {
+            for (repository in getSnapshotRepositoryList())
+            {
+               for (repoPath in searchArtifactory(repository, groupId, artifactId))
+               {
+                  if (repoPath.itemPath.matches(Regex(".*\\d\\.jar$")))
+                  {
+                     repositoryVersions["$groupId:$artifactId"]!!.add(itemPathToVersion(repoPath.itemPath, artifactId))
+                  }
+               }
+            }
+         }
+      }
+      
+      return repositoryVersions["$groupId:$artifactId"]!!
+   }
+   
+   private fun anyVersionExists(groupId: String, artifactId: String): Boolean
+   {
+      return !searchRepositories(groupId, artifactId).isEmpty()
+   }
+   
+   private fun versionExists(groupId: String, artifactId: String, version: String): Boolean
+   {
+      if (repositoryVersions.containsKey("$groupId:$artifactId") && repositoryVersions["$groupId:$artifactId"]!!.contains(version))
+      {
+         return true
+      }
+      
+      if (!offline)
+      {
+         for (repository in getSnapshotRepositoryList())
+         {
+            if (searchArtifactory(repository, groupId, artifactId, version).size > 0)
+            {
+               if (repositoryVersions.containsKey("$groupId:$artifactId"))
+               {
+                  repositoryVersions["$groupId:$artifactId"]!!.add(version)
+               }
+               logInfo(logger, "Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
+               return true
+            }
+         }
+      }
+      
+      return false
+   }
+   
+   private fun loadPOMDependencies(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
+   {
+      if (offline)
+      {
+         return loadPOMDependenciesMavenLocal(groupId, artifactId, versionToCheck)
+      }
+      else
+      {
+         return loadPOMDependenciesArtifactory(groupId, artifactId, versionToCheck)
+      }
+   }
+   
+   private fun loadPOMDependenciesArtifactory(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
+   {
+      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
+      {
+         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
+         
+         var pomPath: RepoPath
+         for (repository in getSnapshotRepositoryList())
+         {
+            for (repoPath in searchArtifactory(repository, groupId, artifactId, versionToCheck))
+            {
+               if (repoPath.itemPath.matches(Regex(".*\\d\\.pom$")))
+               {
+                  logInfo(logger, "Hitting Artifactory for POM: " + repoPath.itemPath)
+                  val inputStream = downloadItemFromArtifactory(repository, repoPath)
+                  
+                  parsePOMInputStream(inputStream, groupId, artifactId, versionToCheck)
+               }
+            }
+         }
+      }
+      
+      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
+   }
+   
+   private fun searchArtifactory(repository: String, groupId: String, artifactId: String): List<RepoPath>
+   {
+      try
+      {
+         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
+      }
+      catch (e: IllegalArgumentException)
+      {
+         throw artifactoryException("$repository/$groupId/$artifactId/$version")
+      }
+   }
+   
+   private fun searchArtifactory(repository: String, groupId: String, artifactId: String, version: String): List<RepoPath>
+   {
+      try
+      {
+         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch()
+      }
+      catch (e: IllegalArgumentException)
+      {
+         throw artifactoryException("$repository/$groupId/$artifactId/$version")
+      }
+   }
+   
+   private fun downloadItemFromArtifactory(repository: String, repoPath: RepoPath): InputStream
+   {
+      try
+      {
+         return artifactory.repository(repository).download(repoPath.itemPath).doDownload()
+      }
+      catch (e: IllegalArgumentException)
+      {
+         throw artifactoryException("$repository/$repoPath")
+      }
+   }
+   
+   private fun artifactoryException(path: String): GradleException
+   {
+      return  GradleException("Problem authenticating or retrieving item from Artifactory: $path. Try logging into artifactory.ihmc.us with the credentials used (artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
+   }
+   
+   private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
+   {
+      try
+      {
+         val documentBuilder = documentBuilderFactory.newDocumentBuilder()
+         val document = documentBuilder.parse(inputStream);
+         
+         val dependencyTags = document.getElementsByTagName("dependency")
+         for (i in 0 until dependencyTags.length)
+         {
+            val dependencyGroupId = dependencyTags.item(i).childNodes.item(1).textContent
+            val dependencyArtifactId = dependencyTags.item(i).childNodes.item(3).textContent
+            val dependencyVersion = dependencyTags.item(i).childNodes.item(5).textContent
+            
+            if (dependencyVersion.contains("SNAPSHOT") && anyVersionExists(dependencyGroupId, dependencyArtifactId))
+            {
+               val arrayDependency: ArrayList<String> = arrayListOf()
+               arrayDependency.add(dependencyGroupId)
+               arrayDependency.add(dependencyArtifactId)
+               arrayDependency.add(dependencyVersion)
+               
+               pomDependencies["$groupId:$artifactId:$versionToCheck"]!!.add(arrayDependency)
+            }
+         }
+      }
+      catch (e: Exception)
+      {
+         e.printStackTrace()
+      }
+   }
+   
+   private fun loadPOMDependenciesMavenLocal(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
+   {
+      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
+      {
+         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
+         
+         logInfo(logger, "Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
+         val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
+         val versionPath = gradleCache.resolve(groupId).resolve(artifactId).resolve(versionToCheck)
+         
+         var pomFile: File? = null
+         for (hashEntry in versionPath.toFile().list())
+         {
+            for (fileEntry in versionPath.resolve(hashEntry).toFile().list())
+            {
+               if (fileEntry.endsWith(".pom"))
+               {
+                  pomFile = versionPath.resolve(hashEntry).resolve(fileEntry).toFile()
+               }
+            }
+         }
+         
+         parsePOMInputStream(FileInputStream(pomFile), groupId, artifactId, versionToCheck)
+      }
+      
+      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
+   }
+   
+   private fun performPOMCheck(groupId: String, artifactId: String, versionToCheck: String): Boolean
+   {
+      if (!versionExists(groupId, artifactId, versionToCheck))
+      {
+         logInfo(logger, "Version doesn't exist: $groupId:$artifactId:$versionToCheck")
+         return false
+      }
+      else
+      {
+         for (dependency in loadPOMDependencies(groupId, artifactId, versionToCheck))
+         {
+            if (!performPOMCheck(dependency[0], dependency[1], dependency[2]))
+            {
+               return false
+            }
+         }
+         
+         return true
+      }
+   }
+   
+   private fun itemPathToVersion(itemPath: String, artifactId: String): String
+   {
+      val split: List<String> = itemPath.split("/")
+      val artifact: String = split[split.size - 1]
+      val withoutDotJar: String = artifact.split(".jar")[0]
+      val version: String = withoutDotJar.substring(artifactId.length + 1)
+      
+      return version
+   }
+   
+   private fun matchVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
+   {
+      for (repositoryVersion in searchRepositories(groupId, artifactId))
+      {
+         if (repositoryVersion.endsWith(versionMatcher))
+         {
+            return repositoryVersion
+         }
+      }
+      
+      return "MATCH-NOT-FOUND-$versionMatcher"
+   }
+   
+   private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
+   {
+      var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
+      
+      if (highestVersion.contains("NOT-FOUND"))
+         return highestVersion
+      
+      while (!performPOMCheck(groupId, artifactId, highestVersion))
+      {
+         logInfo(logger, "Failed POM check: $groupId:$artifactId:$highestVersion")
+         repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
+         highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
+         logInfo(logger, "Rolling back to: $groupId:$artifactId:$highestVersion")
+      }
+      
+      return highestVersion
+   }
+   
+   private fun highestBuildNumberVersion(groupId: String, artifactId: String, versionMatcher: String): String
+   {
+      var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
+      var highestBuildNumber: Int = -1
+      
+      for (repositoryVersion in searchRepositories(groupId, artifactId))
+      {
+         if (repositoryVersion.matches(Regex("$versionMatcher-\\d+")))
+         {
+            val buildNumberFromArtifactory: Int = Integer.parseInt(repositoryVersion.split("-").last())
+            if (buildNumberFromArtifactory > highestBuildNumber)
+            {
+               matchedVersion = repositoryVersion
+               highestBuildNumber = buildNumberFromArtifactory
+            }
+         }
+      }
+      
+      return matchedVersion
+   }
+   
+   private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
+   {
+      tasks.getByName("jar") {
          (this as Jar).run {
             manifest.attributes.apply {
                put("Created-By", maintainer)
@@ -370,16 +874,16 @@ open class IHMCBuildExtension(val project: Project)
                put("Bundle-License", licenseURL)
                put("Bundle-Vendor", companyName)
                
-               if (isBuildRoot() && libFolder)
+               if (!thisProjectIsIncludedBuild() && libFolder)
                {
                   var dependencyJarLocations = " "
-                  for (file in project.configurations.getByName("runtime"))
+                  for (file in configurations.getByName("runtime"))
                   {
                      dependencyJarLocations += "lib/" + file.name + " "
                   }
                   put("Class-Path", dependencyJarLocations.trim())
                }
-               if (isBuildRoot() && mainClass != "NO_MAIN")
+               if (!thisProjectIsIncludedBuild() && mainClass != "NO_MAIN")
                {
                   put("Main-Class", mainClass)
                }
@@ -388,26 +892,69 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
-   fun declareArtifactory(project: Project, repoName: String)
+   fun Project.declareArtifactory(repoName: String)
    {
-      val publishing = project.extensions.getByType(PublishingExtension::class.java)
+      val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "Artifactory"
-         url = project.uri("https://artifactory.ihmc.us/artifactory/" + repoName)
+         url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
       })
    }
    
-   fun declareBintray(project: Project)
+   fun Project.declareBintray()
    {
-      val publishing = project.extensions.getByType(PublishingExtension::class.java)
+      val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "BintrayRelease"
-         url = project.uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + project.rootProject.name)
+         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + rootProject.name)
          credentials.username = bintrayUser
          credentials.password = bintrayApiKey
       })
+   }
+   
+   private fun Project.declarePublication(artifactName: String, configuration: Configuration, sourceSet: SourceSet)
+   {
+      val publishing = extensions.getByType(PublishingExtension::class.java)
+      val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
+      publication.groupId = group as String
+      publication.artifactId = artifactName
+      publication.version = version as String
+      
+      publication.pom.withXml() {
+         (this as XmlProvider).run {
+            val dependenciesNode = asNode().appendNode("dependencies")
+            
+            configuration.allDependencies.forEach {
+               if (it.name != "unspecified")
+               {
+                  val dependencyNode = dependenciesNode.appendNode("dependency")
+                  dependencyNode.appendNode("groupId", it.group)
+                  dependencyNode.appendNode("artifactId", it.name)
+                  dependencyNode.appendNode("version", it.version)
+               }
+            }
+            
+            asNode().appendNode("name", name)
+            asNode().appendNode("url", vcsUrl)
+            val licensesNode = asNode().appendNode("licenses")
+            
+            val licenseNode = licensesNode.appendNode("license")
+            licenseNode.appendNode("name", licenseName)
+            licenseNode.appendNode("url", licenseURL)
+            licenseNode.appendNode("distribution", "repo")
+         }
+      }
+      
+      publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
+         from(sourceSet.output)
+      }))
+      
+      publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
+         from(sourceSet.allJava)
+         classifier = "sources"
+      }))
    }
    
    /**
@@ -419,74 +966,12 @@ open class IHMCBuildExtension(val project: Project)
    }
    
    /**
-    * Public API. Used for artifact-test-runner to keep easy Bamboo configuration.
+    * Used for artifact-test-runner to keep easy Bamboo configuration.
     * Job names are pascal cased on Bamboo and use this method to
     * resolve their kebab cased artifact counterparts.
     */
    fun convertJobNameToKebabCasedName(jobName: String): String
    {
       return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
-   }
-   
-   /** Public API. */
-   fun isBuildRoot(): Boolean
-   {
-      return isBuildRoot(project)
-   }
-   
-   /** Public API. */
-   fun loadProductProperties(propertiesFilePath: String)
-   {
-      val properties = Properties()
-      properties.load(FileInputStream(project.projectDir.toPath().resolve(propertiesFilePath).toFile()))
-      for (property in properties)
-      {
-         if (property.key as String == "group")
-         {
-            group = property.value as String
-            logInfo(logger, "Loaded group: " + group)
-         }
-         if (property.key as String == "version")
-         {
-            version = property.value as String
-            logInfo(logger, "Loaded version: " + version)
-         }
-         if (property.key as String == "vcsUrl")
-         {
-            vcsUrl = property.value as String
-            logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
-         }
-         if (property.key as String == "openSource")
-         {
-            openSource = Eval.me(property.value as String) as Boolean
-            logInfo(logger, "Loaded openSource: " + openSource)
-         }
-      }
-   }
-   
-   private fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
-   {
-      if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
-      {
-         return project.property(propertyName) as String
-      }
-      else
-      {
-         if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
-         {
-            if (!openSource)
-            {
-               logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
-            }
-         }
-         if (propertyName == "bintray_user" || propertyName == "bintray_key")
-         {
-            logInfo(logger, "Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
-         }
-         
-         logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
-         project.extra.set(propertyName, defaultValue)
-         return defaultValue
-      }
    }
 }
