@@ -206,25 +206,32 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureDependencyResolution()
    {
-      repository("https://artifactory.ihmc.us/artifactory/snapshots/")
-      repository("http://dl.bintray.com/ihmcrobotics/maven-release")
-      if (!openSource)
+      if (isBambooBuild)
       {
-         repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
-         repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
-         repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
-      }
-      project.allprojects {
-         (this as Project).run {
-            repositories.jcenter()
-            repositories.mavenCentral()
-            repositories.mavenLocal()
+         declareJCenter()
+         declareMavenCentral()
+         repository("https://artifactory.ihmc.us/artifactory/snapshots/")
+         repository("http://dl.bintray.com/ihmcrobotics/maven-release")
+         if (!openSource)
+         {
+            repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+            repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
+            repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
+         repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+         repository("http://clojars.org/repo/")
+         repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
       }
-      repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-      repository("http://clojars.org/repo/")
-      repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-      repository("https://oss.sonatype.org/content/repositories/snapshots")
+      else
+      {
+         declareJCenter()
+         declareMavenCentral()
+         repository("http://dl.bintray.com/ihmcrobotics/maven-release")
+         repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+         repository("http://clojars.org/repo/")
+         repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         declareMavenLocal()
+      }
       
       setupJavaSourceSets()
       
@@ -241,28 +248,46 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   fun declareJCenter()
+   {
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.jcenter()
+      }
+   }
+   
+   fun declareMavenCentral()
+   {
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.mavenCentral()
+      }
+   }
+   
+   fun declareMavenLocal()
+   {
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.mavenLocal()
+      }
+   }
+   
    fun repository(url: String)
    {
-      project.allprojects {
-         (this as Project).run {
-            repositories.run {
-               maven {}.url = uri(url)
-            }
-         }
+      for (allproject in project.allprojects)
+      {
+         allproject.repositories.maven {}.url = allproject.uri(url)
       }
    }
    
    fun repository(url: String, username: String, password: String)
    {
-      project.allprojects {
-         (this as Project).run {
-            repositories.run {
-               val maven = maven {}
-               maven.url = uri(url)
-               maven.credentials.username = username
-               maven.credentials.password = password
-            }
-         }
+      for (allproject in project.allprojects)
+      {
+         val maven = allproject.repositories.maven {}
+         maven.url = allproject.uri(url)
+         maven.credentials.username = username
+         maven.credentials.password = password
       }
    }
    
@@ -310,7 +335,6 @@ open class IHMCBuildExtension(val project: Project)
                else
                {
                   declareArtifactory("proprietary-snapshots")
-                  
                }
             }
             else if (publishModeProperty == "STABLE")
@@ -719,7 +743,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun artifactoryException(path: String): GradleException
    {
-      return  GradleException("Problem authenticating or retrieving item from Artifactory: $path. Try logging into artifactory.ihmc.us with the credentials used (artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
+      return GradleException("Problem authenticating or retrieving item from Artifactory: $path. Try logging into artifactory.ihmc.us with the credentials used (artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
    }
    
    private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
