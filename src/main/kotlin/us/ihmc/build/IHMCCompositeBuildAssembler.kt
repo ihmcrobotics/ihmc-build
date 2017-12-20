@@ -16,7 +16,9 @@ import java.util.*
 class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
    val logger = configurator.logger
+   val kebabCasedName = configurator.settings.rootProject.name
    val depthFromRepositoryGroup = configurator.depthFromWorkspaceDirectory
+   val includeBuildsFromWorkspace = configurator.includeBuildsFromWorkspace
    val rootProjectPath: Path = configurator.settings.rootProject.projectDir.toPath()
    var repositoryGroupPath: Path
    private val includedBuildPropertiesMap = HashMap<String, IHMCBuildProperties>()
@@ -42,16 +44,15 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       val buildsToInclude = ArrayList<String>()
       findTransitivesRecursive(rootProjectPath)
+      
+      // Should probably sort this with repository name included
       for (transitiveKey in transitiveBuildFolderNames)
       {
-         if (!includedBuildPropertiesMap[transitiveKey]!!.exclude)
-         {
             val relativizedPathName: String = rootProjectPath.relativize(includedBuildPropertiesMap[transitiveKey]!!.projectPath).toString()
             if (!relativizedPathName.isEmpty()) // Including itself
             {
                buildsToInclude.add(relativizedPathName)
             }
-         }
       }
       
       for (buildToInclude in buildsToInclude)
@@ -64,6 +65,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    
    private fun findTransitivesRecursive(projectDir: Path)
    {
+      // If not initially mapped, for compatibility
       if (!includedBuildPropertiesMap.containsKey(projectDir.fileName.toString()))
          return
       
@@ -125,9 +127,15 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       if (isPathCompatibleWithBuildConfiguration(directory))
       {
-         includedBuildPropertiesMap.put(directory.fileName.toString(), IHMCBuildProperties(logger, directory))
+         // Load the properties, even for the root
+         val includedBuildProperties = IHMCBuildProperties(logger, directory)
+         
+         if (includedBuildProperties.kebabCasedName == kebabCasedName || !includedBuildProperties.excludeFromCompositeBuild)
+         {
+            includedBuildPropertiesMap.put(directory.fileName.toString(), includedBuildProperties)
    
-         logInfo(logger, "Found: " + directory.fileName.toString() + ": " + directory)
+            logInfo(logger, "Found: " + directory.fileName.toString() + ": " + directory)
+         }
       }
       
       for (subdirectory in directory.toFile().listFiles(File::isDirectory))

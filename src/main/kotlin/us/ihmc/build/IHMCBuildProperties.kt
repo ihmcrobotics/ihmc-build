@@ -10,7 +10,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path)
 {
    var kebabCasedName: String = ""
    var pascalCasedName: String = ""
-   var exclude = false
+   var excludeFromCompositeBuild = false
    var isProjectGroup: Boolean = false
    val extraSourceSets = ArrayList<String>()
    
@@ -21,8 +21,8 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path)
       {
          if (propertyKey == "excludeFromCompositeBuild")
          {
-            exclude = (properties.get(propertyKey)!! as String).toBoolean()
-            if (exclude)
+            excludeFromCompositeBuild = (properties.get(propertyKey)!! as String).toBoolean()
+            if (excludeFromCompositeBuild)
             {
                logInfo(logger, "Excluding " + projectPath.fileName.toString() + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
             }
