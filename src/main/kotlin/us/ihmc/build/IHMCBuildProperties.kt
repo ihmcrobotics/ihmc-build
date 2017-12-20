@@ -6,7 +6,7 @@ import java.io.FileInputStream
 import java.nio.file.Path
 import java.util.*
 
-class IHMCBuildProperties(val logger: Logger)
+class IHMCBuildProperties(val logger: Logger, val projectPath: Path)
 {
    var kebabCasedName: String = ""
    var pascalCasedName: String = ""
@@ -14,8 +14,7 @@ class IHMCBuildProperties(val logger: Logger)
    var isProjectGroup: Boolean = false
    val extraSourceSets = ArrayList<String>()
    
-   fun load(projectPath: Path): IHMCBuildProperties
-   {
+   init {
       val properties = Properties()
       properties.load(FileInputStream(projectPath.resolve("gradle.properties").toFile()))
       for (propertyKey in properties.keys)
@@ -58,7 +57,5 @@ class IHMCBuildProperties(val logger: Logger)
       {
          kebabCasedName = toKebabCased(projectPath.fileName.toString())
       }
-      
-      return this
    }
 }

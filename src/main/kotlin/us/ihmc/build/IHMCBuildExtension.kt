@@ -506,7 +506,7 @@ open class IHMCBuildExtension(val project: Project)
             }
             else if (artifactId.startsWith(includedBuild.name))
             {
-               for (extraSourceSet in IHMCBuildProperties(project.logger).load(includedBuild.projectDir.toPath()).extraSourceSets)
+               for (extraSourceSet in IHMCBuildProperties(project.logger, includedBuild.projectDir.toPath()).extraSourceSets)
                {
                   if (artifactId == (includedBuild.name + "-$extraSourceSet"))
                   {
