@@ -5,6 +5,7 @@ import org.codehaus.groovy.ast.CodeVisitorSupport
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.ast.expr.*
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.gradle.api.GradleException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
 import java.io.File
@@ -17,22 +18,21 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
    val logger = configurator.logger
    val kebabCasedName = configurator.settings.rootProject.name
-   val depthFromRepositoryGroup = configurator.depthFromWorkspaceDirectory
-   val includeBuildsFromWorkspace = configurator.includeBuildsFromWorkspace
-   val rootProjectPath: Path = configurator.settings.rootProject.projectDir.toPath()
-   var repositoryGroupPath: Path
+   val compositeSearchHeight = configurator.depthFromWorkspaceDirectory
+   val buildRootPath: Path = configurator.settings.rootProject.projectDir.toPath()
+   var compositeSearchPath: Path
    private val includedBuildPropertiesMap = HashMap<String, IHMCBuildProperties>()
    val transitiveBuildFolderNames = TreeSet<String>()
    
    init
    {
-      repositoryGroupPath = rootProjectPath
-      for (i in 1..depthFromRepositoryGroup)
+      compositeSearchPath = buildRootPath
+      for (i in 1..compositeSearchHeight)
       {
-         repositoryGroupPath = repositoryGroupPath.resolve("..")
+         compositeSearchPath = compositeSearchPath.resolve("..")
       }
-      repositoryGroupPath = repositoryGroupPath.toRealPath()
-      logInfo(logger, "Repository group path: " + repositoryGroupPath)
+      compositeSearchPath = compositeSearchPath.toRealPath()
+      logInfo(logger, "Repository group path: " + compositeSearchPath)
    }
    
    /**
@@ -40,15 +40,15 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
     */
    fun findCompositeBuilds(): List<String>
    {
-      mapAllCompatiblePaths(repositoryGroupPath)
+      mapAllCompatiblePaths(compositeSearchPath)
       
       val buildsToInclude = ArrayList<String>()
-      findTransitivesRecursive(rootProjectPath)
+      findTransitivesRecursive(buildRootPath)
       
       // Should probably sort this with repository name included
       for (transitiveKey in transitiveBuildFolderNames)
       {
-            val relativizedPathName: String = rootProjectPath.relativize(includedBuildPropertiesMap[transitiveKey]!!.projectPath).toString()
+            val relativizedPathName: String = buildRootPath.relativize(includedBuildPropertiesMap[transitiveKey]!!.projectPath).toString()
             if (!relativizedPathName.isEmpty()) // Including itself
             {
                buildsToInclude.add(relativizedPathName)
@@ -65,7 +65,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    
    private fun findTransitivesRecursive(projectDir: Path)
    {
-      // If not initially mapped, for compatibility
+      // If not initially mapped, due to compatibility or being excluded
       if (!includedBuildPropertiesMap.containsKey(projectDir.fileName.toString()))
          return
       
