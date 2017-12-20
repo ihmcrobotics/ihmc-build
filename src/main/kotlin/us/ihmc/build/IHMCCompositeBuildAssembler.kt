@@ -7,6 +7,7 @@ import org.codehaus.groovy.ast.expr.*
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
+import us.ihmc.commons.nio.FileTools
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -16,37 +17,31 @@ import java.util.*
 class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
    val logger = configurator.logger
-   val depthFromWorkspaceDirectory = configurator.depthFromWorkspaceDirectory
+   val depthFromRepositoryGroup = configurator.depthFromWorkspaceDirectory
    val rootProjectPath: Path = configurator.settings.rootProject.projectDir.toPath()
-   var workspacePath: Path
+   var repositoryGroupPath: Path
    val buildFolderNameToPathMap = HashMap<String, Path>()
    private val buildFolderNameToPropertiesMap = HashMap<String, IHMCBuildProperties>()
    val transitiveBuildFolderNames = TreeSet<String>()
    
    init
    {
-      workspacePath = rootProjectPath
-      for (i in 1..depthFromWorkspaceDirectory)
+      repositoryGroupPath = rootProjectPath
+      for (i in 1..depthFromRepositoryGroup)
       {
-         workspacePath = workspacePath.resolve("..")
+         repositoryGroupPath = repositoryGroupPath.resolve("..")
       }
-      workspacePath = workspacePath.toRealPath()
+      repositoryGroupPath = repositoryGroupPath.toRealPath()
    }
    
+   /**
+    * Returns a list of all the paths to include as strings.
+    */
    fun findCompositeBuilds(): List<String>
    {
-      logInfo(logger, "Workspace dir: " + workspacePath)
+      logInfo(logger, "Repository group path: " + repositoryGroupPath)
       
-      if (pathQualifiesToBeInTheBuild(workspacePath))
-      {
-         buildFolderNameToPathMap.put(workspacePath.fileName.toString(), workspacePath)
-         buildFolderNameToPropertiesMap.put(workspacePath.fileName.toString(), IHMCBuildProperties(logger).load(workspacePath))
-      }
-      mapDirectory(workspacePath)
-      for (buildFolderName in buildFolderNameToPathMap.keys)
-      {
-         logInfo(logger, "Found: " + buildFolderName + " : " + buildFolderNameToPathMap.get(buildFolderName))
-      }
+      mapAllCompatiblePaths(repositoryGroupPath)
       
       val buildsToInclude = ArrayList<String>()
       findTransitivesRecursive(rootProjectPath)
@@ -127,28 +122,28 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       return matched
    }
    
-   private fun mapDirectory(directory: Path)
+   private fun mapAllCompatiblePaths(directory: Path)
    {
-      for (subdirectory in Files.list(directory))
+      if (isPathCompatibleWithBuildConfiguration(directory))
       {
-         if (pathQualifiesToBeInTheBuild(subdirectory))
-         {
-            buildFolderNameToPathMap.put(subdirectory.fileName.toString(), subdirectory)
-            buildFolderNameToPropertiesMap.put(subdirectory.fileName.toString(), IHMCBuildProperties(logger).load(subdirectory))
-            
-            mapDirectory(subdirectory)
-         }
+         buildFolderNameToPathMap.put(directory.fileName.toString(), directory)
+         buildFolderNameToPropertiesMap.put(directory.fileName.toString(), IHMCBuildProperties(logger).load(directory))
+   
+         logInfo(logger, "Found: " + directory.fileName.toString() + ": " + directory)
+      }
+      
+      for (subdirectory in directory.toFile().listFiles(File::isDirectory))
+      {
+         mapAllCompatiblePaths(subdirectory.toPath())
       }
    }
    
-   /**
-    *  Here, we could make the project more friendly by not having such harsh requirements.
-    */
-   private fun pathQualifiesToBeInTheBuild(subdirectory: Path): Boolean
+   /** Here, we could make the project more friendly by not having such harsh requirements. */
+   private fun isPathCompatibleWithBuildConfiguration(subdirectory: Path): Boolean
    {
       return (Files.isDirectory(subdirectory)
-            && subdirectory.fileName.toString() != "bin"
-            && subdirectory.fileName.toString() != "out"
+            && subdirectory.fileName.toString() != "bin" // Address Eclipse bug where it copies build files to bin directory
+            && subdirectory.fileName.toString() != "out" // Address the same hypothetical situation in IntelliJ
             && Files.exists(subdirectory.resolve("build.gradle"))
             && Files.exists(subdirectory.resolve("gradle.properties"))
             && Files.exists(subdirectory.resolve("settings.gradle")))
