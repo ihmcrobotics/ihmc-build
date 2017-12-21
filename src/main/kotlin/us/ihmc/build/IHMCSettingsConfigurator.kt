@@ -14,7 +14,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    lateinit var extraSourceSets: ArrayList<String>
    lateinit var publishMode: String
    var depthFromWorkspaceDirectory: Int = 1
-   var includeBuildsFromWorkspace: Boolean = true
    var excludeFromCompositeBuild: Boolean = false
    
    init
@@ -79,7 +78,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
-      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }
@@ -91,7 +89,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
       checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
-      checkForPropertyInternal("includeBuildsFromWorkspace", "true (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }
@@ -110,7 +107,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
             "publishMode"                 -> publishMode = ext.get(property) as String
             "depthFromWorkspaceDirectory" -> depthFromWorkspaceDirectory = (ext.get(property) as String).toInt()
-            "includeBuildsFromWorkspace"  -> includeBuildsFromWorkspace = (ext.get(property) as String).toBoolean()
             "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
          }
       }
