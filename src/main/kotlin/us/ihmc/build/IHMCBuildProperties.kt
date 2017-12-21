@@ -6,15 +6,17 @@ import java.io.FileInputStream
 import java.nio.file.Path
 import java.util.*
 
-class IHMCBuildProperties(val logger: Logger, val projectPath: Path)
+class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparable<IHMCBuildProperties>
 {
+   var folderName = projectPath.fileName.toString()
    var kebabCasedName: String = ""
    var pascalCasedName: String = ""
    var excludeFromCompositeBuild = false
    var isProjectGroup: Boolean = false
    val extraSourceSets = ArrayList<String>()
    
-   init {
+   init
+   {
       val properties = Properties()
       properties.load(FileInputStream(projectPath.resolve("gradle.properties").toFile()))
       for (propertyKey in properties.keys)
@@ -39,23 +41,40 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path)
          {
             pascalCasedName = properties.get(propertyKey)!! as String
          }
-         if (propertyKey == "hyphenatedName")
-         {
-            kebabCasedName = properties.get(propertyKey)!! as String
-         }
          if (propertyKey == "extraSourceSets")
          {
             extraSourceSets.addAll(Eval.me(properties.get(propertyKey)!! as String) as ArrayList<String>)
          }
       }
-      
+   
+      kebabCasedName = kebabCasedNameCompatibilityDuplicate(projectPath.fileName.toString(), logger, properties)
       if (pascalCasedName.isEmpty())
       {
          pascalCasedName = toPascalCased(projectPath.fileName.toString())
       }
-      if (kebabCasedName.isEmpty())
+   }
+   
+   fun kebabCasedNameCompatibilityDuplicate(projectName: String, logger: Logger, properties: Properties): String
+   {
+      if (properties.containsKey("kebabCasedName") && !(properties.get("kebabCasedName") as String).startsWith("$"))
       {
-         kebabCasedName = toKebabCased(projectPath.fileName.toString())
+         return properties.get("kebabCasedName") as String
       }
+      else if (properties.containsKey("hyphenatedName") && !(properties.get("hyphenatedName") as String).startsWith("$"))
+      {
+         return properties.get("hyphenatedName") as String
+      }
+      else
+      {
+         val defaultValue = toKebabCased(projectName)
+         logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
+         properties.set("kebabCasedName", defaultValue)
+         return defaultValue
+      }
+   }
+   
+   override fun compareTo(other: IHMCBuildProperties): Int
+   {
+      return projectPath.toString().compareTo(other.projectPath.toString())
    }
 }

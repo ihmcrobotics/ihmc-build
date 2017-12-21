@@ -5,7 +5,6 @@ import org.codehaus.groovy.ast.CodeVisitorSupport
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.ast.expr.*
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import org.gradle.api.GradleException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
 import java.io.File
@@ -21,8 +20,9 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    val compositeSearchHeight = configurator.depthFromWorkspaceDirectory
    val buildRootPath: Path = configurator.settings.rootProject.projectDir.toPath()
    var compositeSearchPath: Path
-   private val includedBuildPropertiesMap = HashMap<String, IHMCBuildProperties>()
-   val transitiveBuildFolderNames = TreeSet<String>()
+   private val kebabCasedNameToPropertiesMap = HashMap<String, IHMCBuildProperties>()
+   private val pathToPropertiesMap = HashMap<Path, IHMCBuildProperties>()
+   val transitiveIncludedBuilds = TreeSet<IHMCBuildProperties>()
    
    init
    {
@@ -42,81 +42,82 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       mapAllCompatiblePaths(compositeSearchPath)
       
-      val buildsToInclude = ArrayList<String>()
-      findTransitivesRecursive(buildRootPath)
+      findTransitivesRecursive(kebabCasedName)
       
+      val buildsToInclude = ArrayList<String>()
       // Should probably sort this with repository name included
-      for (transitiveKey in transitiveBuildFolderNames)
+      for (transitiveBuild in transitiveIncludedBuilds)
       {
-            val relativizedPathName: String = buildRootPath.relativize(includedBuildPropertiesMap[transitiveKey]!!.projectPath).toString()
-            if (!relativizedPathName.isEmpty()) // Including itself
-            {
-               buildsToInclude.add(relativizedPathName)
-            }
+         val relativizedPathName: String = buildRootPath.relativize(transitiveBuild.projectPath).toString()
+         if (!relativizedPathName.isEmpty()) // Including itself
+         {
+            buildsToInclude.add(relativizedPathName)
+         }
       }
       
       for (buildToInclude in buildsToInclude)
       {
-         logInfo(logger, "Including build: " + buildToInclude)
+         logQuiet(logger, "Including build: " + buildToInclude)
       }
       
       return buildsToInclude
    }
    
-   private fun findTransitivesRecursive(projectDir: Path)
+   private fun findTransitivesRecursive(kebabCasedName: String)
    {
-      // If not initially mapped, due to compatibility or being excluded
-      if (!includedBuildPropertiesMap.containsKey(projectDir.fileName.toString()))
-         return
-      
-      if (includedBuildPropertiesMap[projectDir.fileName.toString()]!!.isProjectGroup)
+      for (kebabCasedDependency in findDirectKebabCasedDependencies(kebabCasedName))
       {
-         val projectFile = projectDir.toFile()
-         for (childDir in projectFile.list())
+         for (newMatchingBuild in findNewMatchingBuilds(kebabCasedDependency))
          {
-            if (File(projectFile, childDir + "/build.gradle").exists())
+            logInfo(logger, "Adding dependency: " + newMatchingBuild.projectPath)
+            findTransitivesRecursive(newMatchingBuild.kebabCasedName)
+         }
+      }
+   }
+   
+   private fun findDirectKebabCasedDependencies(kebabCasedName: String): List<String>
+   {
+      val dependencies = arrayListOf<String>()
+      val properties = propertiesFromKebabCasedName(kebabCasedName)
+      if (properties.isProjectGroup)
+      {
+         val projectFile = properties.projectPath.toFile()
+         for (childDir in projectFile.listFiles(File::isDirectory))
+         {
+            val childPath = childDir.toPath()
+            if (pathToPropertiesMap.containsKey(childPath))
             {
-               addModule(childDir)
+               dependencies.add(propertiesFromPath(childPath).kebabCasedName)
             }
          }
       }
       else
       {
-         val dependencies: SortedSet<String> = parseDependenciesFromGradleFile(projectDir.resolve("build.gradle"))
-         
-         for (dependency in dependencies)
+         for (declaredDependency in parseDependenciesFromGradleFile(properties.projectPath.resolve("build.gradle")))
          {
-            addModule(dependency)
+            if (kebabCasedNameToPropertiesMap.containsKey(declaredDependency))
+            {
+               dependencies.add(declaredDependency)
+            }
          }
       }
-   }
-   
-   private fun addModule(dependency: String)
-   {
-      val newMatchingKeys: List<String> = findMatchingBuildKey(dependency)
       
-      transitiveBuildFolderNames.addAll(newMatchingKeys)
-      for (newMatchingKey in newMatchingKeys)
-      {
-         logInfo(logger, "Adding module: " + newMatchingKey)
-         findTransitivesRecursive(includedBuildPropertiesMap[newMatchingKey]!!.projectPath)
-      }
+      return dependencies
    }
    
-   private fun findMatchingBuildKey(dependencyNameAsDeclared: String): List<String>
+   private fun findNewMatchingBuilds(kebabCasedDependency: String): List<IHMCBuildProperties>
    {
-      val matched = ArrayList<String>()
-      for (includedBuildProperties in includedBuildPropertiesMap.values)
+      val matched = ArrayList<IHMCBuildProperties>()
+      for (includedBuildProperties in kebabCasedNameToPropertiesMap.values)
       {
-         // This is probably where we need to use kebabCasedName
-         val buildFolderNameToCheck = includedBuildProperties.projectPath.fileName.toString()
          // Since this method is gathering more build folder names, make sure this folder isn't already in the set.
          // If it is, you save some computation on name matching.
          // Make sure the names match up. See {@link #matchNames}
-         if (!transitiveBuildFolderNames.contains(buildFolderNameToCheck) && matchNames(buildFolderNameToCheck, dependencyNameAsDeclared))
+         if (!transitiveIncludedBuilds.contains(includedBuildProperties) && matchNames(includedBuildProperties.kebabCasedName, kebabCasedDependency))
          {
-            logInfo(logger, "Matched: " + dependencyNameAsDeclared + " to " + buildFolderNameToCheck + "  " + toPascalCased(dependencyNameAsDeclared))
-            matched.add(buildFolderNameToCheck)
+            logInfo(logger, "Matched: " + kebabCasedDependency + " to " + includedBuildProperties.kebabCasedName)
+            transitiveIncludedBuilds.add(includedBuildProperties)
+            matched.add(includedBuildProperties)
          }
       }
       
@@ -130,11 +131,13 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          // Load the properties, even for the root
          val includedBuildProperties = IHMCBuildProperties(logger, directory)
          
+         // Always include the build root, because observe external exclude preferences
          if (includedBuildProperties.kebabCasedName == kebabCasedName || !includedBuildProperties.excludeFromCompositeBuild)
          {
-            includedBuildPropertiesMap.put(directory.fileName.toString(), includedBuildProperties)
-   
-            logInfo(logger, "Found: " + directory.fileName.toString() + ": " + directory)
+            kebabCasedNameToPropertiesMap.put(includedBuildProperties.kebabCasedName, includedBuildProperties)
+            pathToPropertiesMap.put(directory, includedBuildProperties)
+            
+            logInfo(logger, "Found: " + includedBuildProperties.kebabCasedName + ": " + directory)
          }
       }
       
@@ -159,14 +162,12 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       if (dependencyNameAsDeclared == buildFolderNameToCheck) return true
       
-      val buildToCheckProperties = includedBuildPropertiesMap[buildFolderNameToCheck]!!
-      
-      if (dependencyNameAsDeclared == buildToCheckProperties.pascalCasedName) return true
+      val buildToCheckProperties = propertiesFromKebabCasedName(buildFolderNameToCheck)
+
       if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName) return true
       
       for (extraSourceSet in buildToCheckProperties.extraSourceSets)
       {
-         if (dependencyNameAsDeclared == buildToCheckProperties.pascalCasedName + extraSourceSet.capitalize()) return true
          if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName + "-" + extraSourceSet) return true
       }
       
@@ -191,7 +192,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          for (dependency in dependencies)
          {
-            logInfo(logger, "Found declared dependency: " + dependency[1])
+            logDebug(logger, "Found declared dependency: " + dependency[1])
             dependencySet.add(dependency[1])
          }
       }
@@ -239,7 +240,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       override fun visitMapExpression(expression: MapExpression)
       {
-         logInfo(logger, "Found map entry: " + expression.getText())
+         logDebug(logger, "Found map entry: " + expression.getText())
          val mapEntryExpressions: List<MapEntryExpression> = expression.getMapEntryExpressions()
          if (mapEntryExpressions.size >= 3)
          {
@@ -260,5 +261,15 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          super.visitMapExpression(expression)
       }
+   }
+   
+   private fun propertiesFromKebabCasedName(kebabCasedName: String): IHMCBuildProperties
+   {
+      return kebabCasedNameToPropertiesMap.get(kebabCasedName)!!
+   }
+   
+   private fun propertiesFromPath(path: Path): IHMCBuildProperties
+   {
+      return pathToPropertiesMap.get(path)!!
    }
 }
