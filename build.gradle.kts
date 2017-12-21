@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.11.9"
+version = "0.12.0"
 
 gradlePlugin {
    (plugins) {
