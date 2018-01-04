@@ -345,7 +345,7 @@ open class IHMCBuildExtension(val project: Project)
                }
                else
                {
-                  declareArtifactory("proprietary")
+                  declareArtifactory("proprietary-releases")
                }
             }
             
