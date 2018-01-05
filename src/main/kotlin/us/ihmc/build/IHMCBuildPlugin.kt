@@ -7,6 +7,7 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
@@ -65,11 +66,22 @@ class IHMCBuildPlugin : Plugin<Project>
          allproject.tasks.getByName("clean", closureOf<Delete> {
             delete(allproject.projectDir.resolve("out"))
             delete(allproject.projectDir.resolve("bin"))
+         })
+      }
+   
+      // setup task to clean buildship files
+      for (allproject in project.allprojects)
+      {
+         allproject.task(mapOf("type" to Delete::class.java), "cleanBuildship", closureOf<Delete> {
             delete(allproject.projectDir.resolve(".settings"))
          })
       }
       
-      defineDeepCompositeTask("cleanAll", arrayListOf("clean", "cleanIdea", "cleanEclipse"), project)
+      defineDeepCompositeTask("cleanBuild", arrayListOf("clean"), project)
+      defineDeepCompositeTask("cleanIDE", arrayListOf("cleanIdea", "cleanEclipse", "cleanBuildship"), project)
+      defineDeepCompositeTask("publishAll", arrayListOf("publish"), project)
+//      defineExtraSourceSetCompositeTask("publishExtraSourceSets", arrayListOf("publishHandle"), project)
+//      defineExtraSourceSetCompositeTask("publishExtraSourceSets", arrayListOf("publish"), project)
       
       defineDynamicCompositeTask(project)
    }
@@ -147,13 +159,63 @@ class IHMCBuildPlugin : Plugin<Project>
       }
    }
    
+   /**
+    * Create a task that will run a set of tasks if they exist in all subprojects, and all
+    * projects in all included builds.
+    */
+   private fun defineExtraSourceSetCompositeTask(globalTaskName: String, targetTaskNames: ArrayList<String>, project: Project)
+   {
+      // Configure every project to have at least an empty task with the names
+      for (targetTaskName in targetTaskNames)
+      {
+         for (subproject in project.subprojects)
+         {
+            try
+            {
+               subproject.tasks.findByPath(targetTaskName)
+               subproject.tasks.getByName(targetTaskName)
+            }
+            catch (e: NullPointerException)
+            {
+               configureEmptySubprojectTask(subproject, targetTaskName, project)
+            }
+            catch (e: UnknownTaskException)
+            {
+               configureEmptySubprojectTask(subproject, targetTaskName, project)
+            }
+         }
+      }
+      
+      // Configure every project to have a global task that depends on all the task names
+      project.task(globalTaskName, closureOf<Task> {
+         for (targetTaskName in targetTaskNames)
+         {
+            for (subproject in project.subprojects)
+            {
+               dependsOn(subproject.tasks.getByName(targetTaskName))
+            }
+         }
+      })
+      
+      // For the build root, make the global task depend on all the included build global tasks
+      if (isBuildRoot(project))
+      {
+         project.tasks.getByName(globalTaskName, closureOf<Task> {
+            for (includedBuild in project.gradle.includedBuilds)
+            {
+               dependsOn(includedBuild.task(":$globalTaskName"))
+            }
+         })
+      }
+   }
+   
    private fun configureEmptySubprojectTask(subproject: Project, targetTaskName: String, project: Project)
    {
       try
       {
          subproject.task(targetTaskName, closureOf<Task> {
             // Declare empty task if it doesn't exist
-            logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
+            logQuiet(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
          })
       }
       catch (e: InvalidUserDataException)

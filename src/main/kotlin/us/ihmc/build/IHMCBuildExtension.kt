@@ -354,6 +354,13 @@ open class IHMCBuildExtension(val project: Project)
             declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
+   
+//      for (subproject in project.subprojects)
+//      {
+//         subproject.tasks.getByName("publishHandle", closureOf<Task> {
+//            dependsOn(subproject.tasks.getByName("publish"))
+//         })
+//      }
    }
    
    fun setupJavaSourceSets()
