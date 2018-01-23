@@ -20,6 +20,11 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    {
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
+      ext["extraSourceSets"] = "[]"
+      ext["publishMode"] = "STABLE"
+      ext["depthFromWorkspaceDirectory"] = 0
+      ext["excludeFromCompositeBuild"] = "false"
+      ext["includeBuildsFromWorkspace"] = "true"
       
       if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
       {
@@ -77,7 +82,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("isProjectGroup", "true")
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
+      checkForPropertyInternal("depthFromWorkspaceDirectory", "0 (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }
@@ -88,7 +93,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       checkForPropertyInternal("publishMode", "SNAPSHOT (default)")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "1 (default)")
+      checkForPropertyInternal("depthFromWorkspaceDirectory", "0 (default)")
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }

@@ -45,7 +45,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       findTransitivesRecursive(kebabCasedName)
       
       val buildsToInclude = ArrayList<String>()
-      // Should probably sort this with repository name included
+      // Sorted with repository name included
       for (transitiveBuild in transitiveIncludedBuilds)
       {
          val relativizedPathName: String = buildRootPath.relativize(transitiveBuild.projectPath).toString()
