@@ -153,7 +153,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       return (Files.isDirectory(subdirectory)
             && subdirectory.fileName.toString() != "bin" // Address Eclipse bug where it copies build files to bin directory
             && subdirectory.fileName.toString() != "out" // Address the same hypothetical situation in IntelliJ
-            && Files.exists(subdirectory.resolve("build.gradle"))
+            && (Files.exists(subdirectory.resolve("build.gradle")) || Files.exists(subdirectory.resolve("build.gradle.kts")))
             && Files.exists(subdirectory.resolve("gradle.properties"))
             && Files.exists(subdirectory.resolve("settings.gradle")))
    }
