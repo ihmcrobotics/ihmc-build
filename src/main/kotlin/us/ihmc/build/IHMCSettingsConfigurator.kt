@@ -24,7 +24,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       ext["publishMode"] = "STABLE"
       ext["depthFromWorkspaceDirectory"] = 0
       ext["excludeFromCompositeBuild"] = "false"
-      ext["includeBuildsFromWorkspace"] = "true"
       
       if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
       {
