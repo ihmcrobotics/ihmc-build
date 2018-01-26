@@ -87,7 +87,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             val childPath = childDir.toPath()
             if (pathToPropertiesMap.containsKey(childPath))
             {
-               dependencies.add(propertiesFromPath(childPath).kebabCasedName)
+               dependencies.addAll(propertiesFromPath(childPath).allArtifacts)
             }
          }
       }
@@ -108,16 +108,16 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    private fun findNewMatchingBuilds(kebabCasedDependency: String): List<IHMCBuildProperties>
    {
       val matched = ArrayList<IHMCBuildProperties>()
-      for (includedBuildProperties in kebabCasedNameToPropertiesMap.values)
+      for (artifactName in kebabCasedNameToPropertiesMap.keys)
       {
          // Since this method is gathering more build folder names, make sure this folder isn't already in the set.
          // If it is, you save some computation on name matching.
          // Make sure the names match up. See {@link #matchNames}
-         if (!transitiveIncludedBuilds.contains(includedBuildProperties) && matchNames(includedBuildProperties.kebabCasedName, kebabCasedDependency))
+         if (!transitiveIncludedBuilds.contains(propertiesFromKebabCasedName(artifactName)) && matchNames(artifactName, kebabCasedDependency))
          {
-            logInfo(logger, "Matched: " + kebabCasedDependency + " to " + includedBuildProperties.kebabCasedName)
-            transitiveIncludedBuilds.add(includedBuildProperties)
-            matched.add(includedBuildProperties)
+            logInfo(logger, "Matched: " + kebabCasedDependency + " to " + artifactName)
+            transitiveIncludedBuilds.add(propertiesFromKebabCasedName(artifactName))
+            matched.add(propertiesFromKebabCasedName(artifactName))
          }
       }
       
@@ -134,10 +134,12 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          // Always include the build root, because observe external exclude preferences
          if (includedBuildProperties.kebabCasedName == kebabCasedName || !includedBuildProperties.excludeFromCompositeBuild)
          {
-            kebabCasedNameToPropertiesMap.put(includedBuildProperties.kebabCasedName, includedBuildProperties)
+            for (artifactName in includedBuildProperties.allArtifacts)
+            {
+               kebabCasedNameToPropertiesMap.put(artifactName, includedBuildProperties)
+               logInfo(logger, "Found: " + artifactName + ": " + directory)
+            }
             pathToPropertiesMap.put(directory, includedBuildProperties)
-            
-            logInfo(logger, "Found: " + includedBuildProperties.kebabCasedName + ": " + directory)
          }
       }
       
@@ -163,7 +165,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       if (dependencyNameAsDeclared == buildFolderNameToCheck) return true
       
       val buildToCheckProperties = propertiesFromKebabCasedName(buildFolderNameToCheck)
-
+      
       if (dependencyNameAsDeclared == buildToCheckProperties.kebabCasedName) return true
       
       for (extraSourceSet in buildToCheckProperties.extraSourceSets)

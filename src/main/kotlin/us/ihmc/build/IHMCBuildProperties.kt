@@ -14,6 +14,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
    var excludeFromCompositeBuild = false
    var isProjectGroup: Boolean = false
    val extraSourceSets = ArrayList<String>()
+   val allArtifacts = ArrayList<String>()
    
    init
    {
@@ -51,6 +52,17 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       if (pascalCasedName.isEmpty())
       {
          pascalCasedName = toPascalCased(projectPath.fileName.toString())
+      }
+      
+      for (i in 0 until extraSourceSets.size)
+      {
+         extraSourceSets.set(i, toKebabCased(extraSourceSets[i]))
+      }
+      
+      allArtifacts.add(kebabCasedName)
+      for (extraSourceSet in extraSourceSets)
+      {
+         allArtifacts.add(kebabCasedName + "-" + extraSourceSet)
       }
    }
    
