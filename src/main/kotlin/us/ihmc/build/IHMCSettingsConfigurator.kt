@@ -20,10 +20,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    {
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
-      ext["extraSourceSets"] = "[]"
-      ext["publishMode"] = "STABLE"
-      ext["depthFromWorkspaceDirectory"] = 0
-      ext["excludeFromCompositeBuild"] = "false"
       
       if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
       {
