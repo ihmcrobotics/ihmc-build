@@ -355,6 +355,13 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    
+      val jarAllTask = project.task("jarAll")
+      for (allproject in project.allprojects)
+      {
+         jarAllTask.dependsOn(allproject.tasks.getByName("mainClassesJar"))
+         jarAllTask.dependsOn(allproject.tasks.getByName("mainSourcesJar"))
+      }
+   
 //      for (subproject in project.subprojects)
 //      {
 //         subproject.tasks.getByName("publishHandle", closureOf<Task> {
