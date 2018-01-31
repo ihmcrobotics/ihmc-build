@@ -53,7 +53,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          for (sourceSetName in extraSourceSets)
          {
             val kebabCasedSourceSetName = toKebabCased(sourceSetName)
-            settings.include(arrayOf("src/$kebabCasedSourceSetName"))
+            settings.include("src/$kebabCasedSourceSetName")
             settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
          }
       }
