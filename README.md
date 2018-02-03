@@ -37,7 +37,7 @@ ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 ```
 
 **gradle.properties**
-```
+```ini
 kebabCasedName = your-project
 pascalCasedName = YourProject
 extraSourceSets = ["test"]
@@ -124,13 +124,13 @@ repository-group
 The Gradle build files for the projects that do not contain `src/main/java` directories have a few differences from the ones above:
 
 **gradle.properties (group)**
-```
+```diff
 +++ isProjectGroup = true  # Tells the build plugin to always include subprojects
 --- extraSourceSets = []   # Project groups do not contains source sets
 ```
 
 **settings.gradle (group)**
-```
+```diff
 +++ ihmcSettingsConfigurator.configureAsGroupOfProjects()
 --- ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
 --- ihmcSettingsConfigurator.configureExtraSourceSets()
