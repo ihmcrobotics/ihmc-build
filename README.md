@@ -2,6 +2,14 @@
 
 Composite build and IDE classpath seperation support for JVM Gradle projects. Currently for use only by IHMC projects.
 
+### Table of Contents
+1. [Quick project setup](#quick-project-setup)
+1. [Groups of projects](#groups-of-projects)
+1. [Commands](#commands)
+1. [Learn more](#learn-more)
+1. [Advantages over standard Gradle](#advantages-over-standard-gradle)
+1. [Future plans](#future-plans)
+
 ### Quick project setup
 
 Create the following file structure:
