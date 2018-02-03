@@ -1,6 +1,6 @@
 # IHMC Build Plugin
 
-Composite build and IDE classpath seperation support for JVM Gradle projects.
+Composite build and IDE classpath seperation support for JVM Gradle projects. Currently for use only by IHMC projects.
 
 ### Quick project setup
 
