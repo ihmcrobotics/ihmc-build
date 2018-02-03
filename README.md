@@ -137,7 +137,7 @@ The Gradle build files for the projects that do not contain `src/main/java` dire
 ```
 
 **build.gradle (group)**
-```gradle
+```diff
 buildscript {
    repositories {
       maven { url "https://plugins.gradle.org/m2/" }
@@ -151,23 +151,23 @@ buildscript {
 apply plugin: "us.ihmc.ihmc-build"
 
 # None of the below will apply to project groups, remove it
---- ihmc {
----    group = "us.ihmc"
----    version = "0.1.0"
----    vcsUrl = "https://your.vcs/url"
----    openSource = false
----    
----    configureDependencyResolution()
----    configurePublications()
---- }
---- 
---- mainDependencies {
----    compile group: 'some', name: 'main-dependency', version: '0.1'
---- }
---- 
---- testDependencies {
----    compile group: 'junit', name: 'junit', version: '4.11'
---- }
+- ihmc {
+-    group = "us.ihmc"
+-    version = "0.1.0"
+-    vcsUrl = "https://your.vcs/url"
+-    openSource = false
+-    
+-    configureDependencyResolution()
+-    configurePublications()
+- }
+- 
+- mainDependencies {
+-    compile group: 'some', name: 'main-dependency', version: '0.1'
+- }
+- 
+- testDependencies {
+-    compile group: 'junit', name: 'junit', version: '4.11'
+- }
 ```
 
 ### Commands
