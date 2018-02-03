@@ -125,15 +125,15 @@ The Gradle build files for the projects that do not contain `src/main/java` dire
 
 **gradle.properties (group)**
 ```diff
-+++ isProjectGroup = true  # Tells the build plugin to always include subprojects
---- extraSourceSets = []   # Project groups do not contains source sets
++ isProjectGroup = true  # Tells the build plugin to always include subprojects
+- extraSourceSets = []   # Project groups do not contains source sets
 ```
 
 **settings.gradle (group)**
 ```diff
-+++ ihmcSettingsConfigurator.configureAsGroupOfProjects()
---- ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
---- ihmcSettingsConfigurator.configureExtraSourceSets()
++ ihmcSettingsConfigurator.configureAsGroupOfProjects()
+- ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
+- ihmcSettingsConfigurator.configureExtraSourceSets()
 ```
 
 **build.gradle (group)**
