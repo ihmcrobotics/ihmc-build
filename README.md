@@ -31,7 +31,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.5"
+      classpath "us.ihmc:ihmc-build:0.12.8"
    }
 }
 
@@ -68,7 +68,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.5"
+      classpath "us.ihmc:ihmc-build:0.12.8"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
@@ -153,7 +153,7 @@ buildscript {
       jcenter()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.5"
+      classpath "us.ihmc:ihmc-build:0.12.8"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
