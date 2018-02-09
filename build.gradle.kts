@@ -54,6 +54,7 @@ dependencies {
    compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.0")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
    compile("us.ihmc:ihmc-ci-plugin:0.17.7")
+   compile("us.ihmc:ihmc-ci-generator:0.17.7")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile(gradleKotlinDsl())
 }
