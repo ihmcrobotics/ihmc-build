@@ -132,20 +132,44 @@ repository-group
 The Gradle build files for the projects that do not contain `src/main/java` directories have a few differences from the ones above:
 
 **gradle.properties (group)**
-```diff
-+ isProjectGroup = true  # Tells the build plugin to always include subprojects
-- extraSourceSets = []   # Project groups do not contains source sets
+```ini
+kebabCasedName = your-project
+pascalCasedName = YourProject
+publishMode = LOCAL
+
+# Tells the build plugin to always include subprojects
+isProjectGroup = true
+
+# When building from this directory, set how many directories
+# to go up and do a search for more builds to include.
+depthFromWorkspaceDirectory = 0
+
+# When another build is searching for builds to include,
+# tell it to leave you out.
+excludeFromCompositeBuild = false
 ```
 
 **settings.gradle (group)**
-```diff
-+ ihmcSettingsConfigurator.configureAsGroupOfProjects()
-- ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
-- ihmcSettingsConfigurator.configureExtraSourceSets()
+```gradle
+buildscript {
+   repositories {
+      maven { url "https://plugins.gradle.org/m2/" }
+      mavenLocal()
+   }
+   dependencies {
+      classpath "us.ihmc:ihmc-build:0.12.8"
+   }
+}
+
+import us.ihmc.build.IHMCSettingsConfigurator
+
+def ihmcSettingsConfigurator = new IHMCSettingsConfigurator(settings, logger, ext)
+ihmcSettingsConfigurator.configureAsGroupOfProjects()
+ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 ```
 
 **build.gradle (group)**
-```diff
+```gradle
 buildscript {
    repositories {
       maven { url "https://plugins.gradle.org/m2/" }
@@ -157,25 +181,6 @@ buildscript {
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
-
-# None of the below will apply to project groups, remove it
-- ihmc {
--    group = "us.ihmc"
--    version = "0.1.0"
--    vcsUrl = "https://your.vcs/url"
--    openSource = false
--    
--    configureDependencyResolution()
--    configurePublications()
-- }
-- 
-- mainDependencies {
--    compile group: 'some', name: 'main-dependency', version: '0.1'
-- }
-- 
-- testDependencies {
--    compile group: 'junit', name: 'junit', version: '4.11'
-- }
 ```
 
 ### Commands
