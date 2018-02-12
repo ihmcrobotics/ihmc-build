@@ -52,6 +52,11 @@ fun ihmcBuildMessage(message: Any): String
    return "[ihmc-build] " + message
 }
 
+fun isProjectGroupCompatibility(rawString: String): Boolean
+{
+   return rawString.trim().toLowerCase().contains("true");
+}
+
 fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraPropertiesExtension): String
 {
    if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))

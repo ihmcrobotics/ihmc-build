@@ -18,7 +18,7 @@ class IHMCBuildPlugin : Plugin<Project>
 {
    override fun apply(project: Project)
    {
-      if (project.hasProperty("isProjectGroup") && (project.property("isProjectGroup") as String).toBoolean())
+      if (project.hasProperty("isProjectGroup") && isProjectGroupCompatibility(project.property("isProjectGroup") as String))
       {
          configureProjectGroup(project)
          

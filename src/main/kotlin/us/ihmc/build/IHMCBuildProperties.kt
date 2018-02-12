@@ -32,10 +32,10 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
          }
          if (propertyKey == "isProjectGroup")
          {
-            isProjectGroup = (properties.get(propertyKey)!! as String).toBoolean()
+            isProjectGroup = isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
             if (isProjectGroup)
             {
-               logInfo(logger, "Including project group: " + projectPath.fileName.toString() + ". Property isProjectGroup = " + properties.get(propertyKey))
+               logInfo(logger, "Including project group: " + projectPath.fileName.toString() + ". Property isProjectGroup = $isProjectGroup")
             }
          }
          if (propertyKey == "pascalCasedName")
