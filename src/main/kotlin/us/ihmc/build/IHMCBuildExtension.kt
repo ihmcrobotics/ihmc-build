@@ -50,7 +50,6 @@ open class IHMCBuildExtension(val project: Project)
    
    private val publishModeProperty: String
    private val kebabCasedNameProperty: String
-   private val groupDependencyVersionProperty: String
    
    // Bamboo variables
    private val isChildBuild: Boolean
@@ -85,7 +84,6 @@ open class IHMCBuildExtension(val project: Project)
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       
-      groupDependencyVersionProperty = setupPropertyWithDefault("groupDependencyVersion", "SNAPSHOT-LATEST")
       publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
       kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
       
