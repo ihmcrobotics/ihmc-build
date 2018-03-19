@@ -31,7 +31,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.8"
+      classpath "us.ihmc:ihmc-build:0.12.10"
    }
 }
 
@@ -53,7 +53,7 @@ publishMode = LOCAL
 
 # When building from this directory, set how many directories
 # to go up and do a search for more builds to include.
-depthFromWorkspaceDirectory = 0
+compositeSearchHeight = 0
 
 # When another build is searching for builds to include,
 # tell it to leave you out.
@@ -68,7 +68,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.8"
+      classpath "us.ihmc:ihmc-build:0.12.10"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
@@ -142,10 +142,10 @@ isProjectGroup = true
 
 # When building from this directory, set how many directories
 # to go up and do a search for more builds to include.
-depthFromWorkspaceDirectory = 0
+compositeSearchHeight = 0
 
 # When another build is searching for builds to include,
-# tell it to leave you out.
+# tell it to leave this entire project group out.
 excludeFromCompositeBuild = false
 ```
 
@@ -157,7 +157,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.8"
+      classpath "us.ihmc:ihmc-build:0.12.10"
    }
 }
 
@@ -177,7 +177,7 @@ buildscript {
       jcenter()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.8"
+      classpath "us.ihmc:ihmc-build:0.12.10"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
