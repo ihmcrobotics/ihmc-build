@@ -17,7 +17,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
    val logger = configurator.logger
    val kebabCasedName = configurator.settings.rootProject.name
-   val compositeSearchHeight = configurator.depthFromWorkspaceDirectory
+   val compositeSearchHeight = configurator.compositeSearchHeight
    val buildRootPath: Path = configurator.settings.rootProject.projectDir.toPath()
    var compositeSearchPath: Path
    private val kebabCasedNameToPropertiesMap = HashMap<String, IHMCBuildProperties>()

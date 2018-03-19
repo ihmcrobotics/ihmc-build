@@ -76,6 +76,25 @@ fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraP
    }
 }
 
+fun compositeSearchHeightCompatibility(logger: Logger, ext: ExtraPropertiesExtension): Int
+{
+   if (ext.has("compositeSearchHeight") && !(ext.get("compositeSearchHeight") as String).startsWith("$"))
+   {
+      return (ext.get("compositeSearchHeight") as String).toInt()
+   }
+   else if (ext.has("depthFromWorkspaceDirectory") && !(ext.get("depthFromWorkspaceDirectory") as String).startsWith("$"))
+   {
+      return (ext.get("depthFromWorkspaceDirectory") as String).toInt()
+   }
+   else
+   {
+      val defaultValue = 0
+      logInfo(logger, "No value found for compositeSearchHeight. Using default value: $defaultValue")
+      ext.set("compositeSearchHeight", defaultValue)
+      return defaultValue
+   }
+}
+
 fun toSourceSetName(subproject: Project): String
 {
    return toKebabCased(subproject.name.substringAfter(subproject.parent!!.name + "-"))

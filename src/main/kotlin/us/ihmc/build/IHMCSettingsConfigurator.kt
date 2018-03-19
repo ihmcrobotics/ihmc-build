@@ -13,7 +13,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    lateinit var pascalCasedName: String
    lateinit var extraSourceSets: ArrayList<String>
    lateinit var publishMode: String
-   var depthFromWorkspaceDirectory: Int = 1
+   var compositeSearchHeight: Int = 0
    var excludeFromCompositeBuild: Boolean = false
    
    init
@@ -77,7 +77,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("isProjectGroup", "true")
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("publishMode", "LOCAL (default)")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "0 (default)")
+      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }
@@ -88,7 +88,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       checkForPropertyInternal("publishMode", "LOCAL (default)")
-      checkForPropertyInternal("depthFromWorkspaceDirectory", "0 (default)")
+      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
    }
@@ -106,7 +106,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
             "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
             "publishMode"                 -> publishMode = ext.get(property) as String
-            "depthFromWorkspaceDirectory" -> depthFromWorkspaceDirectory = (ext.get(property) as String).toInt()
             "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
          }
       }
