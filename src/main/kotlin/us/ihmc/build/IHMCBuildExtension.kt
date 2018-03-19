@@ -54,7 +54,7 @@ open class IHMCBuildExtension(val project: Project)
    // Bamboo variables
    private val isChildBuild: Boolean
    private val isBambooBuild: Boolean
-   private val buildNumber: String
+   private val integrationNumber: String
    private lateinit var publishVersion: String
    private val isBranchBuild: Boolean
    private val branchName: String
@@ -96,35 +96,35 @@ open class IHMCBuildExtension(val project: Project)
       isBambooBuild = bambooPlanKeyProperty != "UNKNOWN-KEY"
       if (offline || !isBambooBuild)
       {
-         buildNumber = bambooBuildNumberProperty
+         integrationNumber = bambooBuildNumberProperty
       }
       else if (isChildBuild)
       {
-         buildNumber = requestGlobalBuildNumberFromCIDatabase(bambooParentBuildKeyProperty)
+         integrationNumber = requestIntegrationNumberFromCIDatabase(bambooParentBuildKeyProperty)
       }
       else
       {
-         buildNumber = requestGlobalBuildNumberFromCIDatabase("$bambooPlanKeyProperty-$bambooBuildNumberProperty")
+         integrationNumber = requestIntegrationNumberFromCIDatabase("$bambooPlanKeyProperty-$bambooBuildNumberProperty")
       }
       isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
       branchName = bambooBranchNameProperty.replace("/", "-")
    }
    
-   private fun requestGlobalBuildNumberFromCIDatabase(buildKey: String): String
+   private fun requestIntegrationNumberFromCIDatabase(buildKey: String): String
    {
       var tryCount = 0
-      var globalBuildNumber = "ERROR"
-      while (tryCount < 5 && globalBuildNumber == "ERROR")
+      var integrationNumber = "ERROR"
+      while (tryCount < 5 && integrationNumber == "ERROR")
       {
-         globalBuildNumber = tryGlobalBuildNumberRequest(buildKey)
+         integrationNumber = tryIntegrationNumberRequest(buildKey)
          tryCount++
-         logInfo(logger, "Global build number for $buildKey: $globalBuildNumber")
+         logInfo(logger, "Integration number for $buildKey: $integrationNumber")
       }
       
-      return globalBuildNumber.toString()
+      return integrationNumber
    }
    
-   private fun tryGlobalBuildNumberRequest(buildKey: String): String
+   private fun tryIntegrationNumberRequest(buildKey: String): String
    {
       try
       {
@@ -132,7 +132,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       catch (e: UnirestException)
       {
-         logInfo(logger, "Failed to retrieve global build number. Trying again... " + e.message)
+         logInfo(logger, "Failed to retrieve integration number. Trying again... " + e.message)
          ThreadTools.sleep(100)
          try
          {
@@ -474,7 +474,7 @@ open class IHMCBuildExtension(val project: Project)
          {
             publishVersion += "-$branchName"
          }
-         publishVersion += "-$buildNumber"
+         publishVersion += "-$integrationNumber"
          return publishVersion
       }
       else
@@ -568,7 +568,7 @@ open class IHMCBuildExtension(val project: Project)
                   {
                      childVersion += "-$branchName"
                   }
-                  childVersion += "-$buildNumber"
+                  childVersion += "-$integrationNumber"
                   closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
                }
                if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
