@@ -126,10 +126,11 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    
    private fun mapAllCompatiblePaths(directory: Path)
    {
+      var includedBuildProperties: IHMCBuildProperties? = null
       if (isPathCompatibleWithBuildConfiguration(directory))
       {
          // Load the properties, even for the root
-         val includedBuildProperties = IHMCBuildProperties(logger, directory)
+         includedBuildProperties = IHMCBuildProperties(logger, directory)
          
          // Always include the build root, because observe external exclude preferences
          if (includedBuildProperties.kebabCasedName == kebabCasedName || !includedBuildProperties.excludeFromCompositeBuild)
@@ -142,10 +143,16 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             pathToPropertiesMap.put(directory, includedBuildProperties)
          }
       }
-      
-      for (subdirectory in directory.toFile().listFiles(File::isDirectory))
+   
+      // Exclude subprojects of excluded groups
+      if (includedBuildProperties == null
+            || includedBuildProperties.kebabCasedName == kebabCasedName
+            || !includedBuildProperties.excludeFromCompositeBuild)
       {
-         mapAllCompatiblePaths(subdirectory.toPath())
+         for (subdirectory in directory.toFile().listFiles(File::isDirectory))
+         {
+            mapAllCompatiblePaths(subdirectory.toPath())
+         }
       }
    }
    
