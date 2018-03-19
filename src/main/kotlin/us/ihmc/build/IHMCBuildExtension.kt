@@ -483,9 +483,10 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   /** Public API. **/
    fun isBuildRoot(): Boolean
    {
-      return project.gradle.startParameter.isSearchUpwards
+      return isBuildRoot(project)
    }
    
    fun thisProjectIsIncludedBuild(): Boolean
@@ -495,7 +496,7 @@ open class IHMCBuildExtension(val project: Project)
    
    fun getIncludedBuilds(): Collection<IncludedBuild>
    {
-      if (isBuildRoot())
+      if (isBuildRoot(project))
       {
          return project.gradle.includedBuilds
       }

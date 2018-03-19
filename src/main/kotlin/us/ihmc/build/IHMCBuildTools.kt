@@ -255,5 +255,5 @@ private fun revertAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: P
 
 fun isBuildRoot(project: Project): Boolean
 {
-   return project.gradle.startParameter.isSearchUpwards
+   return project.gradle.parent == null
 }
