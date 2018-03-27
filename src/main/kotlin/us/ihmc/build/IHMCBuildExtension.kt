@@ -208,17 +208,24 @@ open class IHMCBuildExtension(val project: Project)
       {
          declareJCenter()
          declareMavenCentral()
-         repository("https://artifactory.ihmc.us/artifactory/snapshots/")
+         repository("http://10.6.6.221:8081/artifactory/snapshots/")
          repository("http://dl.bintray.com/ihmcrobotics/maven-release")
+         if (!openSource)
+         {
+            repository("http://10.6.6.221:8081/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+            repository("http://10.6.6.221:8081/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
+            repository("http://10.6.6.221:8081/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
+         }
+         repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+         repository("http://clojars.org/repo/")
+         repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         repository("https://artifactory.ihmc.us/artifactory/snapshots/")
          if (!openSource)
          {
             repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
             repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
             repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
-         repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-         repository("http://clojars.org/repo/")
-         repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
       }
       else
       {
@@ -592,6 +599,11 @@ open class IHMCBuildExtension(val project: Project)
                {
                   externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
                }
+            }
+            
+            if (externalDependencyVersion.contains("NOT-FOUND"))
+            {
+               throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
             }
          }
          else // Pass directly to gradle as declared
