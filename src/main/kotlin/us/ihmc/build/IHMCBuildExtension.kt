@@ -886,6 +886,13 @@ open class IHMCBuildExtension(val project: Project)
          logInfo(logger, "Failed POM check: $groupId:$artifactId:$highestVersion")
          repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
          highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
+         
+         if (highestVersion.contains("NOT-FOUND"))
+         {
+            logError(logger, "Rollback failed, no more versions found: $groupId:$artifactId:$highestVersion")
+            break;
+         }
+         
          logInfo(logger, "Rolling back to: $groupId:$artifactId:$highestVersion")
       }
       
