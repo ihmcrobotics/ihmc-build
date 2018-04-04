@@ -185,6 +185,19 @@ apply plugin: "us.ihmc.ihmc-build"
 
 ### Commands
 
+The following covers running tasks over your builds, which may be composite builds.
+
+##### Custom Commands
+
+`gradle compositeTask -PtaskName=someTaskName`
+
+For example, to run the Java plugin's `compileJava` task on your project plus all included Java projects, run:
+
+`gradle compositeTask -PtaskName=compileJava`.
+
+As always, pass any additional properties required for your task
+via additional `-PsomeProperty=someValue`.
+
 ##### Publish release
 
 `gradle publish -PpublishMode=STABLE`
