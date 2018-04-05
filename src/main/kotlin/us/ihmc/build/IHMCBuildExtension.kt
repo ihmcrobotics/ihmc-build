@@ -47,9 +47,13 @@ open class IHMCBuildExtension(val project: Project)
    private val bintrayApiKey: String
    private lateinit var artifactoryUsername: String
    private lateinit var artifactoryPassword: String
+   private val publishUsername: String
+   private val publishPassword: String
    
-   private val publishModeProperty: String
    private val kebabCasedNameProperty: String
+   private val snapshotModeProperty: Boolean
+   private val publishUrlProperty: String
+   private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
    
    // Bamboo variables
    private val isChildBuild: Boolean
@@ -83,8 +87,12 @@ open class IHMCBuildExtension(val project: Project)
       bintrayApiKey = setupPropertyWithDefault("bintray_key", "unset_api_key")
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
+      publishUsername = setupPropertyWithDefault("publishUsername", "")
+      publishPassword = setupPropertyWithDefault("publishPassword", "")
+   
+      snapshotModeProperty = snapshotModeCompatibility(logger, project.extra)
+      publishUrlProperty = publishUrlCompatibility(logger, project.extra)
       
-      publishModeProperty = setupPropertyWithDefault("publishMode", "SNAPSHOT")
       kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
@@ -331,7 +339,11 @@ open class IHMCBuildExtension(val project: Project)
             
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
             
-            if (publishModeProperty == "SNAPSHOT")
+            if (publishUrlProperty.toLowerCase() == "local")
+            {
+               declareMavenLocal()
+            }
+            else if (publishUrlProperty == "ihmcSnapshots" || publishUrlProperty == "ihmcSnapshot")
             {
                if (openSource)
                {
@@ -342,16 +354,37 @@ open class IHMCBuildExtension(val project: Project)
                   declareArtifactory("proprietary-snapshots")
                }
             }
-            else if (publishModeProperty == "STABLE")
+            else if (publishUrlProperty == "ihmcRelease")
             {
                if (openSource)
                {
-                  declareBintray()
+                  declareBintray("maven-release")
                }
                else
                {
                   declareArtifactory("proprietary-releases")
                }
+            }
+            else if (publishUrlProperty == "ihmcVendor")
+            {
+               if (openSource)
+               {
+                  declareBintray("maven-vendor")
+               }
+               else
+               {
+                  declareArtifactory("proprietary-releases")
+               }
+            }
+            else if (customPublishUrls.contains(publishUrlProperty)) // addPublishUrl was called
+            {
+               declareCustomPublishUrl(publishUrlProperty, customPublishUrls[publishUrlProperty]!!)
+            }
+            else // User passes new url in manually
+            {
+               logInfo(logger, "Declaring user publish repository: $publishUrlProperty")
+               val userPublishUrl = IHMCPublishUrl(publishUrlProperty, publishUsername, publishPassword)
+               declareCustomPublishUrl("User", userPublishUrl)
             }
             
             val java = convention.getPlugin(JavaPluginConvention::class.java)
@@ -373,6 +406,17 @@ open class IHMCBuildExtension(val project: Project)
 //            dependsOn(subproject.tasks.getByName("publish"))
 //         })
 //      }
+   }
+   
+   fun addPublishUrl(keyword: String, url: String)
+   {
+      customPublishUrls[keyword] = IHMCPublishUrl(url, "",
+                                                  setupPropertyWithDefault("publishPassword", ""))
+   }
+   fun addPublishUrl(keyword: String, url: String, username: String, password: String)
+   {
+      customPublishUrls[keyword] = IHMCPublishUrl(url, publishUsername,
+                                                  setupPropertyWithDefault("publishPassword", ""))
    }
    
    fun setupJavaSourceSets()
@@ -470,11 +514,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun getPublishVersion(): String
    {
-      if (publishModeProperty == "STABLE")
-      {
-         return version
-      }
-      else if (publishModeProperty == "SNAPSHOT")
+      if (snapshotModeProperty)
       {
          var publishVersion = "SNAPSHOT"
          if (isBranchBuild)
@@ -486,7 +526,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         return publishModeProperty
+         return version
       }
    }
    
@@ -953,26 +993,46 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
    
+   fun Project.declareCustomPublishUrl(keyword: String, publishUrl: IHMCPublishUrl)
+   {
+      val publishing = extensions.getByType(PublishingExtension::class.java)
+      publishing.repositories.maven(closureOf<MavenArtifactRepository> {
+         name = toPascalCased(keyword)
+         url = uri(publishUrl.url)
+         if (publishUrl.hasCredentials())
+         {
+            credentials.username = publishUrl.username
+            credentials.password = publishUrl.password
+         }
+      })
+   }
+   
    fun Project.declareArtifactory(repoName: String)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = "Artifactory"
+         name = "Artifactory" + toPascalCased(repoName)
          url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
       })
    }
    
-   fun Project.declareBintray()
+   fun Project.declareBintray(repoName: String)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = "BintrayRelease"
-         url = uri("https://api.bintray.com/maven/ihmcrobotics/maven-release/" + rootProject.name)
+         name = "Bintray" + toPascalCased(repoName)
+         url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
          credentials.username = bintrayUser
          credentials.password = bintrayApiKey
       })
+   }
+   
+   fun Project.declareMavenLocal()
+   {
+      val publishing = extensions.getByType(PublishingExtension::class.java)
+      publishing.repositories.mavenLocal()
    }
    
    private fun Project.declarePublication(artifactName: String, configuration: Configuration, sourceSet: SourceSet)

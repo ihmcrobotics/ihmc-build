@@ -1,3 +1,5 @@
+/src/test/builds/**/build
+
 # Top level directories to ignore
 /build
 /classes

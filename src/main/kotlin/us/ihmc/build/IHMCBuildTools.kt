@@ -1,5 +1,6 @@
 package us.ihmc.build
 
+import groovy.lang.MissingPropertyException
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.gradle.api.GradleException
@@ -73,6 +74,59 @@ fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraP
       logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
       ext.set("kebabCasedName", defaultValue)
       return defaultValue
+   }
+}
+
+fun snapshotModeCompatibility(logger: Logger, ext: ExtraPropertiesExtension): Boolean
+{
+   if (ext.has("snapshotMode") && !(ext.get("snapshotMode") as String).startsWith("$"))
+   {
+      return (ext.get("snapshotMode") as String).trim().toLowerCase().contains("true");
+   }
+   if (ext.has("publishMode") // Backwards compatibility
+         && !(ext.get("publishMode") as String).startsWith("$")
+         && (ext.get("publishMode") as String).trim().toLowerCase().contains("snapshot"))
+   {
+      logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set snapshotMode = true.")
+      return true
+   }
+   
+   return false
+}
+
+fun publishUrlCompatibility(logger: Logger, ext: ExtraPropertiesExtension): String
+{
+   if (ext.has("publishMode")) // Backwards compatibility
+   {
+      logWarn(logger, "publishMode has been replaced by publishUrl. See README for details.")
+   }
+   if (ext.has("publishUrl") && !(ext.get("publishUrl") as String).startsWith("$"))
+   {
+      return (ext.get("publishUrl") as String).trim()
+   }
+   else if (ext.has("publishMode") && !(ext.get("publishMode") as String).startsWith("$")) // Backwards compatibility
+   {
+      val publishModeString = (ext.get("publishMode") as String).trim().toLowerCase()
+      
+      if (publishModeString.contains("local"))
+      {
+         logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set publishUrl = local.")
+         return "local"
+      }
+      else if (publishModeString.contains("snapshot"))
+      {
+         logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set publishUrl = ihmcSnapshots.")
+         return "ihmcSnapshots"
+      }
+      else
+      {
+         logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set publishUrl = ihmcRelease.")
+         return "ihmcRelease"
+      }
+   }
+   else
+   {
+      throw MissingPropertyException("Please set publishUrl = local (default) in gradle.properties.")
    }
 }
 

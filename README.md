@@ -31,7 +31,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.12"
+      classpath "us.ihmc:ihmc-build:0.13.0"
    }
 }
 
@@ -49,7 +49,7 @@ ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 kebabCasedName = your-project
 pascalCasedName = YourProject
 extraSourceSets = ["test"]
-publishMode = LOCAL
+publishUrl = local
 
 # When building from this directory, set how many directories
 # to go up and do a search for more builds to include.
@@ -68,7 +68,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.12"
+      classpath "us.ihmc:ihmc-build:0.13.0"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
@@ -135,7 +135,7 @@ The Gradle build files for the projects that do not contain `src/main/java` dire
 ```ini
 kebabCasedName = your-project
 pascalCasedName = YourProject
-publishMode = LOCAL
+publishUrl = local
 
 # Tells the build plugin to always include subprojects
 isProjectGroup = true
@@ -157,7 +157,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.12"
+      classpath "us.ihmc:ihmc-build:0.13.0"
    }
 }
 
@@ -177,7 +177,7 @@ buildscript {
       jcenter()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.12.12"
+      classpath "us.ihmc:ihmc-build:0.13.0"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
@@ -187,15 +187,42 @@ apply plugin: "us.ihmc.ihmc-build"
 
 ##### Publish release
 
-`gradle publish -PpublishMode=STABLE`
+`gradle publish -PpublishUrl=ihmcRelease`
 
 Publishes `your-project-0.1.0.jar` to Bintray if openSource == true, else publish to Artifactory. Uses declared `version` in build.gradle
 
 ##### Publish locally
 
-`gradle publishToMavenLocal -PpublishMode=LOCAL`
+`gradle publish -PpublishUrl=local`
 
-Set `version` to local and publish `your-project-LOCAL.jar` to `$home/.m2`
+Publish `your-project-LOCAL.jar` to `$home/.m2`
+
+##### Publish Custom URL
+
+`gradle publish -PpublishUrl=https://my.site/repo -PpublishUsername=username -PpublishPassword=password`
+
+or use the `addPublishUrl()` function:
+
+**build.gradle**
+```gradle
+ihmc {
+   ...
+   
+   configureDependencyResolution()  // Between here ->
+   addPublishUrl("myVendor", "https://my.site/my-repo", publishUsername, publishPassword)
+   configurePublications() // <- and here
+}
+```
+
+##### Publish Over Composite Build
+
+For convenience, an alias for `gradle compositeTask -PtaskName=publish`:
+
+`gradle publishAll`
+
+For example, publishing a project group:
+
+`gradle publishAll -PpublishUrl=ihmcRelease`
 
 ##### Clean build directories
 

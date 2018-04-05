@@ -12,7 +12,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
 {
    lateinit var pascalCasedName: String
    lateinit var extraSourceSets: ArrayList<String>
-   lateinit var publishMode: String
+   lateinit var publishUrl: String
    var compositeSearchHeight: Int = 0
    var excludeFromCompositeBuild: Boolean = false
    
@@ -76,7 +76,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
       checkForPropertyInternal("isProjectGroup", "true")
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      checkForPropertyInternal("publishMode", "LOCAL (default)")
+      publishUrl = publishUrlCompatibility(logger, ext)
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
@@ -87,7 +87,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
       checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
-      checkForPropertyInternal("publishMode", "LOCAL (default)")
+      publishUrl = publishUrlCompatibility(logger, ext)
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
       checkForPropertyInternal("org.gradle.workers.max", "200")
@@ -105,7 +105,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          {
             "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
-            "publishMode"                 -> publishMode = ext.get(property) as String
             "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
          }
       }
