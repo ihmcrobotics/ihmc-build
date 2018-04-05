@@ -59,5 +59,5 @@ dependencies {
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile(gradleKotlinDsl())
    
-   testCompile("org.junit.jupiter:junit-jupiter-api:5.1.0")
+   testCompile("junit:junit:4.12")
 }
