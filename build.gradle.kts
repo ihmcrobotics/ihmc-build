@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.12.12"
+version = "0.13.0"
 
 gradlePlugin {
    (plugins) {
@@ -38,6 +38,8 @@ pluginBundle {
 java {
    sourceCompatibility = JavaVersion.VERSION_1_8
    targetCompatibility = JavaVersion.VERSION_1_8
+   
+   sourceSets.getByName("test").resources.srcDir("src/test/builds")
 }
 
 repositories {
@@ -56,4 +58,6 @@ dependencies {
    compile("us.ihmc:ihmc-ci-plugin:0.17.7")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile(gradleKotlinDsl())
+   
+   testCompile("junit:junit:4.12")
 }
