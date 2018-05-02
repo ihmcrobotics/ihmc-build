@@ -213,6 +213,14 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          val builder = AstBuilder()
          val bytesInFile = String(Files.readAllBytes(buildFile))
          logInfo(logger, "Parsing for dependencies: " + buildFile)
+         
+         // Handle empty build.gradle
+         if (bytesInFile.trim().isEmpty())
+         {
+            logWarn(logger, "Build file is empty: $buildFile")
+            return dependencySet
+         }
+         
          val nodes: List<ASTNode> = builder.buildFromString(bytesInFile)
          val dependencies = ArrayList<Array<String>>()
          val visitor = ExternalGradleFileCodeVisitor(dependencies, logger)
