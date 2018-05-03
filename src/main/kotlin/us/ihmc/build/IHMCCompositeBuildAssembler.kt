@@ -158,9 +158,13 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             || forceInclude(includedBuildProperties.kebabCasedName) // Always include the build root, composite root
             || !includedBuildProperties.excludeFromCompositeBuild) // Exclude subprojects of excluded groups
       {
-         for (subdirectory in directory.toFile().listFiles(File::isDirectory))
+         val listFiles = directory.toFile().listFiles(File::isDirectory)
+         if (listFiles != null) // Handle archive directories on Windows (i.e. C:/$RECYCLE.BIN)
          {
-            mapAllCompatiblePaths(subdirectory.toPath())
+            for (subdirectory in listFiles)
+            {
+               mapAllCompatiblePaths(subdirectory.toPath())
+            }
          }
       }
    }
@@ -182,8 +186,11 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    private fun isPathCompatibleWithBuildConfiguration(subdirectory: Path): Boolean
    {
       return (Files.isDirectory(subdirectory)
-            && subdirectory.fileName.toString() != "bin" // Address Eclipse bug where it copies build files to bin directory
-            && subdirectory.fileName.toString() != "out" // Address the same hypothetical situation in IntelliJ
+            // Handle system root directory where fileName is null
+            // Address Eclipse bug where it copies build files to bin directory
+            && (subdirectory.fileName != null && subdirectory.fileName.toString() != "bin")
+            // Address the same hypothetical situation in IntelliJ
+            && (subdirectory.fileName != null && subdirectory.fileName.toString() != "out")
             && (Files.exists(subdirectory.resolve("build.gradle")) || Files.exists(subdirectory.resolve("build.gradle.kts")))
             && Files.exists(subdirectory.resolve("gradle.properties"))
             && Files.exists(subdirectory.resolve("settings.gradle")))
