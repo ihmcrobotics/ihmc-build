@@ -214,8 +214,9 @@ open class IHMCBuildExtension(val project: Project)
    {
       if (isBambooBuild)
       {
-         declareJCenter()
          declareMavenCentral()
+         repository("http://clojars.org/repo/")
+         declareJCenter()
          repository("http://10.6.6.221:8081/artifactory/snapshots/")
          repository("http://dl.bintray.com/ihmcrobotics/maven-release")
          if (!openSource)
@@ -225,7 +226,6 @@ open class IHMCBuildExtension(val project: Project)
             repository("http://10.6.6.221:8081/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
          repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-         repository("http://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://artifactory.ihmc.us/artifactory/snapshots/")
          if (!openSource)
@@ -237,11 +237,11 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         declareJCenter()
          declareMavenCentral()
+         declareJCenter()
+         repository("http://clojars.org/repo/")
          repository("http://dl.bintray.com/ihmcrobotics/maven-release")
          repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
-         repository("http://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          declareMavenLocal()
       }
@@ -253,7 +253,7 @@ open class IHMCBuildExtension(val project: Project)
          val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
             add("compile", project)
-            add("compile", "us.ihmc:ihmc-ci-core-api:0.17.7")
+            add("compile", "us.ihmc:ihmc-ci-core-api:0.17.10")
          }
       }
       catch (e: UnknownProjectException)
