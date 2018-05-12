@@ -253,7 +253,7 @@ open class IHMCBuildExtension(val project: Project)
          val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
             add("compile", project)
-            add("compile", "us.ihmc:ihmc-ci-core-api:0.17.11")
+            add("compile", "us.ihmc:ihmc-ci-core-api:0.17.14")
          }
       }
       catch (e: UnknownProjectException)
