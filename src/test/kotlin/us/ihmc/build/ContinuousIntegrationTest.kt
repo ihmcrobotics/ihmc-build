@@ -34,11 +34,12 @@ class ContinuousIntegrationTest
       output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=local", "generateTestSuitesTest")
       
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
-      
-      output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots", "generateTestSuitesTest")
-      
-      assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project/SNAPSHOT-0/your-project-SNAPSHOT-0.jar")))
-      assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project-test/SNAPSHOT-0/your-project-test-SNAPSHOT-0.jar")))
-      assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
+   
+//      val artifactory = System.getProperty("artifactory")
+//      output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots " + artifactory, "generateTestSuitesTest")
+//
+//      assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project/SNAPSHOT-0/your-project-SNAPSHOT-0.jar")))
+//      assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project-test/SNAPSHOT-0/your-project-test-SNAPSHOT-0.jar")))
+//      assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
 }
