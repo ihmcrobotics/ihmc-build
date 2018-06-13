@@ -200,6 +200,8 @@ via additional `-PsomeProperty=someValue`.
 
 ##### Publish release
 
+Set `bintray_user` and `bintray_key` in `~/.gradle/gradle.properties` after generating an API key on Bintray.
+
 `gradle publish -PpublishUrl=ihmcRelease`
 
 Publishes `your-project-0.1.0.jar` to Bintray if openSource == true, else publish to Artifactory. Uses declared `version` in build.gradle
