@@ -601,8 +601,8 @@ open class IHMCBuildExtension(val project: Project)
          }
          else
          {
-            var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please clone" +
-                  " $artifactId next to this one to build it from source."
+            var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
+                  " $artifactId in your composite build or use a release."
             logError(logger, message)
             throw GradleException("[ihmc-build] " + message)
          }
