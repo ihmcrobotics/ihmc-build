@@ -1,6 +1,7 @@
 package us.ihmc.build
 
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import us.ihmc.encryptedProperties.EncryptedPropertyManager
 import java.io.File
@@ -26,7 +27,8 @@ class ContinuousIntegrationTest
       assertTrue(output.contains(Regex("YourProjectAFast")))
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
-   
+
+   @Ignore
    @Test
    fun testPublishSnapshotLocal()
    {
