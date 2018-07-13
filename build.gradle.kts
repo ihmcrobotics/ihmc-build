@@ -65,4 +65,5 @@ dependencies {
    compile(gradleKotlinDsl())
    
    testCompile("junit:junit:4.12")
+   testCompile("us.ihmc:encrypted-properties:0.1.0")
 }
