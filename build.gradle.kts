@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.13.7"
+version = "0.14.0"
 
 gradlePlugin {
    (plugins) {
@@ -65,4 +65,5 @@ dependencies {
    compile(gradleKotlinDsl())
    
    testCompile("junit:junit:4.12")
+   testCompile("us.ihmc:encrypted-properties:0.1.0")
 }

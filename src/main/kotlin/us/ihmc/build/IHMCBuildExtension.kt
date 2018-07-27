@@ -588,68 +588,76 @@ open class IHMCBuildExtension(val project: Project)
    {
       var externalDependencyVersion: String
       
-      // Make sure POM is correct
-      if (artifactIsIncludedBuild(artifactId))
+      // For high-level projects depending on develop,
+      // use version: "source" to make sure you've got everything, and fail fast
+      if (declaredVersion.toLowerCase().contains("source"))
       {
-         externalDependencyVersion = publishVersion
+         if (artifactIsIncludedBuild(artifactId))
+         {
+            // When deploying to the robot, or when publishing high-level snapshots,
+            // set dependency versions to your version.
+            // All high-level project version numbers are the same
+            externalDependencyVersion = publishVersion
+         }
+         else
+         {
+            var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
+                  " $artifactId in your composite build or use a release."
+            logError(logger, message)
+            throw GradleException("[ihmc-build] " + message)
+         }
       }
-      else if (declaredVersion.toLowerCase().contains("source"))
+      // Try to resolve a snapshot, check for snapshotMode first
+      // Only gonna happen on Bamboo, not supporting this for users
+      else if (snapshotModeProperty && declaredVersion.startsWith("SNAPSHOT"))
       {
-         hardCrash(logger, "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please clone $artifactId next to this one to build it from source.")
+         var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "")
+   
+         // Use Bamboo variables to resolve the version
+         if (isBambooBuild)
+         {
+            var closestVersion = "NOT-FOUND"
+            if (isChildBuild) // Match to parent build, exact branch and version
+            {
+               var childVersion = "SNAPSHOT"
+               if (isBranchBuild)
+               {
+                  childVersion += "-$branchName"
+               }
+               childVersion += "-$integrationNumber"
+               closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
+            }
+            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
+            {
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
+            }
+            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
+            {
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+            }
+            externalDependencyVersion = closestVersion
+         }
+         else
+         {
+            // For users, probably get rid of this soon
+            if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
+            {
+               externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
+            }
+            else // Get exact match on end of string
+            {
+               externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
+            }
+         }
+   
+         if (externalDependencyVersion.contains("NOT-FOUND"))
+         {
+            throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
+         }
+      }
+      else // Pass directly to gradle as declared
+      {
          externalDependencyVersion = declaredVersion
-      }
-      else
-      {
-         if (declaredVersion.startsWith("SNAPSHOT"))
-         {
-            var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "")
-            
-            // Use Bamboo variables to resolve the version
-            if (isBambooBuild)
-            {
-               var closestVersion = "NOT-FOUND"
-               if (isChildBuild) // Match to parent build, exact branch and version
-               {
-                  var childVersion = "SNAPSHOT"
-                  if (isBranchBuild)
-                  {
-                     childVersion += "-$branchName"
-                  }
-                  childVersion += "-$integrationNumber"
-                  closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
-               }
-               if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
-               {
-                  closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-               }
-               if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-               {
-                  closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
-               }
-               externalDependencyVersion = closestVersion
-            }
-            else
-            {
-               // For users
-               if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
-               {
-                  externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
-               }
-               else // Get exact match on end of string
-               {
-                  externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
-               }
-            }
-            
-            if (externalDependencyVersion.contains("NOT-FOUND"))
-            {
-               throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
-            }
-         }
-         else // Pass directly to gradle as declared
-         {
-            externalDependencyVersion = declaredVersion
-         }
       }
       
       logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")

@@ -1,7 +1,9 @@
 package us.ihmc.build
 
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
+import us.ihmc.encryptedProperties.EncryptedPropertyManager
 import java.io.File
 import java.io.IOException
 import java.nio.file.Path
@@ -25,7 +27,8 @@ class ContinuousIntegrationTest
       assertTrue(output.contains(Regex("YourProjectAFast")))
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
-   
+
+   @Ignore
    @Test
    fun testPublishSnapshotLocal()
    {
@@ -34,8 +37,13 @@ class ContinuousIntegrationTest
       output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=local", "generateTestSuitesTest")
       
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
-      
-      output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots", "generateTestSuitesTest")
+
+      val credentials = EncryptedPropertyManager.loadEncryptedCredentials()
+      val artifactoryUsername = credentials.get("artifactoryUsername")
+      val artifactoryPassword = credentials.get("artifactoryPassword")
+
+      output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots " +
+                                   "-PartifactoryUsername=$artifactoryUsername -PartifactoryPassword=$artifactoryPassword", "generateTestSuitesTest")
       
       assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project/SNAPSHOT-0/your-project-SNAPSHOT-0.jar")))
       assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project-test/SNAPSHOT-0/your-project-test-SNAPSHOT-0.jar")))
