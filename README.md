@@ -245,6 +245,15 @@ For example, publishing a project group:
 
 Cleans `build/` (Gradle), `bin/` (Eclipse), and `out/` (IntelliJ) build directories from all included projects.
 
+##### Snapshots
+
+Snapshots is an unsupported feature which is used internally in our CI.
+
+`publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots`
+
+Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions declared as `SNAPSHOT-*`, matching
+them to artifacts found to be available on IHMC's Artifactory snapshots repos.
+
 ### Learn more
 
 Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.ihmc-build
