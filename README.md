@@ -254,6 +254,19 @@ Snapshots is an unsupported feature which is used internally in our CI.
 Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions declared as `SNAPSHOT-*`, matching
 them to artifacts found to be available on IHMC's Artifactory snapshots repos.
 
+### Troubleshooting
+
+##### Group property requirement
+
+The [Gradle composite builds](https://docs.gradle.org/current/userguide/composite_builds.html) feature requires the `group` and `version` project properties
+to be set on all of the included projects. This is a common reason why a dependency 
+build will not be included. See more at https://docs.gradle.org/current/userguide/composite_builds.html.
+
+##### Gradle file trio requirement
+
+The `ihmc-build` plugin requires all projects to have a `build.gradle`, `settings.gradle`, and `gradle.properties` file to qualify for build inclusion. This
+another common reason that projects don't make it into the build.
+
 ### Learn more
 
 Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.ihmc-build
