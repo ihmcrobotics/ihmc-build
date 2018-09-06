@@ -4,10 +4,12 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.14.0"
+      classpath "us.ihmc:ihmc-build:0.15.1"
+      classpath "us.ihmc:ihmc-ci-plugin:0.18.0"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
+apply plugin: "us.ihmc.ihmc-ci-plugin"
 
 testSuites {
    disableBambooConfigurationCheck = true
@@ -33,5 +35,5 @@ mainDependencies {
 }
 
 testDependencies {
-   compile group: 'us.ihmc', name: 'ihmc-ci-core-api', version: '0.17.14'
+   compile group: 'us.ihmc', name: 'ihmc-ci-core-api', version: '0.18.0'
 }

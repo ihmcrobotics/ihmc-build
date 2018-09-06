@@ -21,7 +21,6 @@ import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
 import us.ihmc.commons.thread.ThreadTools
-import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -253,7 +252,6 @@ open class IHMCBuildExtension(val project: Project)
          val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
             add("compile", project)
-            add("compile", "us.ihmc:ihmc-ci-core-api:0.17.14")
          }
       }
       catch (e: UnknownProjectException)
@@ -1084,23 +1082,5 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          classifier = "sources"
       }))
-   }
-   
-   /**
-    * @deprecated Use convertJobNameToKebabCasedName instead.
-    */
-   fun convertJobNameToHyphenatedName(jobName: String): String
-   {
-      return convertJobNameToKebabCasedName(jobName)
-   }
-   
-   /**
-    * Used for artifact-test-runner to keep easy Bamboo configuration.
-    * Job names are pascal cased on Bamboo and use this method to
-    * resolve their kebab cased artifact counterparts.
-    */
-   fun convertJobNameToKebabCasedName(jobName: String): String
-   {
-      return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
 }
