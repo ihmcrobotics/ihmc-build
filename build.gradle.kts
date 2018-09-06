@@ -1,18 +1,25 @@
 import com.gradle.publish.PluginConfig
+import org.jetbrains.kotlin.serialization.js.DynamicTypeDeserializer.id
 
 plugins {
    `java-gradle-plugin`
    `kotlin-dsl`
    `maven-publish`
-   id("com.gradle.plugin-publish") version "0.9.9"
+   id("com.gradle.plugin-publish") version "0.10.0"
 }
 
 group = "us.ihmc"
-version = "0.14.0"
+version = "0.15.1"
+
+pluginBundle {
+   website = "https://github.com/ihmcrobotics/ihmc-build"
+   vcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
+   tags = listOf("build", "ihmc", "robotics")
+}
 
 gradlePlugin {
-   (plugins) {
-      "ihmc-build" {
+   plugins {
+      create("ihmc-build") {
          id = "us.ihmc.ihmc-build"
          implementationClass = "us.ihmc.build.IHMCBuildPlugin"
       }
@@ -20,17 +27,15 @@ gradlePlugin {
 }
 
 pluginBundle {
-   tags = listOf("build", "ihmc", "robotics")
-   website = "https://github.com/ihmcrobotics/ihmc-build"
-   vcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
-   description = "IHMC Robotics opinions on Java builds"
-   
-   plugins(closureOf<NamedDomainObjectContainer<PluginConfig>> {
-      val plugin = PluginConfig("ihmc-build")
-      plugin.id = "us.ihmc.ihmc-build"
-      plugin.displayName = "IHMC Build Plugin"
-      add(plugin)
-   })
+   (plugins) {
+      "ihmc-build" {
+         id = "us.ihmc.ihmc-build"
+         displayName = "IHMC Build Plugin"
+         description = "IHMC Robotics opinions on Java builds"
+         tags = listOf("build", "ihmc", "robotics")
+         version = project.version as String
+      }
+   }
    
    mavenCoordinates.groupId = group as String
 }
@@ -58,7 +63,6 @@ repositories {
 dependencies {
    compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.0")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
-   compile("us.ihmc:ihmc-ci-plugin:0.17.14")
    compile("com.mashape.unirest:unirest-java:1.4.8")
    compile("us.ihmc:ihmc-commons:0.19.1")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
