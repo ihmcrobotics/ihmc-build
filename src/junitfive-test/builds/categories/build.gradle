@@ -1,0 +1,31 @@
+buildscript {
+   repositories {
+      maven { url "https://plugins.gradle.org/m2/" }
+      mavenLocal()
+   }
+   dependencies {
+      classpath "us.ihmc:ihmc-build:0.15.1"
+      classpath "us.ihmc:ihmc-ci-plugin:0.20.6"
+   }
+}
+apply plugin: "us.ihmc.ihmc-build"
+apply plugin: "us.ihmc.ihmc-ci-plugin"
+
+ihmc {
+   group = "us.ihmc"
+   version = "0.1.0"
+   vcsUrl = "https://your.vcs/url"
+   openSource = true
+
+   configureDependencyResolution()
+   configurePublications()
+}
+
+mainDependencies {
+   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+}
+
+testDependencies {
+   implementation "org.junit.jupiter:junit-jupiter-api:5.3.1"
+   runtimeOnly "org.junit.jupiter:junit-jupiter-engine:5.3.1"
+}
