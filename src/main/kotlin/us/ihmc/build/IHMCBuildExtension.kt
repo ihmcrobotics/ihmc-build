@@ -597,6 +597,10 @@ open class IHMCBuildExtension(val project: Project)
             // All high-level project version numbers are the same
             externalDependencyVersion = publishVersion
          }
+         else if (snapshotModeProperty) // allows to retire `groupDependencyVersion` by allowing "source" to be
+         {                              // satisfied by snapshots, but only if snapshotMode = true
+            externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
+         }
          else
          {
             var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
@@ -607,51 +611,10 @@ open class IHMCBuildExtension(val project: Project)
       }
       // Try to resolve a snapshot, check for snapshotMode first
       // Only gonna happen on Bamboo, not supporting this for users
+      // NOTE: This code path will probably hardly be used soon
       else if (snapshotModeProperty && declaredVersion.startsWith("SNAPSHOT"))
       {
-         var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "")
-   
-         // Use Bamboo variables to resolve the version
-         if (isBambooBuild)
-         {
-            var closestVersion = "NOT-FOUND"
-            if (isChildBuild) // Match to parent build, exact branch and version
-            {
-               var childVersion = "SNAPSHOT"
-               if (isBranchBuild)
-               {
-                  childVersion += "-$branchName"
-               }
-               childVersion += "-$integrationNumber"
-               closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
-            }
-            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-            }
-            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
-            }
-            externalDependencyVersion = closestVersion
-         }
-         else
-         {
-            // For users, probably get rid of this soon
-            if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
-            {
-               externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
-            }
-            else // Get exact match on end of string
-            {
-               externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
-            }
-         }
-   
-         if (externalDependencyVersion.contains("NOT-FOUND"))
-         {
-            throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
-         }
+         externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
       }
       else // Pass directly to gradle as declared
       {
@@ -661,7 +624,56 @@ open class IHMCBuildExtension(val project: Project)
       logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
       return externalDependencyVersion
    }
-   
+
+   fun resolveSnapshotVersion(declaredVersion: String, groupId: String, artifactId: String): String
+   {
+      val externalDependencyVersion: String
+      var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "") // not sure where this came from
+
+      // Use Bamboo variables to resolve the version
+      if (isBambooBuild)
+      {
+         var closestVersion = "NOT-FOUND"
+         if (isChildBuild) // Match to parent build, exact branch and version
+         {
+            var childVersion = "SNAPSHOT"
+            if (isBranchBuild)
+            {
+               childVersion += "-$branchName"
+            }
+            childVersion += "-$integrationNumber"
+            closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
+         }
+         if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
+         {
+            closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
+         }
+         if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
+         {
+            closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+         }
+         externalDependencyVersion = closestVersion
+      }
+      else
+      {
+         // For users, probably get rid of this soon
+         if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
+         {
+            externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
+         }
+         else // Get exact match on end of string
+         {
+            externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
+         }
+      }
+
+      if (externalDependencyVersion.contains("NOT-FOUND"))
+      {
+         throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
+      }
+      return externalDependencyVersion
+   }
+
    private fun getSnapshotRepositoryList(): List<String>
    {
       if (openSource)
