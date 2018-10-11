@@ -210,7 +210,7 @@ class IHMCBuildPlugin : Plugin<Project>
       {
          subproject.task(targetTaskName, closureOf<Task> {
             // Declare empty task if it doesn't exist
-            logQuiet(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
+            logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
          })
       }
       catch (e: InvalidUserDataException)
