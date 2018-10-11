@@ -37,21 +37,4 @@ class BasicTest
       
       assertTrue(output.contains(Regex("BUILD FAILED")))
    }
-   
-   fun String.runCommand(workingDir: Path): String? {
-      try {
-         val parts = this.split("\\s".toRegex())
-         val proc = ProcessBuilder(*parts.toTypedArray())
-               .directory(workingDir.toFile())
-               .redirectOutput(ProcessBuilder.Redirect.PIPE)
-               .redirectError(ProcessBuilder.Redirect.PIPE)
-               .start()
-         
-         proc.waitFor(60, TimeUnit.MINUTES)
-         return proc.inputStream.bufferedReader().readText() + proc.errorStream.bufferedReader().readText()
-      } catch(e: IOException) {
-         e.printStackTrace()
-         return null
-      }
-   }
 }
