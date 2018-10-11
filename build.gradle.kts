@@ -61,10 +61,10 @@ repositories {
 }
 
 dependencies {
-   compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.0")
-   compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3")
-   compile("com.mashape.unirest:unirest-java:1.4.8")
-   compile("us.ihmc:ihmc-commons:0.19.1")
+   compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.2")
+   compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3.1")
+   compile("com.mashape.unirest:unirest-java:1.4.9")
+   compile("us.ihmc:ihmc-commons:0.24.0")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile(gradleKotlinDsl())
    
