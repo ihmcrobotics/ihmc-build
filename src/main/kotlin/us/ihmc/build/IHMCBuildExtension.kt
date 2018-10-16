@@ -92,7 +92,7 @@ open class IHMCBuildExtension(val project: Project)
       snapshotModeProperty = snapshotModeCompatibility(logger, project.extra)
       publishUrlProperty = publishUrlCompatibility(logger, project.extra)
       
-      kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
+      kebabCasedNameProperty = titleCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
       val bambooPlanKeyProperty = setupPropertyWithDefault("bambooPlanKey", "UNKNOWN-KEY")

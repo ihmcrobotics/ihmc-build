@@ -11,7 +11,7 @@ import org.gradle.util.CollectionUtils
 open class IHMCDependenciesExtension(private val rootProject: Project, private val name: String, private val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
 {
    private val logger = rootProject.logger
-   private val kebabCasedName: String = kebabCasedNameCompatibility(rootProject.name, logger, rootProject.extra)
+   private val kebabCasedName: String = titleCasedNameCompatibility(rootProject.name, logger, rootProject.extra)
    private val projectToConfigure by lazy {
       if (name == "main")
       {

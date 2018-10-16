@@ -58,26 +58,40 @@ fun isProjectGroupCompatibility(rawString: String): Boolean
    return rawString.trim().toLowerCase().contains("true");
 }
 
-fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraPropertiesExtension): String
+fun titleCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraPropertiesExtension): String
 {
-   if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))
+   if (ext.has("title") && !(ext.get("title") as String).startsWith("$"))
    {
-      val kebabCasedName = ext.get("kebabCasedName") as String
-      logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
-      return kebabCasedName
+      val title = (ext.get("title") as String).trim()
+      logInfo(logger, "Loaded title = $title")
+      return title
+   }
+   else if (ext.has("titleCasedName") && !(ext.get("titleCasedName") as String).startsWith("$"))
+   {
+      val title = (ext.get("titleCasedName") as String).trim()
+      logInfo(logger, "Loaded title = $title. Please set `title = Your Project Title` in gradle.properties!")
+      ext.set("title", title)
+      return title
+   }
+   else if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))
+   {
+      val title = (ext.get("kebabCasedName") as String).trim()
+      logWarn(logger, "Loaded title = $title from depreacted property `kebabCasedName`. Please set title = Your Project Title in gradle.properties!")
+      ext.set("title", title)
+      return title
    }
    else if (ext.has("hyphenatedName") && !(ext.get("hyphenatedName") as String).startsWith("$"))
    {
-
-      val kebabCasedName = ext.get("hyphenatedName") as String
-      logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
-      return kebabCasedName
+      val title = (ext.get("hyphenatedName") as String).trim()
+      logWarn(logger, "Loaded title = $title from depreacted property `hyphenatedName`. Please set `title = Your Project Title` in gradle.properties!")
+      ext.set("title", title)
+      return title
    }
    else
    {
-      val defaultValue = toKebabCased(projectName)
-      logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
-      ext.set("kebabCasedName", defaultValue)
+      val defaultValue = projectName
+      logInfo(logger, "No value found for title. Using default value: $defaultValue. Please set `title = Your Project Title` in gradle.properties!")
+      ext.set("title", defaultValue)
       return defaultValue
    }
 }
@@ -159,6 +173,21 @@ fun compositeSearchHeightCompatibility(logger: Logger, ext: ExtraPropertiesExten
 fun toSourceSetName(subproject: Project): String
 {
    return toKebabCased(subproject.name.substringAfter(subproject.parent!!.name + "-"))
+}
+
+fun titleToKebabCase(titleCased: String): String
+{
+   return titleCased.trim().toLowerCase().replace(" ", "-")
+}
+
+fun titleToPascalCase(titleCased: String): String
+{
+   return titleCased.trim().replace(" ", "")
+}
+
+fun titleToCamelCase(titleCased: String): String
+{
+   return titleCased.trim().replace(" ", "").decapitalize()
 }
 
 fun toPascalCased(anyCased: String): String

@@ -10,7 +10,7 @@ import java.io.File
 
 class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val ext: ExtraPropertiesExtension)
 {
-   lateinit var pascalCasedName: String
+   lateinit var titleCasedName: String
    lateinit var extraSourceSets: ArrayList<String>
    lateinit var publishUrl: String
    var compositeSearchHeight: Int = 0
@@ -73,9 +73,9 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    
    fun configureAsGroupOfProjects()
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
+      titleCasedName = titleCasedNameCompatibility(settings.rootProject.name, logger, ext)
+      settings.rootProject.name = titleToKebabCase(titleCasedName)
       checkForPropertyInternal("isProjectGroup", "true")
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
       publishUrl = publishUrlCompatibility(logger, ext)
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
       checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
@@ -84,8 +84,8 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    
    fun checkRequiredPropertiesAreSet()
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
+      titleCasedName = titleCasedNameCompatibility(settings.rootProject.name, logger, ext)
+      settings.rootProject.name = titleToKebabCase(titleCasedName)
       checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       publishUrl = publishUrlCompatibility(logger, ext)
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
@@ -103,7 +103,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       {
          when (property)
          {
-            "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
             "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
             "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
          }
