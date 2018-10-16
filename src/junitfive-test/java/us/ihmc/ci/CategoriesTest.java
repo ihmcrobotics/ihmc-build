@@ -7,6 +7,9 @@ import us.ihmc.commons.nio.FileTools;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Paths;
 
+/**
+ * Must be run from ihmc-ci root directory.
+ */
 public class CategoriesTest
 {
    @Test
@@ -18,7 +21,8 @@ public class CategoriesTest
       String output = GradleSubBuildTools.runGradleTask("test", projectName);
       Assertions.assertTrue(output.contains("BUILD FAILED"));
 
-      String results = new String(FileTools.readAllBytes(Paths.get("builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
+
+      String results = new String(FileTools.readAllBytes(Paths.get("src/junitfive-test/builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
       System.out.println(results);
       // Asserts 11 tests pass, 1 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>\r\n</td>\r\n<td>11</td>\r\n<td>1</td>\r\n<td>0</td>"));
@@ -33,7 +37,7 @@ public class CategoriesTest
       String output = GradleSubBuildTools.runGradleTask("test -PincludeTags=fast", projectName);
       Assertions.assertTrue(output.contains("BUILD SUCCESSFUL"));
 
-      String results = new String(FileTools.readAllBytes(Paths.get("builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
+      String results = new String(FileTools.readAllBytes(Paths.get("src/junitfive-test/builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
       System.out.println(results);
       // Asserts 5 tests pass, 0 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>\r\n</td>\r\n<td>5</td>\r\n<td>0</td>\r\n<td>0</td>"));
