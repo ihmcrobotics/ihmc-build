@@ -9,7 +9,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.file.Paths;
 
 /**
- * Must be run from ihmc-ci root directory.
+ * Must be run from ihmc-ci/src root directory.
  */
 public class ParallelExecutionTest
 {
@@ -23,7 +23,7 @@ public class ParallelExecutionTest
       Assertions.assertTrue(output.contains("BUILD FAILED"));
 
       LogTools.info("Working dir: " + Paths.get(".").toAbsolutePath());
-      String results = new String(FileTools.readAllBytes(Paths.get("src/junitfive-test/builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
+      String results = new String(FileTools.readAllBytes(Paths.get("junitfive-test/builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
 
       // Asserts 11 tests pass, 1 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>\r\n</td>\r\n<td>11</td>\r\n<td>1</td>\r\n<td>0</td>"));
@@ -39,7 +39,7 @@ public class ParallelExecutionTest
       Assertions.assertTrue(output.contains("BUILD SUCCESSFUL"));
 
       LogTools.info("Working dir: " + Paths.get(".").toAbsolutePath());
-      String results = new String(FileTools.readAllBytes(Paths.get("src/junitfive-test/builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
+      String results = new String(FileTools.readAllBytes(Paths.get("junitfive-test/builds/categories/src/test/build/reports/tests/test/index.html"), e -> Assertions.fail(e)), "UTF-8");
 
       // Asserts 5 tests pass, 0 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>\r\n</td>\r\n<td>5</td>\r\n<td>0</td>\r\n<td>0</td>"));
