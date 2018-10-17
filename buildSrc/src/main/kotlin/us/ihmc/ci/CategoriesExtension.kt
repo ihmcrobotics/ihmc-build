@@ -10,22 +10,8 @@ class CategoriesExtension(private val project: Project)
 
    fun create(name: String, configuration: Category.() -> Unit)
    {
-      val category = Category(name)
+      val category = Category(name, project)
       configuration.invoke(category)
       categories.put(name, category)
-   }
-
-   fun getAllocationAgentJVMArg(): String
-   {
-      project.project(project.name + "-test").configurations.getByName("compile").files.forEach {
-         if (it.name.contains("java-allocation-instrumenter"))
-         {
-            val allocationJVMArg = "-javaagent:" + it.getAbsolutePath()
-            println("[ihmc-ci] Found allocation JVM arg: " + allocationJVMArg)
-            return allocationJVMArg
-         }
-      }
-
-      throw GradleException("[ihmc-ci] Cannot find `java-allocation-instrumenter` on test classpath. Please add it to your test dependencies!")
    }
 }

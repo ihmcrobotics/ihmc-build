@@ -1,24 +1,20 @@
 package us.ihmc.ci;
 
-import org.codehaus.groovy.runtime.MethodClosure;
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
-import org.gradle.api.UnknownDomainObjectException;
-import org.gradle.api.tasks.testing.Test;
-import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions;
-
-import java.nio.file.Path;
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.UnknownDomainObjectException
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions
 
 class IHMCCIPlugin : Plugin<Project>
 {
-   val categoriesExtension = CategoriesExtension()
+   lateinit var categoriesExtension: CategoriesExtension
 
    override fun apply(project: Project)
    {
+      categoriesExtension = CategoriesExtension(project)
       project.extensions.create("categories", CategoriesExtension::class.java, categoriesExtension)
-
       configureDefaultCategories()
-
       configureJUnitPlatform(project)
    }
 
@@ -28,14 +24,36 @@ class IHMCCIPlugin : Plugin<Project>
          classesPerJVM = 1
          maxJVMs = 2
          maxParallelTests = 4
-         excludeTags.add("all")
+         excludeTags += "all"
       }
       categoriesExtension.create("allocation") {
          classesPerJVM = 1
          maxJVMs = 2
          maxParallelTests = 1
-         includeTags.add("allocation")
-         jvmArgs += allocationAgentJVMArg
+         includeTags += "allocation"
+         jvmArgs += getAllocationAgentJVMArg()
+      }
+      categoriesExtension.create("scs") {
+         classesPerJVM = 1
+         maxJVMs = 2
+         maxParallelTests = 1
+         includeTags += "scs"
+         jvmArgs += getScsDefaultJVMArgs()
+      }
+      categoriesExtension.create("video") {
+         classesPerJVM = 1
+         maxJVMs = 2
+         maxParallelTests = 1
+         includeTags += "video"
+         jvmArgs += "-Dcreate.scs.gui=true"
+         jvmArgs += "-Dshow.scs.windows=true"
+         jvmArgs += "-Dcreate.videos.dir=/home/shadylady/bamboo-videos/"
+         jvmArgs += "-Dshow.scs.yographics=true"
+         jvmArgs += "-Djava.awt.headless=false"
+         jvmArgs += "-Dcreate.videos=true"
+         jvmArgs += "-Dopenh264.license=accept"
+         jvmArgs += "-Ddisable.joint.subsystem.publisher=true"
+         jvmArgs += "-Dscs.dataBuffer.size=8142"
       }
    }
 
