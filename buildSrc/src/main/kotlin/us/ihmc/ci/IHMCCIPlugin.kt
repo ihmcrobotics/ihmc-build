@@ -3,26 +3,56 @@ package us.ihmc.ci;
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.UnknownDomainObjectException
+import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.application.CreateStartScripts
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions
+import org.gradle.internal.impldep.org.junit.platform.launcher.TagFilter.excludeTags
+import org.gradle.internal.impldep.org.junit.platform.launcher.TagFilter.includeTags
 
 class IHMCCIPlugin : Plugin<Project>
 {
    lateinit var project: Project
    var cpuThreads = 8
-   lateinit var category: String
-   lateinit var categoriesExtension: CategoriesExtension
+   var category: String = "fast"
+   lateinit var categoriesExtension: IHMCCICategoriesExtension
+   var allocationJVMArg: String? = null
 
    override fun apply(project: Project)
    {
       this.project = project
 
       loadProperties()
-      project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
-
-      categoriesExtension = CategoriesExtension(project)
-      project.extensions.create("categories", CategoriesExtension::class.java, categoriesExtension)
+      categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
       configureDefaultCategories()
+
+      // figure out how to delay the setup of JVM args
+      for (testProject in testProjects(project))
+      {
+         testProject.tasks.withType(Test::class.java) { test -> // setup properties for forked test jvms
+            test.doFirst {
+
+               // build category here
+
+               if (allocationJVMArg == null) // search only once
+               {
+                  for (testProject in testProjects(project))
+                  {
+                     testProject.configurations.getByName("compile").files.forEach {
+                        if (it.name.contains("java-allocation-instrumenter"))
+                        {
+                           allocationJVMArg = "-javaagent:" + it.getAbsolutePath()
+                           println("[ihmc-ci] Found allocation JVM arg: " + allocationJVMArg)
+                        }
+                     }
+                  }
+               }
+
+//            test.systemProperties.putAll(javaProperties)
+//            project.logger.info("[ihmc-ci] Passing JVM args ${test.systemProperties} to $test")
+            }
+         }
+      }
 
 //      configureJUnitPlatform(project)
    }
@@ -31,6 +61,8 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt()}
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase()}
+      project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
+      project.logger.info("[ihmc-ci] category = $category")
    }
 
    fun configureDefaultCategories()
@@ -46,14 +78,14 @@ class IHMCCIPlugin : Plugin<Project>
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "allocation"
-         jvmArgs += getAllocationAgentJVMArg()
+         jvmArgs += "allocationAgent"
       }
       categoriesExtension.create("scs") {
          classesPerJVM = 1
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "scs"
-         jvmArgs += getScsDefaultJVMArgs()
+         jvmArgs += "scsDefaults"
       }
       categoriesExtension.create("video") {
          classesPerJVM = 1
