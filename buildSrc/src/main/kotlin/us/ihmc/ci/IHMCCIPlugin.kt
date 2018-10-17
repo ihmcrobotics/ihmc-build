@@ -8,14 +8,29 @@ import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions
 
 class IHMCCIPlugin : Plugin<Project>
 {
+   lateinit var project: Project
+   var cpuThreads = 8
+   lateinit var category: String
    lateinit var categoriesExtension: CategoriesExtension
 
    override fun apply(project: Project)
    {
+      this.project = project
+
+      loadProperties()
+      project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
+
       categoriesExtension = CategoriesExtension(project)
       project.extensions.create("categories", CategoriesExtension::class.java, categoriesExtension)
       configureDefaultCategories()
-      configureJUnitPlatform(project)
+
+//      configureJUnitPlatform(project)
+   }
+
+   fun loadProperties()
+   {
+      project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt()}
+      project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase()}
    }
 
    fun configureDefaultCategories()
