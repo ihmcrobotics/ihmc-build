@@ -3,10 +3,14 @@ package us.ihmc.ci;
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.testing.Test
 
 class IHMCCIPlugin : Plugin<Project>
 {
+   val JUNIT_VERSION = "5.3.1"
+
    lateinit var project: Project
    var cpuThreads = 8
    var category: String = "fast"
@@ -21,53 +25,19 @@ class IHMCCIPlugin : Plugin<Project>
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
       configureDefaultCategories()
 
-      // figure out how to delay the setup of JVM args
       for (testProject in testProjects(project))
       {
+         // add junit 5 dependencies
+         testProject.dependencies.add("compile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         testProject.dependencies.add("runtimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+         testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+
          testProject.tasks.withType(Test::class.java) { test ->
-            // setup properties for forked test jvms
             test.doFirst {
-               // build category here
-               val categoryConfig = categoriesExtension.categories[category]
+               val categoryConfig = categoriesExtension.categories[category] // setup category
                if (categoryConfig != null)
                {
-                  test.useJUnitPlatform {
-                     for (tag in categoryConfig.includeTags)
-                     {
-                        if (tag != "all") // all is the default
-                        {
-                           it.includeTags(tag)
-                        }
-                     }
-                     for (tag in categoryConfig.excludeTags)
-                     {
-                        if (tag != "none") // none is the default
-                        {
-                           it.excludeTags(tag)
-                        }
-                     }
-                  }
-
-                  test.setForkEvery(categoryConfig.classesPerJVM.toLong())
-                  test.maxParallelForks = categoryConfig.maxJVMs
-
-                  for (jvmProp in categoryConfig.jvmProperties)
-                  {
-                     test.systemProperties[jvmProp.key] = jvmProp.value
-                  }
-                  val tmpArgs = test.allJvmArgs
-                  for (jvmArg in categoryConfig.jvmArguments)
-                  {
-                     if (jvmArg == ALLOCATION_AGENT_KEY)
-                     {
-                        tmpArgs.add(findAllocationJVMArg())
-                     }
-                     else
-                     {
-                        tmpArgs.add(jvmArg)
-                     }
-                  }
-                  test.allJvmArgs = tmpArgs
+                  configureTestTask(test, categoryConfig)
                }
                else
                {
@@ -76,6 +46,47 @@ class IHMCCIPlugin : Plugin<Project>
             }
          }
       }
+   }
+
+   fun configureTestTask(test: Test, categoryConfig: IHMCCICategory)
+   {
+      test.useJUnitPlatform {
+         for (tag in categoryConfig.includeTags)
+         {
+            if (tag != "all") // all is the default
+            {
+               it.includeTags(tag)
+            }
+         }
+         for (tag in categoryConfig.excludeTags)
+         {
+            if (tag != "none") // none is the default
+            {
+               it.excludeTags(tag)
+            }
+         }
+      }
+
+      test.setForkEvery(categoryConfig.classesPerJVM.toLong())
+      test.maxParallelForks = categoryConfig.maxJVMs
+
+      for (jvmProp in categoryConfig.jvmProperties)
+      {
+         test.systemProperties[jvmProp.key] = jvmProp.value
+      }
+      val tmpArgs = test.allJvmArgs
+      for (jvmArg in categoryConfig.jvmArguments)
+      {
+         if (jvmArg == ALLOCATION_AGENT_KEY)
+         {
+            tmpArgs.add(findAllocationJVMArg())
+         }
+         else
+         {
+            tmpArgs.add(jvmArg)
+         }
+      }
+      test.allJvmArgs = tmpArgs
    }
 
    fun findAllocationJVMArg(): String
