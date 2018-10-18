@@ -79,7 +79,10 @@ class IHMCCIPlugin : Plugin<Project>
       test.setForkEvery(categoryConfig.classesPerJVM.toLong())
       test.maxParallelForks = categoryConfig.maxJVMs
 
-      test.systemProperties["runningOnCIServer"] = "true"
+      project.properties["runningOnCIServer"].run {
+         if (this != null)
+            test.systemProperties["runningOnCIServer"] = this.toString()
+      }
       for (jvmProp in categoryConfig.jvmProperties)
       {
          test.systemProperties[jvmProp.key] = jvmProp.value
