@@ -4,7 +4,6 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.testing.Test
 
 class IHMCCIPlugin : Plugin<Project>
@@ -55,16 +54,24 @@ class IHMCCIPlugin : Plugin<Project>
       test.useJUnitPlatform {
          for (tag in categoryConfig.includeTags)
          {
-            if (tag != "all") // all is the default
-            {
                it.includeTags(tag)
-            }
          }
          for (tag in categoryConfig.excludeTags)
          {
-            if (tag != "none") // none is the default
+            it.excludeTags(tag)
+         }
+         // If the "fast" category includes nothing, this excludes all tags included by other
+         // categories, which makes it run only untagged tests and tests that would not be run
+         // if the user were to run all defined catagories. This is both a safety feature,
+         // and the expected functionality of the "fast" category, historically at IHMC.
+         if (categoryConfig.name == "fast" && categoryConfig.includeTags.isEmpty())
+         {
+            for (definedCategory in categoriesExtension.categories)
             {
-               it.excludeTags(tag)
+               for (tag in definedCategory.value.includeTags)
+               {
+                  it.excludeTags(tag)
+               }
             }
          }
       }
