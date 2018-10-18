@@ -20,12 +20,12 @@ class IHMCCICategory(val name: String, private val project: Project)
    fun getScsDefaultJVMProps(): Map<String, String>
    {
       return mapOf("create.scs.gui" to "false",
-                   "show.scs.windows" to "false ",
-                   "show.scs.yographics" to "false ",
-                   "java.awt.headless" to "true ",
-                   "create.videos" to "false ",
-                   "openh264.license" to "accept ",
-                   "disable.joint.subsystem.publisher" to "true ",
+                   "show.scs.windows" to "false",
+                   "show.scs.yographics" to "false",
+                   "java.awt.headless" to "true",
+                   "create.videos" to "false",
+                   "openh264.license" to "accept",
+                   "disable.joint.subsystem.publisher" to "true",
                    "scs.dataBuffer.size" to "8142")
    }
 
