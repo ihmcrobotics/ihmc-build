@@ -110,6 +110,7 @@ class IHMCCIPlugin : Plugin<Project>
             tmpArgs.add(jvmArg)
          }
       }
+      tmpArgs.add("-ea")
       test.allJvmArgs = tmpArgs
 
       test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
