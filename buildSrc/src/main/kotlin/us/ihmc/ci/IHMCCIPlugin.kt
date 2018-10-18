@@ -37,7 +37,7 @@ class IHMCCIPlugin : Plugin<Project>
                val categoryConfig = categoriesExtension.categories[category] // setup category
                if (categoryConfig != null)
                {
-                  configureTestTask(test, categoryConfig)
+                  configureTestTask(testProject, test, categoryConfig)
                }
                else
                {
@@ -48,7 +48,7 @@ class IHMCCIPlugin : Plugin<Project>
       }
    }
 
-   fun configureTestTask(test: Test, categoryConfig: IHMCCICategory)
+   fun configureTestTask(testProject: Project, test: Test, categoryConfig: IHMCCICategory)
    {
       test.useJUnitPlatform {
          for (tag in categoryConfig.includeTags)
@@ -70,10 +70,18 @@ class IHMCCIPlugin : Plugin<Project>
       test.setForkEvery(categoryConfig.classesPerJVM.toLong())
       test.maxParallelForks = categoryConfig.maxJVMs
 
+      test.systemProperties["runningOnCIServer"] = "true"
       for (jvmProp in categoryConfig.jvmProperties)
       {
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
+
+      // add resources dir JVM property
+      val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
+      val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
+      project.logger.info("[ihmc-ci] Passing to JVM: -Dresource.dir=" + resourcesDir)
+      test.systemProperties["resource.dir"] = resourcesDir
+
       val tmpArgs = test.allJvmArgs
       for (jvmArg in categoryConfig.jvmArguments)
       {
@@ -87,6 +95,9 @@ class IHMCCIPlugin : Plugin<Project>
          }
       }
       test.allJvmArgs = tmpArgs
+
+      test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
+      test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
    }
 
    fun findAllocationJVMArg(): String
