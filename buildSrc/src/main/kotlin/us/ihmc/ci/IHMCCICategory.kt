@@ -7,7 +7,7 @@ val ALLOCATION_AGENT_KEY = "allocationAgent"
 
 class IHMCCICategory(val name: String, private val project: Project)
 {
-   var classesPerJVM = 1
+   var classesPerJVM = 0 // no limit
    var maxJVMs = 2
    var maxParallelTests = 4
    val excludeTags = arrayListOf("all")
