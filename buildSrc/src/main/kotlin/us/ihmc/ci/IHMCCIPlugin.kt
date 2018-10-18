@@ -31,6 +31,8 @@ class IHMCCIPlugin : Plugin<Project>
          testProject.dependencies.add("compile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
          testProject.dependencies.add("runtimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
          testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+         if (category == "allocation") // help out users trying to run allocation tests
+            testProject.dependencies.add("compile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
 
          testProject.tasks.withType(Test::class.java) { test ->
             test.doFirst {
