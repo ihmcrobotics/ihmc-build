@@ -85,6 +85,10 @@ class IHMCCIPlugin : Plugin<Project>
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
 
+      test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+      test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
+      test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
+
       // add resources dir JVM property
       val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
@@ -143,14 +147,10 @@ class IHMCCIPlugin : Plugin<Project>
    fun configureDefaultCategories()
    {
       categoriesExtension.create("fast") {
-         classesPerJVM = 1
-         maxJVMs = 2
-         maxParallelTests = 4
-         excludeTags += "all"
+         // defaults
       }
       categoriesExtension.create("allocation") {
          classesPerJVM = 1
-         maxJVMs = 2
          maxParallelTests = 1
          includeTags += "allocation"
          jvmArguments += getAllocationAgentJVMArg()
