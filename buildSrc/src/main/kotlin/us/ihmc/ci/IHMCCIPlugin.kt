@@ -150,7 +150,6 @@ class IHMCCIPlugin : Plugin<Project>
          // defaults
       }
       categoriesExtension.create("allocation") {
-         classesPerJVM = 1
          maxParallelTests = 1
          includeTags += "allocation"
          jvmArguments += getAllocationAgentJVMArg()
@@ -161,6 +160,8 @@ class IHMCCIPlugin : Plugin<Project>
          maxParallelTests = 1
          includeTags += "scs"
          jvmProperties.putAll(getScsDefaultJVMProps())
+         minHeapSizeGB = 6
+         maxHeapSizeGB = 8
       }
       categoriesExtension.create("video") {
          classesPerJVM = 1
@@ -176,6 +177,8 @@ class IHMCCIPlugin : Plugin<Project>
          jvmProperties["openh264.license"] = "accept"
          jvmProperties["disable.joint.subsystem.publisher"] = "true"
          jvmProperties["scs.dataBuffer.size"] = "8142"
+         minHeapSizeGB = 6
+         maxHeapSizeGB = 8
       }
    }
 }
