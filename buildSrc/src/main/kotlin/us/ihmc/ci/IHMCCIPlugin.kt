@@ -1,14 +1,9 @@
 package us.ihmc.ci;
 
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.UnknownDomainObjectException
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.application.CreateStartScripts
 import org.gradle.api.tasks.testing.Test
-import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions
-import org.gradle.internal.impldep.org.junit.platform.launcher.TagFilter.excludeTags
-import org.gradle.internal.impldep.org.junit.platform.launcher.TagFilter.includeTags
 
 class IHMCCIPlugin : Plugin<Project>
 {
@@ -29,38 +24,87 @@ class IHMCCIPlugin : Plugin<Project>
       // figure out how to delay the setup of JVM args
       for (testProject in testProjects(project))
       {
-         testProject.tasks.withType(Test::class.java) { test -> // setup properties for forked test jvms
+         testProject.tasks.withType(Test::class.java) { test ->
+            // setup properties for forked test jvms
             test.doFirst {
-
                // build category here
-
-               if (allocationJVMArg == null) // search only once
+               val categoryConfig = categoriesExtension.categories[category]
+               if (categoryConfig != null)
                {
-                  for (testProject in testProjects(project))
-                  {
-                     testProject.configurations.getByName("compile").files.forEach {
-                        if (it.name.contains("java-allocation-instrumenter"))
+                  test.useJUnitPlatform {
+                     for (tag in categoryConfig.includeTags)
+                     {
+                        if (tag != "all") // all is the default
                         {
-                           allocationJVMArg = "-javaagent:" + it.getAbsolutePath()
-                           println("[ihmc-ci] Found allocation JVM arg: " + allocationJVMArg)
+                           it.includeTags(tag)
+                        }
+                     }
+                     for (tag in categoryConfig.excludeTags)
+                     {
+                        if (tag != "none") // none is the default
+                        {
+                           it.excludeTags(tag)
                         }
                      }
                   }
-               }
 
-//            test.systemProperties.putAll(javaProperties)
-//            project.logger.info("[ihmc-ci] Passing JVM args ${test.systemProperties} to $test")
+                  test.setForkEvery(categoryConfig.classesPerJVM.toLong())
+                  test.maxParallelForks = categoryConfig.maxJVMs
+
+                  for (jvmProp in categoryConfig.jvmProperties)
+                  {
+                     test.systemProperties[jvmProp.key] = jvmProp.value
+                  }
+                  val tmpArgs = test.allJvmArgs
+                  for (jvmArg in categoryConfig.jvmArguments)
+                  {
+                     if (jvmArg == ALLOCATION_AGENT_KEY)
+                     {
+                        tmpArgs.add(findAllocationJVMArg())
+                     }
+                     else
+                     {
+                        tmpArgs.add(jvmArg)
+                     }
+                  }
+                  test.allJvmArgs = tmpArgs
+               }
+               else
+               {
+                  throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
+               }
             }
          }
       }
+   }
 
-//      configureJUnitPlatform(project)
+   fun findAllocationJVMArg(): String
+   {
+      if (allocationJVMArg == null) // search only once
+      {
+         for (testProject in testProjects(project))
+         {
+            testProject.configurations.getByName("compile").files.forEach {
+               if (it.name.contains("java-allocation-instrumenter"))
+               {
+                  allocationJVMArg = "-javaagent:" + it.getAbsolutePath()
+                  println("[ihmc-ci] Found allocation JVM arg: " + allocationJVMArg)
+               }
+            }
+         }
+         if (allocationJVMArg == null) // error out, because user needs to add it
+         {
+            throw GradleException("[ihmc-ci] Cannot find `java-allocation-instrumenter` on test classpath. Please add it to your test dependencies!")
+         }
+      }
+
+      return allocationJVMArg!!
    }
 
    fun loadProperties()
    {
-      project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt()}
-      project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase()}
+      project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
+      project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
    }
@@ -78,75 +122,29 @@ class IHMCCIPlugin : Plugin<Project>
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "allocation"
-         jvmArgs += "allocationAgent"
+         jvmArguments += getAllocationAgentJVMArg()
       }
       categoriesExtension.create("scs") {
          classesPerJVM = 1
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "scs"
-         jvmArgs += "scsDefaults"
+         jvmProperties.putAll(getScsDefaultJVMProps())
       }
       categoriesExtension.create("video") {
          classesPerJVM = 1
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "video"
-         jvmArgs += "-Dcreate.scs.gui=true"
-         jvmArgs += "-Dshow.scs.windows=true"
-         jvmArgs += "-Dcreate.videos.dir=/home/shadylady/bamboo-videos/"
-         jvmArgs += "-Dshow.scs.yographics=true"
-         jvmArgs += "-Djava.awt.headless=false"
-         jvmArgs += "-Dcreate.videos=true"
-         jvmArgs += "-Dopenh264.license=accept"
-         jvmArgs += "-Ddisable.joint.subsystem.publisher=true"
-         jvmArgs += "-Dscs.dataBuffer.size=8142"
-      }
-   }
-
-   private fun configureJUnitPlatform(project: Project)
-   {
-      try
-      {
-         val testProject = project.project(project.getName() + "-test") // assumes ihmc-build plugin
-         val testExtension = testProject.getTasks().getByName("test") as Test
-
-         testExtension.useJUnitPlatform { jUnitPlatformOptions ->
-            project.getLogger().info("[ihmc-ci] Using JUnit platform")
-
-            includeTags(project, jUnitPlatformOptions, "includeTags")
-            includeTags(project, jUnitPlatformOptions, "includeTag")
-            excludeTags(project, jUnitPlatformOptions, "excludeTags")
-            excludeTags(project, jUnitPlatformOptions, "excludeTag")
-         }
-      }
-      catch (e: UnknownDomainObjectException)
-      {
-         // do nothing
-      }
-   }
-
-   private fun includeTags(project: Project, jUnitPlatformOptions: JUnitPlatformOptions, propertyName: String)
-   {
-      if (project.hasProperty(propertyName) && !project.property(propertyName)!!.equals("all"))
-      {
-         for (includeTag in (project.property(propertyName) as String).trim().toLowerCase().split(","))
-         {
-            project.getLogger().info("[ihmc-ci] Including tag: " + includeTag)
-            jUnitPlatformOptions.includeTags(includeTag)
-         }
-      }
-   }
-
-   private fun excludeTags(project: Project, jUnitPlatformOptions: JUnitPlatformOptions, propertyName: String)
-   {
-      if (project.hasProperty(propertyName) && !project.property(propertyName)!!.equals("none"))
-      {
-         for (excludeTag in (project.property(propertyName) as String).trim().toLowerCase().split(","))
-         {
-            project.getLogger().info("[ihmc-ci] Excluding tag: " + excludeTag)
-            jUnitPlatformOptions.excludeTags(excludeTag)
-         }
+         jvmProperties["create.scs.gui"] = "true"
+         jvmProperties["show.scs.windows"] = "true"
+         jvmProperties["create.videos.dir"] = "/home/shadylady/bamboo-videos/"
+         jvmProperties["show.scs.yographics"] = "true"
+         jvmProperties["java.awt.headless"] = "false"
+         jvmProperties["create.videos"] = "true"
+         jvmProperties["openh264.license"] = "accept"
+         jvmProperties["disable.joint.subsystem.publisher"] = "true"
+         jvmProperties["scs.dataBuffer.size"] = "8142"
       }
    }
 }
