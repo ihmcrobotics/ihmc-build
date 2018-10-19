@@ -5,6 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
+import java.io.File
 
 class IHMCCIPlugin : Plugin<Project>
 {
@@ -45,8 +46,43 @@ class IHMCCIPlugin : Plugin<Project>
                   throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
                }
             }
+            test.doLast {
+               // check for build/test-rseults/*.xml, if none, make empty test result
+               val testDir = testProject.buildDir.resolve("test-results/test")
+               if (!testDir.exists() || !containsXml(testProject))
+               {
+                  // there are no test results, make one
+                  createNoTestsFoundXml(testProject, testDir)
+               }
+            }
          }
       }
+   }
+
+   fun createNoTestsFoundXml(testProject: Project, testDir: File)
+   {
+      testProject.mkdir(testDir)
+      val noTestsFoundFile = testDir.resolve("TEST-us.ihmc.NoTestsFoundTest.xml")
+      noTestsFoundFile.writeText(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                  "<testsuite name=\"us.ihmc.NoTestsFoundTest\" tests=\"1\" skipped=\"0\" failures=\"0\" " +
+                  "errors=\"0\" timestamp=\"2018-10-19T15:10:58\" hostname=\"duncan-ihmc\" time=\"0.01\">" +
+                  "<properties/>" +
+                  "<testcase name=\"noTestsFoundTest\" classname=\"us.ihmc.NoTestsFoundTest\" time=\"0.01\"/>" +
+                  "<system-out>This is a phony test to make Bamboo pass when a project does not contain any tests.</system-out>" +
+                  "<system-err><![CDATA[]]></system-err>" +
+                  "</testsuite>")
+   }
+
+   fun containsXml(testProject: Project): Boolean
+   {
+      testProject.buildDir.resolve("test-results/test").listFiles().forEach { entry ->
+         if (entry.isFile && entry.name.endsWith(".xml"))
+         {
+            return true
+         }
+      }
+      return false
    }
 
    fun configureTestTask(testProject: Project, test: Test, categoryConfig: IHMCCICategory)
