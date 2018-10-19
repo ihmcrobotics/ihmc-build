@@ -107,7 +107,13 @@ class IHMCCIPlugin : Plugin<Project>
       // case where there are no test source files anywhere, create phony test
       if (!testSourceFound)
       {
-         createNoTestsFoundXml(project, project.buildDir.resolve("test-results/test"))
+         project.tasks.withType(Test::class.java) { test ->
+            test.finalizedBy(project.tasks.create("addPhonyTestXml") {
+               it.doLast {
+                  createNoTestsFoundXml(project, project.buildDir.resolve("test-results/test"))
+               }
+            })
+         }
       }
    }
 
