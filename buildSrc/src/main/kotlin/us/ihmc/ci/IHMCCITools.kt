@@ -14,3 +14,15 @@ fun testProjects(project: Project): List<Project>
    }
    return testProjects
 }
+
+fun containsIHMCTestMultiProject(project: Project): Boolean
+{
+   for (allproject in project.allprojects)
+   {
+      if (allproject.name.endsWith("-test"))
+      {
+         return true
+      }
+   }
+   return false
+}
