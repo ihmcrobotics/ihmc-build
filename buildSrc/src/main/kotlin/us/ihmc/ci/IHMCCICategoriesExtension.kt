@@ -12,4 +12,11 @@ open class IHMCCICategoriesExtension(private val project: Project)
       configuration.invoke(category)
       categories.put(name, category)
    }
+
+   fun create(name: String): IHMCCICategory
+   {
+      val category = IHMCCICategory(name, project)
+      categories.put(name, category)
+      return category
+   }
 }
