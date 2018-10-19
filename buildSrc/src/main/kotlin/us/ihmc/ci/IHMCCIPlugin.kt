@@ -16,6 +16,7 @@ class IHMCCIPlugin : Plugin<Project>
    var category: String = "fast"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
+   var noTestsFoundFileCreated = false
 
    override fun apply(project: Project)
    {
@@ -57,21 +58,59 @@ class IHMCCIPlugin : Plugin<Project>
             }
          }
       }
+
+      // special case when a project does not have a test source set
+      if (!containsIHMCTestMultiProject(project))
+      {
+         // add junit 5 dependencies
+         project.dependencies.add("testCompile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         project.dependencies.add("testRuntimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+         project.dependencies.add("testRuntimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+         if (category == "allocation") // help out users trying to run allocation tests
+            project.dependencies.add("testCompile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
+
+         project.tasks.withType(Test::class.java) { test ->
+            test.doFirst {
+               val categoryConfig = categoriesExtension.categories[category] // setup category
+               if (categoryConfig != null)
+               {
+                  configureTestTask(project, test, categoryConfig)
+               }
+               else
+               {
+                  throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
+               }
+            }
+            test.doLast {
+               // check for build/test-rseults/*.xml, if none, make empty test result
+               val testDir = project.buildDir.resolve("test-results/test")
+               if (!testDir.exists() || !containsXml(project))
+               {
+                  // there are no test results, make one
+                  createNoTestsFoundXml(project, testDir)
+               }
+            }
+         }
+      }
    }
 
    fun createNoTestsFoundXml(testProject: Project, testDir: File)
    {
-      testProject.mkdir(testDir)
-      val noTestsFoundFile = testDir.resolve("TEST-us.ihmc.NoTestsFoundTest.xml")
-      noTestsFoundFile.writeText(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                  "<testsuite name=\"us.ihmc.NoTestsFoundTest\" tests=\"1\" skipped=\"0\" failures=\"0\" " +
-                  "errors=\"0\" timestamp=\"2018-10-19T15:10:58\" hostname=\"duncan-ihmc\" time=\"0.01\">" +
-                  "<properties/>" +
-                  "<testcase name=\"noTestsFoundTest\" classname=\"us.ihmc.NoTestsFoundTest\" time=\"0.01\"/>" +
-                  "<system-out>This is a phony test to make Bamboo pass when a project does not contain any tests.</system-out>" +
-                  "<system-err><![CDATA[]]></system-err>" +
-                  "</testsuite>")
+      if (!noTestsFoundFileCreated)
+      {
+         noTestsFoundFileCreated = true
+         testProject.mkdir(testDir)
+         val noTestsFoundFile = testDir.resolve("TEST-us.ihmc.NoTestsFoundTest.xml")
+         noTestsFoundFile.writeText(
+               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                     "<testsuite name=\"us.ihmc.NoTestsFoundTest\" tests=\"1\" skipped=\"0\" failures=\"0\" " +
+                     "errors=\"0\" timestamp=\"2018-10-19T15:10:58\" hostname=\"duncan-ihmc\" time=\"0.01\">" +
+                     "<properties/>" +
+                     "<testcase name=\"noTestsFoundTest\" classname=\"us.ihmc.NoTestsFoundTest\" time=\"0.01\"/>" +
+                     "<system-out>This is a phony test to make Bamboo pass when a project does not contain any tests.</system-out>" +
+                     "<system-err><![CDATA[]]></system-err>" +
+                     "</testsuite>")
+      }
    }
 
    fun containsXml(testProject: Project): Boolean
