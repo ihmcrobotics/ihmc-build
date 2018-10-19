@@ -3,6 +3,7 @@ package us.ihmc.ci;
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
 import java.io.File
@@ -16,8 +17,6 @@ class IHMCCIPlugin : Plugin<Project>
    var category: String = "fast"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
-   var noTestsFoundFileCreated = false
-   var testSourceFound = false
 
    override fun apply(project: Project)
    {
@@ -29,123 +28,93 @@ class IHMCCIPlugin : Plugin<Project>
 
       for (testProject in testProjects(project))
       {
-         if (multiProjectContainsTestFiles(testProject))
-         {
-            testSourceFound = true
-            project.logger.info("[ihmc-ci] Configuring ${testProject.name}")
-            // add junit 5 dependencies
-            testProject.dependencies.add("compile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-            testProject.dependencies.add("runtimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-            testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
-            if (category == "allocation") // help out users trying to run allocation tests
-               testProject.dependencies.add("compile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
+         project.logger.info("[ihmc-ci] Configuring ${testProject.name}")
+         // add junit 5 dependencies
+         testProject.dependencies.add("compile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         testProject.dependencies.add("runtimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+         testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+         if (category == "allocation") // help out users trying to run allocation tests
+            testProject.dependencies.add("compile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
 
-            testProject.tasks.withType(Test::class.java) { test ->
-               test.doFirst {
-                  val categoryConfig = categoriesExtension.categories[category] // setup category
-                  if (categoryConfig != null)
-                  {
-                     configureTestTask(testProject, test, categoryConfig)
-                  }
-                  else
-                  {
-                     throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
-                  }
+         testProject.tasks.withType(Test::class.java) { test ->
+            test.doFirst {
+               val categoryConfig = categoriesExtension.categories[category] // setup category
+               if (categoryConfig != null)
+               {
+                  configureTestTask(testProject, test, categoryConfig)
                }
-               test.doLast {
-                  // check for build/test-rseults/*.xml, if none, make empty test result
-                  val testDir = testProject.buildDir.resolve("test-results/test")
-                  if (!testDir.exists() || !containsXml(testProject))
-                  {
-                     // there are no test results, make one
-                     createNoTestsFoundXml(testProject, testDir)
-                  }
+               else
+               {
+                  throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
                }
             }
+
+            test.finalizedBy(addPhonyTestXmlTask(testProject))
          }
       }
 
       // special case when a project does not use ihmc-build or doesn't declare the "test" source set
       if (!containsIHMCTestMultiProject(project))
       {
-         if (vanillaProjectContainsTestFiles(project))
-         {
-            testSourceFound = true
-            project.logger.info("[ihmc-ci] No test multi-project found, using test source set")
-            // add junit 5 dependencies
-            project.dependencies.add("testCompile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-            project.dependencies.add("testRuntimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-            project.dependencies.add("testRuntimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
-            if (category == "allocation") // help out users trying to run allocation tests
-               project.dependencies.add("testCompile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
+         project.logger.info("[ihmc-ci] No test multi-project found, using test source set")
+         // add junit 5 dependencies
+         project.dependencies.add("testCompile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         project.dependencies.add("testRuntimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+         project.dependencies.add("testRuntimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+         if (category == "allocation") // help out users trying to run allocation tests
+            project.dependencies.add("testCompile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
 
-            project.tasks.withType(Test::class.java) { test ->
-               test.doFirst {
-                  val categoryConfig = categoriesExtension.categories[category] // setup category
-                  if (categoryConfig != null)
-                  {
-                     configureTestTask(project, test, categoryConfig)
-                  }
-                  else
-                  {
-                     throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
-                  }
+         project.tasks.withType(Test::class.java) { test ->
+            test.doFirst {
+               val categoryConfig = categoriesExtension.categories[category] // setup category
+               if (categoryConfig != null)
+               {
+                  configureTestTask(project, test, categoryConfig)
                }
-               test.doLast {
-                  // check for build/test-rseults/*.xml, if none, make empty test result
-                  val testDir = project.buildDir.resolve("test-results/test")
-                  if (!testDir.exists() || !containsXml(project))
-                  {
-                     // there are no test results, make one
-                     createNoTestsFoundXml(project, testDir)
-                  }
+               else
+               {
+                  throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
                }
             }
+            test.finalizedBy(addPhonyTestXmlTask(project))
          }
       }
+   }
 
-      // case where there are no test source files anywhere, create phony test
-      if (!testSourceFound)
-      {
-         project.tasks.withType(Test::class.java) { test ->
-            test.finalizedBy(project.tasks.create("addPhonyTestXml") {
-               it.doLast {
-                  createNoTestsFoundXml(project, project.buildDir.resolve("test-results/test"))
+   fun addPhonyTestXmlTask(anyproject: Project): Task?
+   {
+      return anyproject.tasks.create("addPhonyTestXml") {
+         it.doLast {
+            var testsFound = false
+            for (path in anyproject.rootDir.walkBottomUp())
+            {
+               if (path.toPath().toAbsolutePath().toString().matches(Regex(".*/test-results/test/.*\\.xml")))
+               {
+                  anyproject.logger.info("[ihmc-ci] Found test file: $path")
+                  testsFound = true
+                  break
                }
-            })
+            }
+            if (!testsFound)
+               createNoTestsFoundXml(anyproject, anyproject.buildDir.resolve("test-results/test"))
          }
       }
    }
 
    fun createNoTestsFoundXml(testProject: Project, testDir: File)
    {
-      if (!noTestsFoundFileCreated)
-      {
-         noTestsFoundFileCreated = true
-         testProject.mkdir(testDir)
-         val noTestsFoundFile = testDir.resolve("TEST-us.ihmc.NoTestsFoundTest.xml")
-         project.logger.info("[ihmc-ci] No tests found. Writing $noTestsFoundFile")
-         noTestsFoundFile.writeText(
-               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                     "<testsuite name=\"us.ihmc.NoTestsFoundTest\" tests=\"1\" skipped=\"0\" failures=\"0\" " +
-                     "errors=\"0\" timestamp=\"2018-10-19T15:10:58\" hostname=\"duncan-ihmc\" time=\"0.01\">" +
-                     "<properties/>" +
-                     "<testcase name=\"noTestsFoundTest\" classname=\"us.ihmc.NoTestsFoundTest\" time=\"0.01\"/>" +
-                     "<system-out>This is a phony test to make Bamboo pass when a project does not contain any tests.</system-out>" +
-                     "<system-err><![CDATA[]]></system-err>" +
-                     "</testsuite>")
-      }
-   }
-
-   fun containsXml(testProject: Project): Boolean
-   {
-      testProject.buildDir.resolve("test-results/test").listFiles().forEach { entry ->
-         if (entry.isFile && entry.name.endsWith(".xml"))
-         {
-            return true
-         }
-      }
-      return false
+      testProject.mkdir(testDir)
+      val noTestsFoundFile = testDir.resolve("TEST-us.ihmc.NoTestsFoundTest.xml")
+      project.logger.info("[ihmc-ci] No tests found. Writing $noTestsFoundFile")
+      noTestsFoundFile.writeText(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                  "<testsuite name=\"us.ihmc.NoTestsFoundTest\" tests=\"1\" skipped=\"0\" failures=\"0\" " +
+                  "errors=\"0\" timestamp=\"2018-10-19T15:10:58\" hostname=\"duncan-ihmc\" time=\"0.01\">" +
+                  "<properties/>" +
+                  "<testcase name=\"noTestsFoundTest\" classname=\"us.ihmc.NoTestsFoundTest\" time=\"0.01\"/>" +
+                  "<system-out>This is a phony test to make Bamboo pass when a project does not contain any tests.</system-out>" +
+                  "<system-err><![CDATA[]]></system-err>" +
+                  "</testsuite>")
    }
 
    fun configureTestTask(testProject: Project, test: Test, categoryConfig: IHMCCICategory)
@@ -153,7 +122,7 @@ class IHMCCIPlugin : Plugin<Project>
       test.useJUnitPlatform {
          for (tag in categoryConfig.includeTags)
          {
-               it.includeTags(tag)
+            it.includeTags(tag)
          }
          for (tag in categoryConfig.excludeTags)
          {
