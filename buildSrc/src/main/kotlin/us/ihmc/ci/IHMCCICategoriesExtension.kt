@@ -19,4 +19,9 @@ open class IHMCCICategoriesExtension(private val project: Project)
       categories.put(name, category)
       return category
    }
+
+   fun get(name: String): IHMCCICategory
+   {
+      return categories.get(name)!!
+   }
 }
