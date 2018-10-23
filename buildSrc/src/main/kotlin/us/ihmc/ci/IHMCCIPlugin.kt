@@ -15,6 +15,7 @@ class IHMCCIPlugin : Plugin<Project>
    lateinit var project: Project
    var cpuThreads = 8
    var category: String = "fast"
+   var vintageMode: Boolean = false
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
 
@@ -32,7 +33,8 @@ class IHMCCIPlugin : Plugin<Project>
          // add junit 5 dependencies
          testProject.dependencies.add("compile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
          testProject.dependencies.add("runtimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-         testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+         if (vintageMode)
+            testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
          if (category == "allocation") // help out users trying to run allocation tests
             testProject.dependencies.add("compile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
 
@@ -60,7 +62,8 @@ class IHMCCIPlugin : Plugin<Project>
          // add junit 5 dependencies
          project.dependencies.add("testCompile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
          project.dependencies.add("testRuntimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-         project.dependencies.add("testRuntimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+         if (vintageMode)
+            project.dependencies.add("testRuntimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
          if (category == "allocation") // help out users trying to run allocation tests
             project.dependencies.add("testCompile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
 
@@ -212,8 +215,10 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
+      project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
+      project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
    }
 
    fun configureDefaultCategories()
