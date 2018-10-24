@@ -159,9 +159,9 @@ class IHMCCIPlugin : Plugin<Project>
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
 
-      test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
-      test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
-      test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
+//      test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+//      test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
+//      test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
 
       // add resources dir JVM property
       val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
