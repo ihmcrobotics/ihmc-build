@@ -44,18 +44,11 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          File(dir1, "java").mkdir()
       }
       
-      if (ext.has("useLegacySourceSets") && ext.get("useLegacySourceSets") as String == "true")
+      for (sourceSetName in extraSourceSets)
       {
-      
-      }
-      else
-      {
-         for (sourceSetName in extraSourceSets)
-         {
-            val kebabCasedSourceSetName = toKebabCased(sourceSetName)
-            settings.include("src/$kebabCasedSourceSetName")
-            settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
-         }
+         val kebabCasedSourceSetName = toKebabCased(sourceSetName)
+         settings.include("src/$kebabCasedSourceSetName")
+         settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
       }
    }
    
