@@ -211,7 +211,7 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureDependencyResolution()
    {
-      if (isBambooBuild)
+      if (snapshotModeProperty)
       {
          declareMavenCentral()
          repository("http://clojars.org/repo/")
@@ -519,7 +519,10 @@ open class IHMCBuildExtension(val project: Project)
          {
             publishVersion += "-$branchName"
          }
-         publishVersion += "-$integrationNumber"
+         if (isBambooBuild)
+         {
+            publishVersion += "-$integrationNumber"
+         }
          return publishVersion
       }
       else
