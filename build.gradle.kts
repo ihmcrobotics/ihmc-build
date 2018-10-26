@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.15.2"
+version = "0.15.3"
 
 pluginBundle {
    website = "https://github.com/ihmcrobotics/ihmc-build"

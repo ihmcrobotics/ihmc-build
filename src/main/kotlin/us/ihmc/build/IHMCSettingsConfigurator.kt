@@ -21,7 +21,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
       
-      if (settings.gradle.gradleVersion.compareTo("4.8") < 0)
+      if (Version(settings.gradle.gradleVersion).compareTo(Version("4.8")) < 0)
       {
          val message = "Please upgrade to Gradle version 4.8 or higher! (Recommended versions: 4.10.2 or later)"
          logError(logger, message)
