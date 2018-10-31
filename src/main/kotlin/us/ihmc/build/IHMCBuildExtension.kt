@@ -247,7 +247,7 @@ open class IHMCBuildExtension(val project: Project)
       
       setupJavaSourceSets()
       
-      try
+      try // always declare dependency on "main" from "test"
       {
          val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
