@@ -10,8 +10,8 @@ class IHMCCICategory(val name: String, private val project: Project)
    var classesPerJVM = 0 // no limit
    var maxJVMs = 2
    var maxParallelTests = 4
-   val excludeTags = arrayListOf<String>()
-   val includeTags = arrayListOf<String>()
+   val excludeTags = hashSetOf<String>()
+   val includeTags = hashSetOf<String>()
    val jvmProperties = hashMapOf<String, String>()
    val jvmArguments = arrayListOf<String>()
    var minHeapSizeGB = 1
