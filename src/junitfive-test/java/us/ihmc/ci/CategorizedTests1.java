@@ -1,7 +1,6 @@
 package us.ihmc.ci;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
@@ -23,7 +22,6 @@ public class CategorizedTests1
 
    }
 
-   @Disabled
    @Tag("failing")
    @Test
    public void failingTest() throws InterruptedException

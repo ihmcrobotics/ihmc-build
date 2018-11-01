@@ -8,14 +8,14 @@ open class IHMCCICategoriesExtension(private val project: Project)
 
    fun create(name: String, configuration: IHMCCICategory.() -> Unit)
    {
-      val category = IHMCCICategory(name, project)
+      val category = IHMCCICategory(name)
       configuration.invoke(category)
       categories.put(name, category)
    }
 
    fun create(name: String): IHMCCICategory
    {
-      val category = IHMCCICategory(name, project)
+      val category = IHMCCICategory(name)
       categories.put(name, category)
       return category
    }
