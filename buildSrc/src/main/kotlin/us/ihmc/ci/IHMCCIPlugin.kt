@@ -1,12 +1,18 @@
 package us.ihmc.ci;
 
+import com.xebialabs.overthere.CmdLine
+import com.xebialabs.overthere.OverthereConnection
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
+import us.ihmc.ci.sourceCodeParser.parseForTags
 import java.io.File
+
+lateinit var LogTools: Logger
 
 class IHMCCIPlugin : Plugin<Project>
 {
@@ -22,6 +28,7 @@ class IHMCCIPlugin : Plugin<Project>
    override fun apply(project: Project)
    {
       this.project = project
+      LogTools = project.logger
 
       loadProperties()
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
@@ -29,58 +36,76 @@ class IHMCCIPlugin : Plugin<Project>
 
       for (testProject in testProjects(project))
       {
-         project.logger.info("[ihmc-ci] Configuring ${testProject.name}")
-         // add junit 5 dependencies
-         testProject.dependencies.add("compile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-         testProject.dependencies.add("runtimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-         if (vintageMode)
-            testProject.dependencies.add("runtimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
-         if (category == "allocation") // help out users trying to run allocation tests
-            testProject.dependencies.add("compile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
-
-         testProject.tasks.withType(Test::class.java) { test ->
-            test.doFirst {
-               val categoryConfig = categoriesExtension.categories[category] // setup category
-               if (categoryConfig != null)
-               {
-                  configureTestTask(testProject, test, categoryConfig)
-               }
-               else
-               {
-                  throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
-               }
-            }
-
-            test.finalizedBy(addPhonyTestXmlTask(testProject))
-         }
+         LogTools.info("[ihmc-ci] Configuring ${testProject.name}")
+         addTestDependencies(testProject, "compile", "runtimeOnly")
+         configureTestTask(testProject)
       }
 
-      // special case when a project does not use ihmc-build or doesn't declare the "test" source set
+      // special case when a project does not use ihmc-build or doesn't declare a multi-project ending with "-test"
+      // yes, some projects don't have any tests, but why would they use this plugin? so not checking for test code
       if (!containsIHMCTestMultiProject(project))
       {
-         project.logger.info("[ihmc-ci] No test multi-project found, using test source set")
-         // add junit 5 dependencies
-         project.dependencies.add("testCompile", "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-         project.dependencies.add("testRuntimeOnly", "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-         if (vintageMode)
-            project.dependencies.add("testRuntimeOnly", "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
-         if (category == "allocation") // help out users trying to run allocation tests
-            project.dependencies.add("testCompile", "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
+         LogTools.info("[ihmc-ci] No test multi-project found, using test source set")
+         addTestDependencies(project, "testCompile", "testRuntimeOnly")
+         configureTestTask(project)
+      }
 
-         project.tasks.withType(Test::class.java) { test ->
-            test.doFirst {
-               val categoryConfig = categoriesExtension.categories[category] // setup category
-               if (categoryConfig != null)
-               {
-                  configureTestTask(project, test, categoryConfig)
-               }
-               else
-               {
-                  throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
-               }
+      // register bambooSync task
+      project.tasks.register("bambooSync", { task ->
+         task.doFirst {
+            val testsToTagsMap = hashMapOf<String, HashSet<String>>()
+            testProjects(project).forEach {
+               parseForTags(it, testsToTagsMap)
             }
-            test.finalizedBy(addPhonyTestXmlTask(project))
+
+            // send test/tag map to <backend program to be named>
+            // and maybe some things happen there
+            // or it sends back a signal to fail the build
+            // send and receive JSON
+            var response = ""
+            val backendConnection = backendConnection(false)
+            if (backendConnection is ConnectionFailed)
+            {
+               LogTools.error("Could not connect to $ciBackendHost")
+            }
+            else if (backendConnection is OverthereConnection)
+            {
+//               executeCommand(backendConnection, CmdLine.build("${properties.ciBackendCommand}")) {
+//                  response += it + "\n"
+//               }
+
+               backendConnection.close()
+            }
          }
+      })
+   }
+
+   fun addTestDependencies(project: Project, compileConfigName: String, runtimeConfigName: String)
+   {
+      // add junit 5 dependencies
+      project.dependencies.add(compileConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+      project.dependencies.add(runtimeConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+      if (vintageMode)
+         project.dependencies.add(runtimeConfigName, "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+      if (category == "allocation") // help out users trying to run allocation tests
+         project.dependencies.add(compileConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
+   }
+
+   fun configureTestTask(project: Project)
+   {
+      project.tasks.withType(Test::class.java) { test ->
+         test.doFirst {
+            val categoryConfig = categoriesExtension.categories[category] // setup category
+            if (categoryConfig != null)
+            {
+               configureTestTask(project, test, categoryConfig)
+            }
+            else
+            {
+               throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
+            }
+         }
+         test.finalizedBy(addPhonyTestXmlTask(project))
       }
    }
 
@@ -236,7 +261,7 @@ class IHMCCIPlugin : Plugin<Project>
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "scs"
-         jvmProperties.putAll(getScsDefaultJVMProps())
+//         jvmProperties.putAll(getScsDefaultJVMProps())
          minHeapSizeGB = 6
          maxHeapSizeGB = 8
       }
@@ -245,17 +270,42 @@ class IHMCCIPlugin : Plugin<Project>
          maxJVMs = 2
          maxParallelTests = 1
          includeTags += "video"
-         jvmProperties["create.scs.gui"] = "true"
-         jvmProperties["show.scs.windows"] = "true"
-         jvmProperties["create.videos.dir"] = "/home/shadylady/bamboo-videos/"
-         jvmProperties["show.scs.yographics"] = "true"
-         jvmProperties["java.awt.headless"] = "false"
-         jvmProperties["create.videos"] = "true"
-         jvmProperties["openh264.license"] = "accept"
-         jvmProperties["disable.joint.subsystem.publisher"] = "true"
-         jvmProperties["scs.dataBuffer.size"] = "8142"
+//         jvmProperties["create.scs.gui"] = "true"
+//         jvmProperties["show.scs.windows"] = "true"
+//         jvmProperties["create.videos.dir"] = "/home/shadylady/bamboo-videos/"
+//         jvmProperties["show.scs.yographics"] = "true"
+//         jvmProperties["java.awt.headless"] = "false"
+//         jvmProperties["create.videos"] = "true"
+//         jvmProperties["openh264.license"] = "accept"
+//         jvmProperties["disable.joint.subsystem.publisher"] = "true"
+//         jvmProperties["scs.dataBuffer.size"] = "8142"
          minHeapSizeGB = 6
          maxHeapSizeGB = 8
       }
    }
+}
+
+fun testProjects(project: Project): List<Project>
+{
+   val testProjects = arrayListOf<Project>()
+   for (allproject in project.allprojects)
+   {
+      if (allproject.name.endsWith("-test"))
+      {
+         testProjects += allproject
+      }
+   }
+   return testProjects
+}
+
+fun containsIHMCTestMultiProject(project: Project): Boolean
+{
+   for (allproject in project.allprojects)
+   {
+      if (allproject.name.endsWith("-test"))
+      {
+         return true
+      }
+   }
+   return false
 }
