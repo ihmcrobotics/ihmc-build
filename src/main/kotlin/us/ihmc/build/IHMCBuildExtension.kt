@@ -17,6 +17,7 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.withType
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
@@ -448,8 +449,10 @@ open class IHMCBuildExtension(val project: Project)
          
          if (subproject.name.endsWith("test"))
          {
-            val test = subproject.tasks.findByPath("test") as Test
-            test.testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
+            subproject.tasks.withType<Test>()
+            {
+               testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
+            }
          }
       }
 
