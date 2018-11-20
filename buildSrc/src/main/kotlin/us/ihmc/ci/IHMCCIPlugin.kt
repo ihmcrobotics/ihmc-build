@@ -1,6 +1,6 @@
 package us.ihmc.ci;
 
-import com.xebialabs.overthere.OverthereConnection
+import com.github.kittinunf.fuel.Fuel
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -21,6 +21,7 @@ class IHMCCIPlugin : Plugin<Project>
    var cpuThreads = 8
    var category: String = "fast"
    var vintageMode: Boolean = false
+   var ciBackendHost: String = "unset"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
    val testsToTagsMap = lazy {
@@ -57,29 +58,28 @@ class IHMCCIPlugin : Plugin<Project>
       }
 
       // register bambooSync task
-      project.tasks.register("bambooSync", { task ->
+      val bambooSync: (Task) -> Unit = { task ->
          task.doFirst {
 
             // send test/tag map to <backend program to be named>
             // and maybe some things happen there
             // or it sends back a signal to fail the build
             // send and receive JSON
-            var response = ""
-            val backendConnection = backendConnection(false)
-            if (backendConnection is ConnectionFailed)
-            {
-               LogTools.error("Could not connect to $ciBackendHost")
-            }
-            else if (backendConnection is OverthereConnection)
-            {
-//               executeCommand(backendConnection, CmdLine.build("${properties.ciBackendCommand}")) {
-//                  response += it + "\n"
-//               }
 
-               backendConnection.close()
-            }
+            Fuel.testMode { timeout = 5000 }
+            val url = "http://$ciBackendHost/sync"
+            Fuel.post(url, listOf(Pair("text", "hello")))
+                  .response { req, res, result ->
+                     result.fold({ byteArray ->
+                                    LogTools.error("success: $url\nresponse: ${res.responseMessage}")
+                                 },
+                                 { error ->
+                                    LogTools.error("failed: $url\n$error")
+                                 })
+                  }
          }
-      })
+      }
+      project.tasks.register("bambooSync", bambooSync)
    }
 
    fun addTestDependencies(project: Project, compileConfigName: String, runtimeConfigName: String)
@@ -278,6 +278,7 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
       project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
+      project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
