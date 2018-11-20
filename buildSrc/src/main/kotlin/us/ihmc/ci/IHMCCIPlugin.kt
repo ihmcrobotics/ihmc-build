@@ -1,6 +1,5 @@
 package us.ihmc.ci;
 
-import com.xebialabs.overthere.CmdLine
 import com.xebialabs.overthere.OverthereConnection
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -24,6 +23,13 @@ class IHMCCIPlugin : Plugin<Project>
    var vintageMode: Boolean = false
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
+   val testsToTagsMap = lazy {
+      val map = hashMapOf<String, HashSet<String>>()
+      testProjects(project).forEach {
+         parseForTags(it, map)
+      }
+      map
+   }
 
    override fun apply(project: Project)
    {
@@ -53,10 +59,6 @@ class IHMCCIPlugin : Plugin<Project>
       // register bambooSync task
       project.tasks.register("bambooSync", { task ->
          task.doFirst {
-            val testsToTagsMap = hashMapOf<String, HashSet<String>>()
-            testProjects(project).forEach {
-               parseForTags(it, testsToTagsMap)
-            }
 
             // send test/tag map to <backend program to be named>
             // and maybe some things happen there
@@ -95,15 +97,15 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.tasks.withType(Test::class.java) { test ->
          test.doFirst {
-            val categoryConfig = categoriesExtension.categories[category] // setup category
-            if (categoryConfig != null)
-            {
-               configureTestTask(project, test, categoryConfig)
+            // create a default category if not found
+            val categoryConfig = categoriesExtension.categories[category].run {
+               if (this != null)
+                  this
+               else
+                  IHMCCICategory(category)
             }
-            else
-            {
-               throw GradleException("[ihmc-ci] Category $category is not defined! Define it in a categories.create(..) { } block.")
-            }
+
+            configureTestTask(project, test, categoryConfig)
          }
          test.finalizedBy(addPhonyTestXmlTask(project))
       }
@@ -147,6 +149,39 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun configureTestTask(testProject: Project, test: Test, categoryConfig: IHMCCICategory)
    {
+      // if properties were specified, they override the category settings
+      project.properties["classesPerJVM"].run { if (this != null) categoryConfig.classesPerJVM = (this as String).toInt() }
+      project.properties["maxJVMs"].run { if (this != null) categoryConfig.maxJVMs = (this as String).toInt() }
+      project.properties["initialHeapSizeGB"].run { if (this != null) categoryConfig.initialHeapSizeGB = (this as String).toInt() }
+      project.properties["maxHeapSizeGB"].run { if (this != null) categoryConfig.maxHeapSizeGB = (this as String).toInt() }
+
+      if (categoryConfig.name == "fast")
+      {
+         testsToTagsMap.value.forEach {
+            it.value.forEach {
+               categoryConfig.excludeTags.add(it)
+            }
+         }
+         categoryConfig.includeTags.clear()
+      }
+      else
+      {
+         // handle dynamically created categories
+         // or default if no include specified
+         if (categoryConfig.includeTags.isEmpty())
+         {
+            categoryConfig.includeTags.add(categoryConfig.name)
+         }
+      }
+
+      // print the final settings
+      project.logger.info("[ihmc-ci] classesPerJVM = ${categoryConfig.classesPerJVM}")
+      project.logger.info("[ihmc-ci] maxJVMs = ${categoryConfig.maxJVMs}")
+      project.logger.info("[ihmc-ci] includeTags = ${categoryConfig.includeTags}")
+      project.logger.info("[ihmc-ci] excludeTags = ${categoryConfig.excludeTags}")
+      project.logger.info("[ihmc-ci] initialHeapSizeGB = ${categoryConfig.initialHeapSizeGB}")
+      project.logger.info("[ihmc-ci] maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
+
       test.useJUnitPlatform {
          for (tag in categoryConfig.includeTags)
          {
@@ -209,7 +244,7 @@ class IHMCCIPlugin : Plugin<Project>
       tmpArgs.add("-ea")
       test.allJvmArgs = tmpArgs
 
-      test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
+      test.minHeapSize = "${categoryConfig.initialHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
    }
 
@@ -262,7 +297,7 @@ class IHMCCIPlugin : Plugin<Project>
          maxParallelTests = 1
          includeTags += "scs"
 //         jvmProperties.putAll(getScsDefaultJVMProps())
-         minHeapSizeGB = 6
+         initialHeapSizeGB = 6
          maxHeapSizeGB = 8
       }
       categoriesExtension.create("video") {
@@ -279,33 +314,33 @@ class IHMCCIPlugin : Plugin<Project>
 //         jvmProperties["openh264.license"] = "accept"
 //         jvmProperties["disable.joint.subsystem.publisher"] = "true"
 //         jvmProperties["scs.dataBuffer.size"] = "8142"
-         minHeapSizeGB = 6
+         initialHeapSizeGB = 6
          maxHeapSizeGB = 8
       }
    }
-}
 
-fun testProjects(project: Project): List<Project>
-{
-   val testProjects = arrayListOf<Project>()
-   for (allproject in project.allprojects)
+   fun testProjects(project: Project): List<Project>
    {
-      if (allproject.name.endsWith("-test"))
+      val testProjects = arrayListOf<Project>()
+      for (allproject in project.allprojects)
       {
-         testProjects += allproject
+         if (allproject.name.endsWith("-test"))
+         {
+            testProjects += allproject
+         }
       }
+      return testProjects
    }
-   return testProjects
-}
 
-fun containsIHMCTestMultiProject(project: Project): Boolean
-{
-   for (allproject in project.allprojects)
+   fun containsIHMCTestMultiProject(project: Project): Boolean
    {
-      if (allproject.name.endsWith("-test"))
+      for (allproject in project.allprojects)
       {
-         return true
+         if (allproject.name.endsWith("-test"))
+         {
+            return true
+         }
       }
+      return false
    }
-   return false
 }

@@ -2,6 +2,26 @@ package us.ihmc.ci
 
 import org.gradle.api.Project
 
+val ALLOCATION_AGENT_KEY = "allocationAgent"
+
+class IHMCCICategory(val name: String)
+{
+   var classesPerJVM = 0 // no limit
+   var maxJVMs = 2 // cost of spawning too many is high, but doubling is worth it
+   var maxParallelTests = 1   // doesn't work right now with Gradle's test runner. See: https://github.com/gradle/gradle/issues/6453
+   val excludeTags = hashSetOf<String>()
+   val includeTags = hashSetOf<String>()
+   val jvmProperties = hashMapOf<String, String>()
+   val jvmArguments = arrayListOf<String>()
+   var initialHeapSizeGB = 1
+   var maxHeapSizeGB = 4
+
+   fun getAllocationAgentJVMArg(): String
+   {
+      return ALLOCATION_AGENT_KEY
+   }
+}
+
 open class IHMCCICategoriesExtension(private val project: Project)
 {
    val categories = hashMapOf<String, IHMCCICategory>()
