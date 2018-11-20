@@ -62,29 +62,35 @@ class IHMCCIPlugin : Plugin<Project>
       // register bambooSync task
       val bambooSync: (Task) -> Unit = { task ->
          task.doFirst {
-
-            // send test/tag map to <backend program to be named>
-            // and maybe some things happen there
-            // or it sends back a signal to fail the build
-            // send and receive JSON
-
             val json = JSONObject()
             json.put("projectName", project.name)
             json.put("testsToTags", testsToTagsMap.value)
 
             Fuel.testMode { timeout = 5000 }
             val url = "http://$ciBackendHost/sync"
+            var fail = false
+            var message = ""
             Fuel.post(url, listOf(Pair("text", json.toString(2))))
                   .response { req, res, result ->
                      result.fold({ byteArray ->
                                     val responseData = res.data.toString(Charset.defaultCharset())
-                                    LogTools.error("success: $url\nresponse: $responseData")
-                                    JSONObject(responseData).toString(2)
+                                    val jsonObject = JSONObject(responseData)
+                                    message = jsonObject["message"] as String
+                                    fail = jsonObject["fail"] as Boolean
                                  },
                                  { error ->
-                                    LogTools.error("failed: $url\n$error")
+                                    LogTools.error("[ihmc-ci] bambooSync: Post request failed: $url\n$error")
                                  })
                   }
+
+            if (fail) // do this after to avoid exceptions getting caught by Fuel
+            {
+               throw GradleException("[ihmc-ci] bambooSync: $message")
+            }
+            else
+            {
+               LogTools.info("[ihmc-ci] bambooSync: $message")
+            }
          }
       }
       project.tasks.register("bambooSync", bambooSync)
