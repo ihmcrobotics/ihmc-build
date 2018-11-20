@@ -289,33 +289,7 @@ class IHMCCIPlugin : Plugin<Project>
       categoriesExtension.create("allocation") {
          maxParallelTests = 1
          includeTags += "allocation"
-         jvmArguments += getAllocationAgentJVMArg()
-      }
-      categoriesExtension.create("scs") {
-         classesPerJVM = 1
-         maxJVMs = 2
-         maxParallelTests = 1
-         includeTags += "scs"
-//         jvmProperties.putAll(getScsDefaultJVMProps())
-         initialHeapSizeGB = 6
-         maxHeapSizeGB = 8
-      }
-      categoriesExtension.create("video") {
-         classesPerJVM = 1
-         maxJVMs = 2
-         maxParallelTests = 1
-         includeTags += "video"
-//         jvmProperties["create.scs.gui"] = "true"
-//         jvmProperties["show.scs.windows"] = "true"
-//         jvmProperties["create.videos.dir"] = "/home/shadylady/bamboo-videos/"
-//         jvmProperties["show.scs.yographics"] = "true"
-//         jvmProperties["java.awt.headless"] = "false"
-//         jvmProperties["create.videos"] = "true"
-//         jvmProperties["openh264.license"] = "accept"
-//         jvmProperties["disable.joint.subsystem.publisher"] = "true"
-//         jvmProperties["scs.dataBuffer.size"] = "8142"
-         initialHeapSizeGB = 6
-         maxHeapSizeGB = 8
+         jvmArguments += ALLOCATION_AGENT_KEY
       }
    }
 

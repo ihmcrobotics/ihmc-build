@@ -15,11 +15,6 @@ class IHMCCICategory(val name: String)
    val jvmArguments = arrayListOf<String>()
    var initialHeapSizeGB = 1
    var maxHeapSizeGB = 4
-
-   fun getAllocationAgentJVMArg(): String
-   {
-      return ALLOCATION_AGENT_KEY
-   }
 }
 
 open class IHMCCICategoriesExtension(private val project: Project)
