@@ -8,8 +8,10 @@ import org.gradle.api.Task
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
+import org.json.JSONObject
 import us.ihmc.ci.sourceCodeParser.parseForTags
 import java.io.File
+import java.nio.charset.Charset
 
 lateinit var LogTools: Logger
 
@@ -66,12 +68,18 @@ class IHMCCIPlugin : Plugin<Project>
             // or it sends back a signal to fail the build
             // send and receive JSON
 
+            val json = JSONObject()
+            json.put("projectName", project.name)
+            json.put("testsToTags", testsToTagsMap.value)
+
             Fuel.testMode { timeout = 5000 }
             val url = "http://$ciBackendHost/sync"
-            Fuel.post(url, listOf(Pair("text", "hello")))
+            Fuel.post(url, listOf(Pair("text", json.toString(2))))
                   .response { req, res, result ->
                      result.fold({ byteArray ->
-                                    LogTools.error("success: $url\nresponse: ${res.responseMessage}")
+                                    val responseData = res.data.toString(Charset.defaultCharset())
+                                    LogTools.error("success: $url\nresponse: $responseData")
+                                    JSONObject(responseData).toString(2)
                                  },
                                  { error ->
                                     LogTools.error("failed: $url\n$error")
