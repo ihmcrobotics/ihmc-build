@@ -46,10 +46,6 @@ fun parseForTags(testProject: Project, testsToTagsMap: HashMap<String, HashSet<S
       testPlan = launcher.discover(discoveryRequest)
       recursiveBuildMap(testPlan!!.roots, testPlan, testsToTagsMap)
       LogTools.debug("Contains tests: ${testPlan.containsTests()}")
-
-      testsToTagsMap.forEach {
-         LogTools.debug(it.key + " " + it.value)
-      }
    }
    finally
    {
