@@ -155,6 +155,11 @@ class IHMCCIPlugin : Plugin<Project>
       {
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
+
+      test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+      test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
+      test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
+
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
       this.project.logger.info("[ihmc-ci] Passing to JVM: -Dresource.dir=" + resourcesDir)
@@ -175,6 +180,13 @@ class IHMCCIPlugin : Plugin<Project>
       test.allJvmArgs = tmpArgs
       test.minHeapSize = "${categoryConfig.initialHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
+
+      this.project.logger.info("[ihmc-ci] test.forkEvery = ${test.forkEvery}")
+      this.project.logger.info("[ihmc-ci] test.maxParallelForks = ${test.maxParallelForks}")
+      this.project.logger.info("[ihmc-ci] test.systemProperties = ${test.systemProperties}")
+      this.project.logger.info("[ihmc-ci] test.allJvmArgs = ${test.allJvmArgs}")
+      this.project.logger.info("[ihmc-ci] test.minHeapSize = ${test.minHeapSize}")
+      this.project.logger.info("[ihmc-ci] test.maxHeapSize = ${test.maxHeapSize}")
    }
 
    fun postProcessCategoryConfig(): IHMCCICategory
