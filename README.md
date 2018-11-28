@@ -62,16 +62,9 @@ excludeFromCompositeBuild = false
 
 **build.gradle**
 ```gradle
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.15.4"
-   }
+plugins {
+   id("us.ihmc.ihmc-build") version "0.15.4"
 }
-apply plugin: "us.ihmc.ihmc-build"
 
 ihmc {
    group = "us.ihmc"
@@ -253,6 +246,20 @@ Snapshots is an unsupported feature which is used internally in our CI.
 
 Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions declared as `SNAPSHOT-*`, matching
 them to artifacts found to be available on IHMC's Artifactory snapshots repos.
+
+##### Maven Repositories
+
+To add a Maven repository, use the `repository` function in the `ihmc` extension. Note that projects that depend on this will also need to have these repositories declared, so use them sparingly.
+```
+ihmc {
+   ...
+
+   configureDependencyResolution()  // Between here ->
+   repository("http://maven-eclipse.github.io/maven")
+   repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+   configurePublications() // <- and here
+}
+```
 
 ### Troubleshooting
 
