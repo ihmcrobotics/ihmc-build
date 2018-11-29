@@ -316,7 +316,10 @@ class IHMCCIPlugin : Plugin<Project>
          // defaults
       }
       categoriesExtension.create("allocation") {
-         maxParallelTests = 1
+         classesPerJVM = 1
+         maxJVMs = 1
+         initialHeapSizeGB = 2
+         maxHeapSizeGB = 6
          includeTags += "allocation"
          jvmArguments += ALLOCATION_AGENT_KEY
       }
