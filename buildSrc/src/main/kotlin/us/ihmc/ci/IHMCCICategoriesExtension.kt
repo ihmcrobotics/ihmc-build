@@ -15,6 +15,7 @@ class IHMCCICategory(val name: String)
    val jvmArguments = arrayListOf<String>()
    var initialHeapSizeGB = 1
    var maxHeapSizeGB = 4
+   var enableAssertions = true
 }
 
 open class IHMCCICategoriesExtension(private val project: Project)
