@@ -18,10 +18,12 @@ lateinit var LogTools: Logger
 class IHMCCIPlugin : Plugin<Project>
 {
    val JUNIT_VERSION = "5.3.1"
+   class Unset
 
    lateinit var project: Project
    var cpuThreads = 8
    var category: String = "fast"
+   var enableAssertions: Any = Unset()
    var vintageMode: Boolean = false
    var ciBackendHost: String = "unset"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
@@ -176,7 +178,19 @@ class IHMCCIPlugin : Plugin<Project>
             tmpArgs.add(jvmArg)
          }
       }
-      tmpArgs.add("-ea")
+      if ((enableAssertions is Boolean && enableAssertions as Boolean)  // trick, Any set to Unset if user did not input
+       || (enableAssertions is Unset && categoryConfig.enableAssertions))
+      {
+         tmpArgs.add("-ea")
+         this.project.logger.info("[ihmc-ci] Assertions enabled. Adding JVM arg: -ea")
+         test.enableAssertions = true
+      }
+      else
+      {
+         this.project.logger.info("[ihmc-ci] Assertions disabled")
+         test.enableAssertions = false
+         tmpArgs.remove("-ea")
+      }
       test.allJvmArgs = tmpArgs
       test.minHeapSize = "${categoryConfig.initialHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
@@ -303,11 +317,14 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
+      project.properties["enableAssertions"].run { if (this != null) enableAssertions = (this as String).trim().toLowerCase().toBoolean() }
       project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
       project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
+      project.logger.info("[ihmc-ci] enableAssertions = $enableAssertions")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
+      project.logger.info("[ihmc-ci] ciBackendHost = $ciBackendHost")
    }
 
    fun configureDefaultCategories()
