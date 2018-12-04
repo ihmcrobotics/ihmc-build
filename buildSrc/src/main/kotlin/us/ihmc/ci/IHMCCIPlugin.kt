@@ -8,6 +8,7 @@ import org.gradle.api.Task
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.json.JSONObject
 import us.ihmc.ci.sourceCodeParser.parseForTags
 import java.io.File
@@ -194,6 +195,13 @@ class IHMCCIPlugin : Plugin<Project>
       test.allJvmArgs = tmpArgs
       test.minHeapSize = "${categoryConfig.initialHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
+
+      test.testLogging.events = setOf(TestLogEvent.STARTED,
+                                      TestLogEvent.FAILED,
+                                      TestLogEvent.PASSED,
+                                      TestLogEvent.SKIPPED,
+                                      TestLogEvent.STANDARD_ERROR,
+                                      TestLogEvent.STANDARD_OUT)
 
       this.project.logger.info("[ihmc-ci] test.forkEvery = ${test.forkEvery}")
       this.project.logger.info("[ihmc-ci] test.maxParallelForks = ${test.maxParallelForks}")
