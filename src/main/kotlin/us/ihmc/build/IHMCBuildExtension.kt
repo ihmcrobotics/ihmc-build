@@ -646,13 +646,16 @@ open class IHMCBuildExtension(val project: Project)
             childVersion += "-$integrationNumber"
             closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
          }
-         if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
+         else // this was a bug for a long time where child builds could use an older snapshot with no warning
          {
-            closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-         }
-         if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-         {
-            closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
+            {
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
+            }
+            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
+            {
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+            }
          }
          externalDependencyVersion = closestVersion
       }
@@ -936,6 +939,8 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
    {
+      logInfo(logger, "Looking for latest version: $groupId:$artifactId:$versionMatcher")
+
       var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
       
       if (highestVersion.contains("NOT-FOUND"))
