@@ -26,6 +26,7 @@ class IHMCCIPlugin : Plugin<Project>
    var category: String = "fast"
    var enableAssertions: Any = Unset()
    var vintageMode: Boolean = false
+   var vintageSuite: String? = null
    var ciBackendHost: String = "unset"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
@@ -101,11 +102,16 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun addTestDependencies(project: Project, compileConfigName: String, runtimeConfigName: String)
    {
-      // add junit 5 dependencies
-      project.dependencies.add(compileConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-      project.dependencies.add(runtimeConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
       if (vintageMode)
-         project.dependencies.add(runtimeConfigName, "org.junit.vintage:junit-vintage-engine:$JUNIT_VERSION")
+      {
+         project.dependencies.add(runtimeConfigName, "junit:junit:4.12")
+      }
+      else // add junit 5 dependencies
+      {
+         project.dependencies.add(compileConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         project.dependencies.add(runtimeConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+      }
+
       if (category == "allocation") // help out users trying to run allocation tests
          project.dependencies.add(compileConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
    }
@@ -124,26 +130,40 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun applyCategoryConfigToGradleTest(test: Test, categoryConfig: IHMCCICategory, project: Project)
    {
-      test.useJUnitPlatform {
-         for (tag in categoryConfig.includeTags)
+      if (vintageMode)
+      {
+         test.useJUnit()
+
+         if (vintageSuite != null)
          {
-            it.includeTags(tag)
+            val includeString = "**/${vintageSuite}TestSuite.class"
+            this.project.logger.info("[ihmc-ci] Including JUnit 4 classes: $includeString")
+            test.include(includeString)
          }
-         for (tag in categoryConfig.excludeTags)
-         {
-            it.excludeTags(tag)
-         }
-         // If the "fast" category includes nothing, this excludes all tags included by other
-         // categories, which makes it run only untagged tests and tests that would not be run
-         // if the user were to run all defined catagories. This is both a safety feature,
-         // and the expected functionality of the "fast" category, historically at IHMC.
-         if (categoryConfig.name == "fast" && categoryConfig.includeTags.isEmpty())
-         {
-            for (definedCategory in categoriesExtension.categories)
+      }
+      else
+      {
+         test.useJUnitPlatform {
+            for (tag in categoryConfig.includeTags)
             {
-               for (tag in definedCategory.value.includeTags)
+               it.includeTags(tag)
+            }
+            for (tag in categoryConfig.excludeTags)
+            {
+               it.excludeTags(tag)
+            }
+            // If the "fast" category includes nothing, this excludes all tags included by other
+            // categories, which makes it run only untagged tests and tests that would not be run
+            // if the user were to run all defined catagories. This is both a safety feature,
+            // and the expected functionality of the "fast" category, historically at IHMC.
+            if (categoryConfig.name == "fast" && categoryConfig.includeTags.isEmpty())
+            {
+               for (definedCategory in categoriesExtension.categories)
                {
-                  it.excludeTags(tag)
+                  for (tag in definedCategory.value.includeTags)
+                  {
+                     it.excludeTags(tag)
+                  }
                }
             }
          }
@@ -159,9 +179,12 @@ class IHMCCIPlugin : Plugin<Project>
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
 
-      test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
-      test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
-      test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
+      if (!vintageMode)
+      {
+         test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+         test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
+         test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
+      }
 
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
@@ -224,14 +247,14 @@ class IHMCCIPlugin : Plugin<Project>
       this.project.properties["maxJVMs"].run { if (this != null) categoryConfig.maxJVMs = (this as String).toInt() }
       this.project.properties["initialHeapSizeGB"].run { if (this != null) categoryConfig.initialHeapSizeGB = (this as String).toInt() }
       this.project.properties["maxHeapSizeGB"].run { if (this != null) categoryConfig.maxHeapSizeGB = (this as String).toInt() }
-      if (categoryConfig.name == "fast")
+      if (categoryConfig.name == "fast")  // fast runs all "untagged" tests, so exclude all found tags
       {
          testsToTagsMap.value.forEach {
             it.value.forEach {
                categoryConfig.excludeTags.add(it)
             }
          }
-         categoryConfig.includeTags.clear()
+         categoryConfig.includeTags.clear()  // include is a whitelist, so must clear it
       }
       else
       {
@@ -327,11 +350,13 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
       project.properties["enableAssertions"].run { if (this != null) enableAssertions = (this as String).trim().toLowerCase().toBoolean() }
       project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
+      project.properties["vintageSuite"].run { if (this != null) vintageSuite = (this as String).trim() }
       project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
       project.logger.info("[ihmc-ci] enableAssertions = $enableAssertions")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
+      project.logger.info("[ihmc-ci] vintageSuite = $vintageSuite")
       project.logger.info("[ihmc-ci] ciBackendHost = $ciBackendHost")
    }
 
