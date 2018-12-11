@@ -219,7 +219,7 @@ class IHMCCIPlugin : Plugin<Project>
       test.minHeapSize = "${categoryConfig.initialHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
 
-      test.testLogging.events = setOf(TestLogEvent.STARTED,
+      test.testLogging.info.events = setOf(TestLogEvent.STARTED,
                                       TestLogEvent.FAILED,
                                       TestLogEvent.PASSED,
                                       TestLogEvent.SKIPPED,
