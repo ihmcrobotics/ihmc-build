@@ -179,12 +179,13 @@ class IHMCCIPlugin : Plugin<Project>
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
 
-      if (!vintageMode)
-      {
-         test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
-         test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
-         test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
-      }
+      // These are not useful to declare until we start using the parallel test features.
+//      if (!vintageMode)
+//      {
+//         test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+//         test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
+//         test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
+//      }
 
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
