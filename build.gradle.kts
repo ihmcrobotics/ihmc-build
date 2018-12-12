@@ -1,8 +1,4 @@
-import com.gradle.publish.PluginConfig
-import org.jetbrains.kotlin.serialization.js.DynamicTypeDeserializer.id
-
 plugins {
-   `java-gradle-plugin`
    `kotlin-dsl`
    `maven-publish`
    id("com.gradle.plugin-publish") version "0.10.0"
@@ -64,11 +60,15 @@ dependencies {
    compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.2")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3.1")
    compile("com.mashape.unirest:unirest-java:1.4.9")
-   compile("us.ihmc:ihmc-commons:0.24.0")
+   compile("us.ihmc:ihmc-commons:0.25.0")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile(gradleKotlinDsl())
 
    testCompile("org.junit.jupiter:junit-jupiter-api:5.3.1")
    testCompile("org.junit.jupiter:junit-jupiter-engine:5.3.1")
    testCompile("us.ihmc:encrypted-properties:0.1.0")
+}
+
+tasks.withType<Test> {
+   useJUnitPlatform()
 }
