@@ -1,14 +1,9 @@
 package us.ihmc.build
 
-import org.junit.Assert.*
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import us.ihmc.encryptedProperties.EncryptedPropertyManager
-import java.io.File
-import java.io.IOException
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.concurrent.TimeUnit
 
 /**
  * Must be run from ihmc-build directory!
@@ -28,7 +23,7 @@ class ContinuousIntegrationTest
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
 
-   @Ignore
+   @Disabled
    @Test
    fun testPublishSnapshotLocal()
    {
@@ -50,7 +45,7 @@ class ContinuousIntegrationTest
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
 
-   @Ignore
+   @Disabled
    @Test
    fun testResolveSnapshotLocal()
    {

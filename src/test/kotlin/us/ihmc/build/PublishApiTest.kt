@@ -1,7 +1,7 @@
 package us.ihmc.build
 
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 class PublishApiTest
 {
@@ -13,13 +13,13 @@ class PublishApiTest
       
       command = "publish -PpublishMode=LOCAL -PartifactoryUsername=foo -PbintrayUsername=foo"
       logOutput = runGradleTask(command, "oldPublishApiTest")
-      assertTrue("Didn't publish to local", logOutput.contains("publishMainPublicationToMavenLocalRepository"))
-      assertTrue("Wasn't successful", logOutput.contains("BUILD SUCCESSFUL"))
+      assertTrue(logOutput.contains("publishMainPublicationToMavenLocalRepository"), "Didn't publish to local")
+      assertTrue(logOutput.contains("BUILD SUCCESSFUL"), "Wasn't successful")
       
       command = "publish -PpublishMode=STABLE -PartifactoryUsername=foo -PbintrayUsername=foo"
       logOutput = runGradleTask(command, "oldPublishApiTest")
-      assertTrue("Didn't publish to release", logOutput.contains(
-            "Could not write to resource 'https://api.bintray.com/maven/ihmcrobotics/maven-release/your-project/us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'."))
+      assertTrue(logOutput.contains(
+            "Could not write to resource 'https://api.bintray.com/maven/ihmcrobotics/maven-release/your-project/us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'."), "Didn't publish to release")
       assertTrue(logOutput.contains("BUILD FAILED"))
       
 //      command = "publish -PpublishMode=SNAPSHOT -PartifactoryUsername=foo -PbintrayUsername=foo"

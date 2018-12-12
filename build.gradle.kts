@@ -67,7 +67,8 @@ dependencies {
    compile("us.ihmc:ihmc-commons:0.24.0")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    compile(gradleKotlinDsl())
-   
-   testCompile("junit:junit:4.12")
+
+   testCompile("org.junit.jupiter:junit-jupiter-api:5.3.1")
+   testCompile("org.junit.jupiter:junit-jupiter-engine:5.3.1")
    testCompile("us.ihmc:encrypted-properties:0.1.0")
 }
