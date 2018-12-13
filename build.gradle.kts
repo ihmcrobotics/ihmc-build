@@ -14,23 +14,19 @@ pluginBundle {
 }
 
 gradlePlugin {
-   plugins {
-      create("ihmc-build") {
-         id = "us.ihmc.ihmc-build"
-         implementationClass = "us.ihmc.build.IHMCBuildPlugin"
-      }
+   plugins.register("ihmc-build") {
+      id = "us.ihmc.ihmc-build"
+      implementationClass = "us.ihmc.build.IHMCBuildPlugin"
    }
 }
 
 pluginBundle {
-   (plugins) {
-      "ihmc-build" {
-         id = "us.ihmc.ihmc-build"
-         displayName = "IHMC Build Plugin"
-         description = "IHMC Robotics opinions on Java builds"
-         tags = listOf("build", "ihmc", "robotics")
-         version = project.version as String
-      }
+   plugins.getByName("ihmc-build") {
+      id = "us.ihmc.ihmc-build"
+      displayName = "IHMC Build Plugin"
+      description = "IHMC Robotics opinions on Java builds"
+      tags = listOf("build", "ihmc", "robotics")
+      version = project.version as String
    }
    
    mavenCoordinates.groupId = group as String
