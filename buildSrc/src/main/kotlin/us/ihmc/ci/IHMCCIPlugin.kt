@@ -19,12 +19,10 @@ lateinit var LogTools: Logger
 class IHMCCIPlugin : Plugin<Project>
 {
    val JUNIT_VERSION = "5.3.1"
-   class Unset
 
    lateinit var project: Project
    var cpuThreads = 8
    var category: String = "fast"
-   var enableAssertions: Any = Unset()
    var vintageMode: Boolean = false
    var vintageSuite: String? = null
    var ciBackendHost: String = "unset"
@@ -45,7 +43,6 @@ class IHMCCIPlugin : Plugin<Project>
 
       loadProperties()
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
-      configureDefaultCategories()
 
       for (testProject in testProjects(project))
       {
@@ -130,6 +127,8 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun applyCategoryConfigToGradleTest(test: Test, categoryConfig: IHMCCICategory, project: Project)
    {
+      categoryConfig.doFirst.invoke()
+
       if (vintageMode)
       {
          test.useJUnit()
@@ -179,13 +178,12 @@ class IHMCCIPlugin : Plugin<Project>
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
 
-      // These are not useful to declare until we start using the parallel test features.
-//      if (!vintageMode)
-//      {
-//         test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
-//         test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "fixed"
-//         test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.maxParallelTests.toString()
-//      }
+      if (categoryConfig.junit5ParallelEnabled)
+      {
+         test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+         test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = categoryConfig.junit5ParallelStrategy
+         test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.junit5ParallelFixedParallelism
+      }
 
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
@@ -203,8 +201,7 @@ class IHMCCIPlugin : Plugin<Project>
             tmpArgs.add(jvmArg)
          }
       }
-      if ((enableAssertions is Boolean && enableAssertions as Boolean)  // trick, Any set to Unset if user did not input
-       || (enableAssertions is Unset && categoryConfig.enableAssertions))
+      if (categoryConfig.enableAssertions)
       {
          tmpArgs.add("-ea")
          this.project.logger.info("[ihmc-ci] Assertions enabled. Adding JVM arg: -ea")
@@ -237,17 +234,8 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun postProcessCategoryConfig(): IHMCCICategory
    {
-      val categoryConfig = categoriesExtension.categories[category].run {
-         if (this != null)
-            this
-         else
-            IHMCCICategory(category)
-      }
+      val categoryConfig = categoriesExtension.configure(category)
 
-      this.project.properties["forkEvery"].run { if (this != null) categoryConfig.forkEvery = (this as String).toInt() }
-      this.project.properties["maxParallelForks"].run { if (this != null) categoryConfig.maxParallelForks = (this as String).toInt() }
-      this.project.properties["minHeapSizeGB"].run { if (this != null) categoryConfig.minHeapSizeGB = (this as String).toInt() }
-      this.project.properties["maxHeapSizeGB"].run { if (this != null) categoryConfig.maxHeapSizeGB = (this as String).toInt() }
       if (categoryConfig.name == "fast")  // fast runs all "untagged" tests, so exclude all found tags
       {
          testsToTagsMap.value.forEach {
@@ -257,22 +245,16 @@ class IHMCCIPlugin : Plugin<Project>
          }
          categoryConfig.includeTags.clear()  // include is a whitelist, so must clear it
       }
-      else
-      {
-         // handle dynamically created categories
-         // or default if no include specified
-         if (categoryConfig.includeTags.isEmpty())
-         {
-            categoryConfig.includeTags.add(categoryConfig.name)
-         }
-      }
 
-      this.project.logger.info("[ihmc-ci] forkEvery = ${categoryConfig.forkEvery}")
-      this.project.logger.info("[ihmc-ci] maxParallelForks = ${categoryConfig.maxParallelForks}")
-      this.project.logger.info("[ihmc-ci] includeTags = ${categoryConfig.includeTags}")
-      this.project.logger.info("[ihmc-ci] excludeTags = ${categoryConfig.excludeTags}")
-      this.project.logger.info("[ihmc-ci] minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
-      this.project.logger.info("[ihmc-ci] maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxParallelForks = ${categoryConfig.maxParallelForks}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.excludeTags = ${categoryConfig.excludeTags}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.includeTags = ${categoryConfig.includeTags}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.jvmProperties = ${categoryConfig.jvmProperties}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.jvmArguments = ${categoryConfig.jvmArguments}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.enableAssertions = ${categoryConfig.enableAssertions}")
 
       // List tests to be run
       LogTools.quiet("[ihmc-ci] Tests to be run:")
@@ -349,32 +331,14 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
-      project.properties["enableAssertions"].run { if (this != null) enableAssertions = (this as String).trim().toLowerCase().toBoolean() }
       project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
       project.properties["vintageSuite"].run { if (this != null) vintageSuite = (this as String).trim() }
       project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
-      if (enableAssertions is Boolean)
-         project.logger.info("[ihmc-ci] enableAssertions = $enableAssertions")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
       project.logger.info("[ihmc-ci] vintageSuite = $vintageSuite")
       project.logger.info("[ihmc-ci] ciBackendHost = $ciBackendHost")
-   }
-
-   fun configureDefaultCategories()
-   {
-      categoriesExtension.create("fast") {
-         // defaults
-      }
-      categoriesExtension.create("allocation") {
-         forkEvery = 1
-         maxParallelForks = 1
-         minHeapSizeGB = 2
-         maxHeapSizeGB = 6
-         includeTags += "allocation"
-         jvmArguments += ALLOCATION_AGENT_KEY
-      }
    }
 
    fun testProjects(project: Project): List<Project>
