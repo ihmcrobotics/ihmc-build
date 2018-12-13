@@ -8,7 +8,9 @@ class IHMCCICategory(val name: String)
 {
    var forkEvery = 0 // no limit
    var maxParallelForks = 1 // cost of spawning too many is high, but doubling is worth it
-   var maxParallelTests = 1   // doesn't work right now with Gradle's test runner. See: https://github.com/gradle/gradle/issues/6453
+   var junit5ParallelEnabled = false   // doesn't work right now with Gradle's test runner. See: https://github.com/gradle/gradle/issues/6453
+   var junit5ParallelStrategy = "fixed"
+   var junit5ParallelFixedParallelism = 1
    val excludeTags = hashSetOf<String>()
    val includeTags = hashSetOf<String>()
    val jvmProperties = hashMapOf<String, String>()
@@ -16,28 +18,31 @@ class IHMCCICategory(val name: String)
    var minHeapSizeGB = 1
    var maxHeapSizeGB = 4
    var enableAssertions = true
+   var doFirst: () -> Unit = {}  // run user code when this category is selected
 }
 
 open class IHMCCICategoriesExtension(private val project: Project)
 {
    val categories = hashMapOf<String, IHMCCICategory>()
 
-   fun create(name: String, configuration: IHMCCICategory.() -> Unit)
+   fun configure(name: String, configuration: IHMCCICategory.() -> Unit)
    {
-      val category = IHMCCICategory(name)
-      configuration.invoke(category)
-      categories.put(name, category)
+      configuration.invoke(configure(name))
    }
 
-   fun create(name: String): IHMCCICategory
+   fun configure(name: String): IHMCCICategory
    {
-      val category = IHMCCICategory(name)
-      categories.put(name, category)
+      val category = categories.getOrPut(name, { IHMCCICategory(name) })
+      if (name != "all" && name != "fast")  // all require no includes or excludes, fast will be configured later
+      {
+         category.includeTags += name   // by default, include tags of the category name
+      }
+      if (name == "allocation")
+      {
+         category.minHeapSizeGB = 2
+         category.maxHeapSizeGB = 6
+         category.jvmArguments += ALLOCATION_AGENT_KEY
+      }
       return category
-   }
-
-   fun get(name: String): IHMCCICategory
-   {
-      return categories.get(name)!!
    }
 }
