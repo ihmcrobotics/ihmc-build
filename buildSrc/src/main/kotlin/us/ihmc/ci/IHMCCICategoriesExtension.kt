@@ -7,7 +7,7 @@ val ALLOCATION_AGENT_KEY = "allocationAgent"
 class IHMCCICategory(val name: String)
 {
    var forkEvery = 0 // no limit
-   var maxParallelForks = 2 // cost of spawning too many is high, but doubling is worth it
+   var maxParallelForks = 1 // cost of spawning too many is high, but doubling is worth it
    var maxParallelTests = 1   // doesn't work right now with Gradle's test runner. See: https://github.com/gradle/gradle/issues/6453
    val excludeTags = hashSetOf<String>()
    val includeTags = hashSetOf<String>()
