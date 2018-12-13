@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompile
 plugins {
    kotlin("jvm") version "1.2.61"
    `java-gradle-plugin`
+   `maven-publish`
    id("com.gradle.plugin-publish") version "0.10.0"
 }
 
