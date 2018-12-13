@@ -6,14 +6,14 @@ val ALLOCATION_AGENT_KEY = "allocationAgent"
 
 class IHMCCICategory(val name: String)
 {
-   var classesPerJVM = 0 // no limit
-   var maxJVMs = 2 // cost of spawning too many is high, but doubling is worth it
+   var forkEvery = 0 // no limit
+   var maxParallelForks = 2 // cost of spawning too many is high, but doubling is worth it
    var maxParallelTests = 1   // doesn't work right now with Gradle's test runner. See: https://github.com/gradle/gradle/issues/6453
    val excludeTags = hashSetOf<String>()
    val includeTags = hashSetOf<String>()
    val jvmProperties = hashMapOf<String, String>()
    val jvmArguments = arrayListOf<String>()
-   var initialHeapSizeGB = 1
+   var minHeapSizeGB = 1
    var maxHeapSizeGB = 4
    var enableAssertions = true
 }
