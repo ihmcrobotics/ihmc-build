@@ -1,36 +1,14 @@
+import com.gradle.publish.MavenCoordinates
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompile
+
 plugins {
-   `kotlin-dsl`
-   `maven-publish`
+   kotlin("jvm") version "1.2.61"
+   `java-gradle-plugin`
    id("com.gradle.plugin-publish") version "0.10.0"
 }
 
 group = "us.ihmc"
 version = "0.15.5"
-
-pluginBundle {
-   website = "https://github.com/ihmcrobotics/ihmc-build"
-   vcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
-   tags = listOf("build", "ihmc", "robotics")
-}
-
-gradlePlugin {
-   plugins.register("ihmc-build") {
-      id = "us.ihmc.ihmc-build"
-      implementationClass = "us.ihmc.build.IHMCBuildPlugin"
-   }
-}
-
-pluginBundle {
-   plugins.getByName("ihmc-build") {
-      id = "us.ihmc.ihmc-build"
-      displayName = "IHMC Build Plugin"
-      description = "IHMC Robotics opinions on Java builds"
-      tags = listOf("build", "ihmc", "robotics")
-      version = project.version as String
-   }
-   
-   mavenCoordinates.groupId = group as String
-}
 
 java {
    sourceCompatibility = JavaVersion.VERSION_1_8
@@ -39,17 +17,14 @@ java {
    sourceSets.getByName("test").resources.srcDir("src/test/builds")
 }
 
+tasks.withType<KotlinJvmCompile> {
+   kotlinOptions.jvmTarget = "1.8"
+}
+
 repositories {
    jcenter()
-   maven {
-      url = uri("https://plugins.gradle.org/m2/")
-   }
-   maven {
-      url = uri("https://repo.gradle.org/gradle/libs-snapshots-local")
-   }
-   maven {
-      url = uri("https://dl.bintray.com/ihmcrobotics/maven-release") // TODO remove me
-   }
+   maven { url = uri("https://plugins.gradle.org/m2/") }  // needed for included plugins
+   maven { url = uri("https://dl.bintray.com/ihmcrobotics/maven-release") }
 }
 
 dependencies {
@@ -67,4 +42,39 @@ dependencies {
 
 tasks.withType<Test> {
    useJUnitPlatform()
+}
+
+val pluginDisplayName = "IHMC Build Plugin"
+val pluginDescription = "IHMC Robotics opinions on Java builds."
+val pluginVcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
+val pluginTags = listOf("build", "ihmc", "robotics")
+
+gradlePlugin {
+   plugins.register(project.name) {
+      id = project.group as String + "." + project.name
+      implementationClass = "us.ihmc.build.IHMCBuildPlugin"
+      displayName = pluginDisplayName
+      description = pluginDescription
+   }
+}
+
+pluginBundle {
+   website = pluginVcsUrl
+   vcsUrl = pluginVcsUrl
+   description = pluginDescription
+   tags = pluginTags
+
+   plugins.getByName(project.name) {
+      id = project.group as String + "." + project.name
+      version = project.version as String
+      displayName = pluginDisplayName
+      description = pluginDescription
+      tags = pluginTags
+   }
+
+   mavenCoordinates(closureOf<MavenCoordinates> {
+      groupId = project.group as String
+      artifactId = project.name
+      version = project.version as String
+   })
 }
