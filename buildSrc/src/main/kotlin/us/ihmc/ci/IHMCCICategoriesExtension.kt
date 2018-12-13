@@ -14,7 +14,7 @@ class IHMCCICategory(val name: String)
    val excludeTags = hashSetOf<String>()
    val includeTags = hashSetOf<String>()
    val jvmProperties = hashMapOf<String, String>()
-   val jvmArguments = arrayListOf<String>()
+   val jvmArguments = hashSetOf<String>()
    var minHeapSizeGB = 1
    var maxHeapSizeGB = 4
    var enableAssertions = true
