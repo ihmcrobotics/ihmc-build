@@ -168,8 +168,8 @@ class IHMCCIPlugin : Plugin<Project>
             }
          }
       }
-      test.setForkEvery(categoryConfig.classesPerJVM.toLong())
-      test.maxParallelForks = categoryConfig.maxJVMs
+      test.setForkEvery(categoryConfig.forkEvery.toLong())
+      test.maxParallelForks = categoryConfig.maxParallelForks
       this.project.properties["runningOnCIServer"].run {
          if (this != null)
             test.systemProperties["runningOnCIServer"] = toString()
@@ -217,7 +217,7 @@ class IHMCCIPlugin : Plugin<Project>
          tmpArgs.remove("-ea")
       }
       test.allJvmArgs = tmpArgs
-      test.minHeapSize = "${categoryConfig.initialHeapSizeGB}g"
+      test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
 
       test.testLogging.info.events = setOf(TestLogEvent.STARTED,
@@ -244,9 +244,9 @@ class IHMCCIPlugin : Plugin<Project>
             IHMCCICategory(category)
       }
 
-      this.project.properties["classesPerJVM"].run { if (this != null) categoryConfig.classesPerJVM = (this as String).toInt() }
-      this.project.properties["maxJVMs"].run { if (this != null) categoryConfig.maxJVMs = (this as String).toInt() }
-      this.project.properties["initialHeapSizeGB"].run { if (this != null) categoryConfig.initialHeapSizeGB = (this as String).toInt() }
+      this.project.properties["forkEvery"].run { if (this != null) categoryConfig.forkEvery = (this as String).toInt() }
+      this.project.properties["maxParallelForks"].run { if (this != null) categoryConfig.maxParallelForks = (this as String).toInt() }
+      this.project.properties["minHeapSizeGB"].run { if (this != null) categoryConfig.minHeapSizeGB = (this as String).toInt() }
       this.project.properties["maxHeapSizeGB"].run { if (this != null) categoryConfig.maxHeapSizeGB = (this as String).toInt() }
       if (categoryConfig.name == "fast")  // fast runs all "untagged" tests, so exclude all found tags
       {
@@ -267,11 +267,11 @@ class IHMCCIPlugin : Plugin<Project>
          }
       }
 
-      this.project.logger.info("[ihmc-ci] classesPerJVM = ${categoryConfig.classesPerJVM}")
-      this.project.logger.info("[ihmc-ci] maxJVMs = ${categoryConfig.maxJVMs}")
+      this.project.logger.info("[ihmc-ci] forkEvery = ${categoryConfig.forkEvery}")
+      this.project.logger.info("[ihmc-ci] maxParallelForks = ${categoryConfig.maxParallelForks}")
       this.project.logger.info("[ihmc-ci] includeTags = ${categoryConfig.includeTags}")
       this.project.logger.info("[ihmc-ci] excludeTags = ${categoryConfig.excludeTags}")
-      this.project.logger.info("[ihmc-ci] initialHeapSizeGB = ${categoryConfig.initialHeapSizeGB}")
+      this.project.logger.info("[ihmc-ci] minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
       this.project.logger.info("[ihmc-ci] maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
 
       // List tests to be run
@@ -355,7 +355,8 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
-      project.logger.info("[ihmc-ci] enableAssertions = $enableAssertions")
+      if (enableAssertions is Boolean)
+         project.logger.info("[ihmc-ci] enableAssertions = $enableAssertions")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
       project.logger.info("[ihmc-ci] vintageSuite = $vintageSuite")
       project.logger.info("[ihmc-ci] ciBackendHost = $ciBackendHost")
@@ -367,9 +368,9 @@ class IHMCCIPlugin : Plugin<Project>
          // defaults
       }
       categoriesExtension.create("allocation") {
-         classesPerJVM = 1
-         maxJVMs = 1
-         initialHeapSizeGB = 2
+         forkEvery = 1
+         maxParallelForks = 1
+         minHeapSizeGB = 2
          maxHeapSizeGB = 6
          includeTags += "allocation"
          jvmArguments += ALLOCATION_AGENT_KEY
