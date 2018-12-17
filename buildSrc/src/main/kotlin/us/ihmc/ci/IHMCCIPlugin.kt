@@ -95,6 +95,8 @@ class IHMCCIPlugin : Plugin<Project>
          }
       }
       project.tasks.register("bambooSync", bambooSync)
+
+      project.tasks.register("generateTestSuites")
    }
 
    fun addTestDependencies(project: Project, compileConfigName: String, runtimeConfigName: String)
