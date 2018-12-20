@@ -60,11 +60,18 @@ class IHMCCIPlugin : Plugin<Project>
          configureTestTask(project)
       }
 
-      // register bambooSync task
-      val bambooSync: (Task) -> Unit = { task ->
+      // register ciServerSync task
+      val ciServerSync: (Task) -> Unit = { task ->
          task.doFirst {
+            if (project.properties["ciPlanKey"] == null)
+               throw GradleException("[ihmc-ci] ciServerSync: Please set ciPlanKey = PROJKEY-PLANKEY")
+
+            var ciPlanKey = (project.properties["ciPlanKey"]!! as String).trim()
+            project.logger.info("[ihmc-ci] ciPlanKey = $ciPlanKey")
+
             val json = JSONObject()
             json.put("projectName", project.name)
+            json.put("ciPlanKey", ciPlanKey)
             json.put("testsToTags", testsToTagsMap.value)
 
             Fuel.testMode { timeout = 5000 }
@@ -81,22 +88,22 @@ class IHMCCIPlugin : Plugin<Project>
                                  },
                                  { error ->
                                     message = "Post request failed: $url\n$error"
-                                    LogTools.error("[ihmc-ci] bambooSync: " + message)
+                                    LogTools.error("[ihmc-ci] ciServerSync: " + message)
                                     fail = true
                                  })
                   }
 
             if (fail) // do this after to avoid exceptions getting caught by Fuel
             {
-               throw GradleException("[ihmc-ci] bambooSync: $message")
+               throw GradleException("[ihmc-ci] ciServerSync: $message")
             }
             else
             {
-               LogTools.info("[ihmc-ci] bambooSync: $message")
+               LogTools.info("[ihmc-ci] ciServerSync: $message")
             }
          }
       }
-      project.tasks.register("bambooSync", bambooSync)
+      project.tasks.register("ciServerSync", ciServerSync)
 
       project.tasks.register("generateTestSuites")
    }
@@ -303,7 +310,7 @@ class IHMCCIPlugin : Plugin<Project>
                   "errors=\"0\" timestamp=\"2018-10-19T15:10:58\" hostname=\"duncan-ihmc\" time=\"0.01\">" +
                   "<properties/>" +
                   "<testcase name=\"noTestsFoundTest\" classname=\"us.ihmc.NoTestsFoundTest\" time=\"0.01\"/>" +
-                  "<system-out>This is a phony test to make Bamboo pass when a project does not contain any tests.</system-out>" +
+                  "<system-out>This is a phony test to make CI builds pass when a project does not contain any tests.</system-out>" +
                   "<system-err><![CDATA[]]></system-err>" +
                   "</testsuite>")
    }
