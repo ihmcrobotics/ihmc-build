@@ -74,7 +74,7 @@ class IHMCCIPlugin : Plugin<Project>
             json.put("ciPlanKey", ciPlanKey)
             json.put("testsToTags", testsToTagsMap.value)
 
-            Fuel.testMode { timeout = 5000 }
+            Fuel.testMode { timeout = 30000 }
             val url = "http://$ciBackendHost/sync"
             var fail = false
             var message = ""
