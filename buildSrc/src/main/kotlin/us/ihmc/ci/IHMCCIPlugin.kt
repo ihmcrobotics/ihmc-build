@@ -80,7 +80,9 @@ class IHMCCIPlugin : Plugin<Project>
                                     fail = jsonObject["fail"] as Boolean
                                  },
                                  { error ->
-                                    LogTools.error("[ihmc-ci] bambooSync: Post request failed: $url\n$error")
+                                    message = "Post request failed: $url\n$error"
+                                    LogTools.error("[ihmc-ci] bambooSync: " + message)
+                                    fail = true
                                  })
                   }
 
