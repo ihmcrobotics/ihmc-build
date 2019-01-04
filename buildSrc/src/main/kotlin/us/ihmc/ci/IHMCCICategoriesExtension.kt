@@ -7,7 +7,7 @@ val ALLOCATION_AGENT_KEY = "allocationAgent"
 class IHMCCICategory(val name: String)
 {
    var forkEvery = 0 // no limit
-   var maxParallelForks = 1 // cost of spawning too many is high, but doubling is worth it
+   var maxParallelForks = 1 // careful, cost of spawning JVMs is high
    var junit5ParallelEnabled = false   // doesn't work right now with Gradle's test runner. See: https://github.com/gradle/gradle/issues/6453
    var junit5ParallelStrategy = "fixed"
    var junit5ParallelFixedParallelism = 1
