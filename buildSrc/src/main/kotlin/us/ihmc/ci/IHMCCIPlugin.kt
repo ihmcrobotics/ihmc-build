@@ -23,6 +23,12 @@ class IHMCCIPlugin : Plugin<Project>
    lateinit var project: Project
    var cpuThreads = 8
    var category: String = "fast"
+   object Unset
+   var minHeapSizeGBOverride: Any = Unset
+   var maxHeapSizeGBOverride: Any = Unset
+   var forkEveryOverride: Any = Unset
+   var maxParallelForksOverride: Any = Unset
+   var enableAssertionsOverride: Any = Unset
    var vintageMode: Boolean = false
    var vintageSuite: String? = null
    var ciBackendHost: String = "unset"
@@ -62,12 +68,28 @@ class IHMCCIPlugin : Plugin<Project>
 
       // register ciServerSync task
       val ciServerSync: (Task) -> Unit = { task ->
+         // add JavaCompile for all test projects
+         testProjects(project).forEach { testProject ->
+            task.dependsOn(testProject.tasks.getByPath("compileJava"))
+         }
+
          task.doFirst {
             if (project.properties["ciPlanKey"] == null)
                throw GradleException("[ihmc-ci] ciServerSync: Please set ciPlanKey = PROJKEY-PLANKEY")
 
             var ciPlanKey = (project.properties["ciPlanKey"]!! as String).trim()
             project.logger.info("[ihmc-ci] ciPlanKey = $ciPlanKey")
+            val discoveredTags = hashSetOf<String>()
+            testsToTagsMap.value.forEach { test ->
+               if (test.value.isEmpty())
+               {
+                  discoveredTags.add("fast")
+               }
+               test.value.forEach { tagName ->
+                  discoveredTags.add(tagName)
+               }
+            }
+            project.logger.info("[ihmc-ci] Discovered tags: $discoveredTags")
 
             val json = JSONObject()
             json.put("projectName", project.name)
@@ -256,6 +278,11 @@ class IHMCCIPlugin : Plugin<Project>
          }
          categoryConfig.includeTags.clear()  // include is a whitelist, so must clear it
       }
+      minHeapSizeGBOverride.run { if (this is Int) categoryConfig.minHeapSizeGB = this }
+      maxHeapSizeGBOverride.run { if (this is Int) categoryConfig.maxHeapSizeGB = this }
+      forkEveryOverride.run { if (this is Int) categoryConfig.forkEvery = this }
+      maxParallelForksOverride.run { if (this is Int) categoryConfig.maxParallelForks = this }
+      enableAssertionsOverride.run { if (this is Boolean) categoryConfig.enableAssertions = this }
 
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxParallelForks = ${categoryConfig.maxParallelForks}")
@@ -345,6 +372,11 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
       project.properties["vintageSuite"].run { if (this != null) vintageSuite = (this as String).trim() }
       project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
+      project.properties["minHeapSizeGB"].run { if (this != null) minHeapSizeGBOverride = (this as String).toInt() }
+      project.properties["maxHeapSizeGB"].run { if (this != null) maxHeapSizeGBOverride = (this as String).toInt() }
+      project.properties["forkEvery"].run { if (this != null) forkEveryOverride = (this as String).toInt() }
+      project.properties["maxParallelForks"].run { if (this != null) maxParallelForksOverride = (this as String).toInt() }
+      project.properties["enableAssertions"].run { if (this != null) enableAssertionsOverride = (this as String).toBoolean() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
