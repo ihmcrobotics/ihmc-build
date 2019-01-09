@@ -23,11 +23,12 @@ import java.nio.file.Path
  */
 fun parseForTags(testProject: Project, testsToTagsMap: HashMap<String, HashSet<String>>)
 {
-   LogTools.info("Discovering tests in $testProject")
+   LogTools.info("[ihmc-ci] Discovering tests in $testProject")
 
    val contextClasspathUrls = arrayListOf<URL>()   // all of the tests and dependencies
    val selectorPaths = hashSetOf<Path>()           // just the test classes in this project
    assembleTestClasspath(testProject, contextClasspathUrls, selectorPaths)
+   LogTools.debug("[ihmc-ci] Classpath entries: " + contextClasspathUrls.toString())
 
    val originalClassLoader = Thread.currentThread().contextClassLoader
    val customClassLoader = URLClassLoader.newInstance(contextClasspathUrls.toTypedArray(), originalClassLoader)
@@ -45,7 +46,7 @@ fun parseForTags(testProject: Project, testsToTagsMap: HashMap<String, HashSet<S
       debugClasspathSelectors(discoveryRequest)
       testPlan = launcher.discover(discoveryRequest)
       recursiveBuildMap(testPlan!!.roots, testPlan, testsToTagsMap)
-      LogTools.debug("Contains tests: ${testPlan.containsTests()}")
+      LogTools.debug("[ihmc-ci] Contains tests: ${testPlan.containsTests()}")
    }
    finally
    {
@@ -59,7 +60,7 @@ fun recursiveBuildMap(set: Set<TestIdentifier>, testPlan: TestPlan, testsToTagsM
       if (it.type == TestDescriptor.Type.TEST && it.source.isPresent && it.source.get() is MethodSource)
       {
          val methodSource = it.source.get() as MethodSource
-         LogTools.debug("Test id: ${it.displayName} tags: ${it.tags} path: $methodSource")
+         LogTools.debug("[ihmc-ci] Test id: ${it.displayName} tags: ${it.tags} path: $methodSource")
          val fullyQualifiedTestName = methodSource.className + "." + methodSource.methodName
          if (!testsToTagsMap.containsKey(fullyQualifiedTestName))
          {
@@ -72,7 +73,7 @@ fun recursiveBuildMap(set: Set<TestIdentifier>, testPlan: TestPlan, testsToTagsM
       }
       else
       {
-         LogTools.debug("Test id: ${it.displayName} tags: ${it.tags} type: ${it.type}")
+         LogTools.debug("[ihmc-ci] Test id: ${it.displayName} tags: ${it.tags} type: ${it.type}")
       }
 
       recursiveBuildMap(testPlan.getChildren(it), testPlan, testsToTagsMap)
@@ -88,7 +89,6 @@ fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<
 {
    val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
    java.sourceSets.getByName("main").runtimeClasspath.forEach {
-
       var entryString = it.toString()
       val uri = it.toURI()
       val path = it.toPath()
@@ -113,7 +113,7 @@ fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<
 fun debugClasspathSelectors(discoveryRequest: LauncherDiscoveryRequest)
 {
    discoveryRequest.getSelectorsByType(ClasspathRootSelector::class.java).forEach {
-      LogTools.debug("Selector: $it")
+      LogTools.debug("[ihmc-ci] Selector: $it")
    }
 }
 
@@ -121,6 +121,6 @@ fun debugContextClassLoader(customClassLoader: URLClassLoader)
 {
    // make sure context class loader is working
    customClassLoader.urLs.forEach {
-      LogTools.debug(it.toString())
+      LogTools.debug("[ihmc-ci] " + it.toString())
    }
 }
