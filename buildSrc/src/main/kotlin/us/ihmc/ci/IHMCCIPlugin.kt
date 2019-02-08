@@ -29,6 +29,7 @@ class IHMCCIPlugin : Plugin<Project>
    var forkEveryOverride: Any = Unset
    var maxParallelForksOverride: Any = Unset
    var enableAssertionsOverride: Any = Unset
+   var allocationRecordingOverride: Any = Unset
    var vintageMode: Boolean = false
    var vintageSuite: String? = null
    var ciBackendHost: String = "unset"
@@ -283,6 +284,7 @@ class IHMCCIPlugin : Plugin<Project>
       forkEveryOverride.run { if (this is Int) categoryConfig.forkEvery = this }
       maxParallelForksOverride.run { if (this is Int) categoryConfig.maxParallelForks = this }
       enableAssertionsOverride.run { if (this is Boolean) categoryConfig.enableAssertions = this }
+      allocationRecordingOverride.run { if (this is Boolean && this) categoryConfig.jvmArguments += ALLOCATION_AGENT_KEY }
 
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxParallelForks = ${categoryConfig.maxParallelForks}")
@@ -293,6 +295,7 @@ class IHMCCIPlugin : Plugin<Project>
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
       this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.enableAssertions = ${categoryConfig.enableAssertions}")
+      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.allocationRecording = ${categoryConfig.jvmArguments}")
 
       // List tests to be run
       LogTools.quiet("[ihmc-ci] Tests to be run:")
@@ -377,11 +380,17 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["forkEvery"].run { if (this != null) forkEveryOverride = (this as String).toInt() }
       project.properties["maxParallelForks"].run { if (this != null) maxParallelForksOverride = (this as String).toInt() }
       project.properties["enableAssertions"].run { if (this != null) enableAssertionsOverride = (this as String).toBoolean() }
+      project.properties["allocationRecording"].run { if (this != null) allocationRecordingOverride = (this as String).toBoolean() }
       project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
       project.logger.info("[ihmc-ci] category = $category")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
       project.logger.info("[ihmc-ci] vintageSuite = $vintageSuite")
-      project.logger.info("[ihmc-ci] ciBackendHost = $ciBackendHost")
+      project.logger.info("[ihmc-ci] minHeapSizeGB = $minHeapSizeGBOverride")
+      project.logger.info("[ihmc-ci] maxHeapSizeGB = $maxHeapSizeGBOverride")
+      project.logger.info("[ihmc-ci] forkEvery = $forkEveryOverride")
+      project.logger.info("[ihmc-ci] maxParallelForks = $maxParallelForksOverride")
+      project.logger.info("[ihmc-ci] enableAssertions = $enableAssertionsOverride")
+      project.logger.info("[ihmc-ci] allocationRecording = $allocationRecordingOverride")
    }
 
    fun testProjects(project: Project): List<Project>

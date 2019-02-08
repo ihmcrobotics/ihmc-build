@@ -37,12 +37,7 @@ open class IHMCCICategoriesExtension(private val project: Project)
       {
          category.includeTags += name   // by default, include tags of the category name
       }
-      if (name == "allocation")
-      {
-         category.minHeapSizeGB = 2
-         category.maxHeapSizeGB = 6
-         category.jvmArguments += ALLOCATION_AGENT_KEY
-      }
+
       return category
    }
 }
