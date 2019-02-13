@@ -15,3 +15,5 @@ def ihmcSettingsConfigurator = new IHMCSettingsConfigurator(settings, logger, ex
 ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
 ihmcSettingsConfigurator.configureExtraSourceSets()
 ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
+
+includeBuild("../..")

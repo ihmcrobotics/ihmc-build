@@ -14,8 +14,6 @@ version = "0.15.5"
 java {
    sourceCompatibility = JavaVersion.VERSION_1_8
    targetCompatibility = JavaVersion.VERSION_1_8
-   
-   sourceSets.getByName("test").resources.srcDir("src/test/builds")
 }
 
 tasks.withType<KotlinJvmCompile> {

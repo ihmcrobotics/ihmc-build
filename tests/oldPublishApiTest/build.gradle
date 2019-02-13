@@ -1,0 +1,17 @@
+plugins {
+   id("us.ihmc.ihmc-build")
+}
+
+ihmc {
+   group = "us.ihmc"
+   version = "0.1.0"
+   vcsUrl = "https://your.vcs/url"
+   openSource = true
+
+   configureDependencyResolution()
+   configurePublications()
+}
+
+mainDependencies {
+   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+}

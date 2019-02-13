@@ -13,7 +13,7 @@ class BasicTest
    fun testGradleIsInstalled()
    {
       println("Gradle install location: $gradleExe")
-      println("basicProject location: " + Paths.get("src/test/builds/basicProject").toAbsolutePath().toString())
+      println("basicProject location: " + Paths.get("tests/basicProject").toAbsolutePath().toString())
       
       val output = runGradleTask("--version", "basicProject")
       assertTrue(output.contains(Regex("Gradle [0-9]\\.[0-9]")) && output.contains("Build time"))
