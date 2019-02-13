@@ -17,48 +17,46 @@ class IHMCBuildPlugin : Plugin<Project>
 {
    override fun apply(project: Project)
    {
-      if (project.hasProperty("isProjectGroup") && isProjectGroupCompatibility(project.property("isProjectGroup") as String))
+      if (project.hasProperty("isProjectGroup") &&
+          isProjectGroupCompatibility(project.property("isProjectGroup") as String))
       {
          configureProjectGroup(project)
-         
-         project.run {
-            allprojects {
-               maybeApplyPlugin(BasePlugin::class.java)
-               maybeApplyPlugin(EclipsePlugin::class.java)
-               maybeApplyPlugin(IdeaPlugin::class.java)
-               maybeApplyPlugin(TaskTreePlugin::class.java)
-            }
+
+         project.allprojects { allproject ->
+            allproject.pluginManager.apply(BasePlugin::class.java)
+            allproject.pluginManager.apply(EclipsePlugin::class.java)
+            allproject.pluginManager.apply(IdeaPlugin::class.java)
+            allproject.pluginManager.apply(TaskTreePlugin::class.java)
          }
       }
       else
       {
-         project.run {
-            allprojects {
-               maybeApplyPlugin(JavaPlugin::class.java)
-               maybeApplyPlugin(IvyPublishPlugin::class.java)
-               maybeApplyPlugin(MavenPublishPlugin::class.java)
-               maybeApplyPlugin(AnalyzeDependenciesPlugin::class.java)
-               maybeApplyPlugin(EclipsePlugin::class.java)
-               maybeApplyPlugin(IdeaPlugin::class.java)
-               maybeApplyPlugin(TaskTreePlugin::class.java)
-            }
-            
-            val ihmcBuildExtension = IHMCBuildExtension(project)
-            extensions.add("ihmc", ihmcBuildExtension)
-            extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension))
-            for (subproject in project.subprojects)
-            {
-               val sourceSetKebabCasedName = toSourceSetName(subproject)
-               val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
-               extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
-            }
+         project.allprojects { allproject ->
+            allproject.pluginManager.apply(JavaPlugin::class.java)
+            allproject.pluginManager.apply(IvyPublishPlugin::class.java)
+            allproject.pluginManager.apply(MavenPublishPlugin::class.java)
+            allproject.pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
+            allproject.pluginManager.apply(EclipsePlugin::class.java)
+            allproject.pluginManager.apply(IdeaPlugin::class.java)
+            allproject.pluginManager.apply(TaskTreePlugin::class.java)
+         }
+
+         val ihmcBuildExtension = IHMCBuildExtension(project)
+         project.extensions.add("ihmc", ihmcBuildExtension)
+         project.extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension))
+         for (subproject in project.subprojects)
+         {
+            val sourceSetKebabCasedName = toSourceSetName(subproject)
+            val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
+            project.extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
          }
       }
-      
+
       // setup clean to not only clean "build", but out and bin too
       for (allproject in project.allprojects)
       {
-         allproject.tasks.getByName("clean", closureOf<Delete> {
+         val clean = allproject.tasks.findByName("clean")
+         clean?.configure(closureOf<Delete> {
             delete(allproject.projectDir.resolve("out"))
             delete(allproject.projectDir.resolve("bin"))
          })
@@ -219,13 +217,7 @@ class IHMCBuildPlugin : Plugin<Project>
          logInfo(project.logger, "${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
       }
    }
-   
-   private fun <K : Project, T : Plugin<K>> Project.maybeApplyPlugin(pluginClass: Class<T>)
-   {
-      if (!plugins.hasPlugin(pluginClass))
-         plugins.apply(pluginClass)
-   }
-   
+
    private fun configureProjectGroup(project: Project)
    {
       project.task("convertStructure", closureOf<Task> {
