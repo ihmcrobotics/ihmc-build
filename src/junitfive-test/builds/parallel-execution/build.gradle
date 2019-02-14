@@ -34,10 +34,10 @@ ihmc.sourceSetProject("test").test {
 }
 
 mainDependencies {
-   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
 }
 
 testDependencies {
-   implementation "org.junit.jupiter:junit-jupiter-api:5.3.1"
-   runtimeOnly "org.junit.jupiter:junit-jupiter-engine:5.3.1"
+   implementation "org.junit.jupiter:junit-jupiter-api:5.4.0"
+   runtimeOnly "org.junit.jupiter:junit-jupiter-engine:5.4.0"
 }
