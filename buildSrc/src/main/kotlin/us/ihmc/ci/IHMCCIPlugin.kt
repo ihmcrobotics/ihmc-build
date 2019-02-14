@@ -18,7 +18,7 @@ lateinit var LogTools: Logger
 
 class IHMCCIPlugin : Plugin<Project>
 {
-   val JUNIT_VERSION = "5.3.1"
+   val JUNIT_VERSION = "5.4.0"
 
    lateinit var project: Project
    var cpuThreads = 8
