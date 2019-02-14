@@ -97,11 +97,11 @@ class IHMCCIPlugin : Plugin<Project>
             json.put("ciPlanKey", ciPlanKey)
             json.put("testsToTags", testsToTagsMap.value)
 
-            Fuel.testMode { timeout = 30000 }
             val url = "http://$ciBackendHost/sync"
             var fail = false
             var message = ""
             Fuel.post(url, listOf(Pair("text", json.toString(2))))
+                  .timeout(30000)
                   .response { req, res, result ->
                      result.fold({ byteArray ->
                                     val responseData = res.data.toString(Charset.defaultCharset())
@@ -144,7 +144,7 @@ class IHMCCIPlugin : Plugin<Project>
       }
 
       if (category == "allocation") // help out users trying to run allocation tests
-         project.dependencies.add(compileConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.1.0")
+         project.dependencies.add(compileConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.2.0")
    }
 
    fun configureTestTask(project: Project)
