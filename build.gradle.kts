@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.15.5"
+version = "0.15.6"
 
 java {
    sourceCompatibility = JavaVersion.VERSION_1_8

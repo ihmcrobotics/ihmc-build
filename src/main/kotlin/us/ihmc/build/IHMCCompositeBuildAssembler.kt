@@ -194,7 +194,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             && (subdirectory.fileName != null && subdirectory.fileName.toString() != "out")
             && (Files.exists(subdirectory.resolve("build.gradle")) || Files.exists(subdirectory.resolve("build.gradle.kts")))
             && Files.exists(subdirectory.resolve("gradle.properties"))
-            && Files.exists(subdirectory.resolve("settings.gradle")))
+            && (Files.exists(subdirectory.resolve("settings.gradle")) || Files.exists(subdirectory.resolve("settings.gradle.kts")))
+            )
    }
    
    private fun matchNames(buildFolderNameToCheck: String, dependencyNameAsDeclared: String): Boolean
