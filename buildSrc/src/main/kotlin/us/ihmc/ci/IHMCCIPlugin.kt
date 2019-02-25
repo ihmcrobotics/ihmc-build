@@ -1,6 +1,7 @@
 package us.ihmc.ci;
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.requests.CancellableRequest
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -100,21 +101,20 @@ class IHMCCIPlugin : Plugin<Project>
             val url = "http://$ciBackendHost/sync"
             var fail = false
             var message = ""
-            Fuel.post(url, listOf(Pair("text", json.toString(2))))
-                  .timeout(30000)
-                  .response { req, res, result ->
-                     result.fold({ byteArray ->
-                                    val responseData = res.data.toString(Charset.defaultCharset())
-                                    val jsonObject = JSONObject(responseData)
-                                    message = jsonObject["message"] as String
-                                    fail = jsonObject["fail"] as Boolean
-                                 },
-                                 { error ->
-                                    message = "Post request failed: $url\n$error"
-                                    LogTools.error("[ihmc-ci] ciServerSync: " + message)
-                                    fail = true
-                                 })
-                  }
+            val request = Fuel.post(url, listOf(Pair("text", json.toString(2)))).timeout(30000)
+            val cancellableRequest = request.response { req, res, result ->
+               result.fold({ byteArray ->
+                              val responseData = res.data.toString(Charset.defaultCharset())
+                              val jsonObject = JSONObject(responseData)
+                              message = jsonObject["message"] as String
+                              fail = jsonObject["fail"] as Boolean
+                           },
+                           { error ->
+                              message = "Post request failed: $url\n$error"
+                              fail = true
+                           })
+            }
+            cancellableRequest.join() // the above call is async, so wait for it
 
             if (fail) // do this after to avoid exceptions getting caught by Fuel
             {
