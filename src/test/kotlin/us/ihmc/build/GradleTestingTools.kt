@@ -7,14 +7,14 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
 val gradleCommand = if (SystemUtils.IS_OS_WINDOWS) "gradlew.bat" else "gradlew"
-val gradleExe = Paths.get("src/test/builds/$gradleCommand").toAbsolutePath().toString()
+val gradleExe = Paths.get("tests/$gradleCommand").toAbsolutePath().toString()
 
 fun runGradleTask(command: String?, project: String): String
 {
    if (command == null || command.isEmpty())
-      return runCommand("$gradleExe", Paths.get("src/test/builds/$project").toAbsolutePath())
+      return runCommand("$gradleExe", Paths.get("tests/$project").toAbsolutePath())
    else
-      return runCommand("$gradleExe $command", Paths.get("src/test/builds/$project").toAbsolutePath())
+      return runCommand("$gradleExe $command", Paths.get("tests/$project").toAbsolutePath())
 }
 
 fun runCommand(command: String, workingDir: Path): String

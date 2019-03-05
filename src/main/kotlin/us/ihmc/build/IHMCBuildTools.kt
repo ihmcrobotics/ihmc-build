@@ -62,11 +62,16 @@ fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraP
 {
    if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))
    {
-      return ext.get("kebabCasedName") as String
+      val kebabCasedName = ext.get("kebabCasedName") as String
+      logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
+      return kebabCasedName
    }
    else if (ext.has("hyphenatedName") && !(ext.get("hyphenatedName") as String).startsWith("$"))
    {
-      return ext.get("hyphenatedName") as String
+
+      val kebabCasedName = ext.get("hyphenatedName") as String
+      logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
+      return kebabCasedName
    }
    else
    {
@@ -81,7 +86,9 @@ fun snapshotModeCompatibility(logger: Logger, ext: ExtraPropertiesExtension): Bo
 {
    if (ext.has("snapshotMode") && !(ext.get("snapshotMode") as String).startsWith("$"))
    {
-      return (ext.get("snapshotMode") as String).trim().toLowerCase().contains("true");
+      val snapshotMode = (ext.get("snapshotMode") as String).trim().toLowerCase().contains("true")
+      logInfo(logger, "Loaded snapshotMode = $snapshotMode")
+      return snapshotMode;
    }
    if (ext.has("publishMode") // Backwards compatibility
          && !(ext.get("publishMode") as String).startsWith("$")

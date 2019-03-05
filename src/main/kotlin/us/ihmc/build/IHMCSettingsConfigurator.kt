@@ -21,9 +21,9 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
       
-      if (settings.gradle.gradleVersion.compareTo("4.0") < 0)
+      if (Version(settings.gradle.gradleVersion).compareTo(Version("4.8")) < 0)
       {
-         val message = "Please upgrade to Gradle version 4.1 or higher! (Recommended versions: 4.1, 4.2.1, or later)"
+         val message = "Please upgrade to Gradle version 4.8 or higher! (Recommended versions: 4.10.2 or later)"
          logError(logger, message)
          throw GradleException(message)
       }
@@ -44,18 +44,11 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          File(dir1, "java").mkdir()
       }
       
-      if (ext.has("useLegacySourceSets") && ext.get("useLegacySourceSets") as String == "true")
+      for (sourceSetName in extraSourceSets)
       {
-      
-      }
-      else
-      {
-         for (sourceSetName in extraSourceSets)
-         {
-            val kebabCasedSourceSetName = toKebabCased(sourceSetName)
-            settings.include("src/$kebabCasedSourceSetName")
-            settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
-         }
+         val kebabCasedSourceSetName = toKebabCased(sourceSetName)
+         settings.include("src/$kebabCasedSourceSetName")
+         settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
       }
    }
    

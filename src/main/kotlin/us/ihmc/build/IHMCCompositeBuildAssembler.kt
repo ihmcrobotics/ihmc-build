@@ -9,6 +9,7 @@ import org.gradle.api.GradleException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
 import java.io.File
+import java.io.FileFilter
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -84,7 +85,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       if (properties.isProjectGroup)
       {
          val projectFile = properties.projectPath.toFile()
-         for (childDir in projectFile.listFiles(File::isDirectory))
+         for (childDir in projectFile.listFiles { f -> f.isDirectory })
          {
             val childPath = childDir.toPath()
             if (pathToPropertiesMap.containsKey(childPath))
@@ -158,7 +159,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             || forceInclude(includedBuildProperties.kebabCasedName) // Always include the build root, composite root
             || !includedBuildProperties.excludeFromCompositeBuild) // Exclude subprojects of excluded groups
       {
-         val listFiles = directory.toFile().listFiles(File::isDirectory)
+         val listFiles = directory.toFile().listFiles { f -> f.isDirectory }
          if (listFiles != null) // Handle archive directories on Windows (i.e. C:/$RECYCLE.BIN)
          {
             for (subdirectory in listFiles)
@@ -193,7 +194,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             && (subdirectory.fileName != null && subdirectory.fileName.toString() != "out")
             && (Files.exists(subdirectory.resolve("build.gradle")) || Files.exists(subdirectory.resolve("build.gradle.kts")))
             && Files.exists(subdirectory.resolve("gradle.properties"))
-            && Files.exists(subdirectory.resolve("settings.gradle")))
+            && (Files.exists(subdirectory.resolve("settings.gradle")) || Files.exists(subdirectory.resolve("settings.gradle.kts")))
+            )
    }
    
    private fun matchNames(buildFolderNameToCheck: String, dependencyNameAsDeclared: String): Boolean

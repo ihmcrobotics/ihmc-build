@@ -17,11 +17,11 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.withType
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
 import us.ihmc.commons.thread.ThreadTools
-import us.ihmc.continuousIntegration.AgileTestingTools
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -212,7 +212,7 @@ open class IHMCBuildExtension(val project: Project)
    
    fun configureDependencyResolution()
    {
-      if (isBambooBuild)
+      if (snapshotModeProperty)
       {
          declareMavenCentral()
          repository("http://clojars.org/repo/")
@@ -248,12 +248,11 @@ open class IHMCBuildExtension(val project: Project)
       
       setupJavaSourceSets()
       
-      try
+      try // always declare dependency on "main" from "test"
       {
          val testProject = project.project(":" + kebabCasedNameProperty + "-test")
          testProject.dependencies {
             add("compile", project)
-            add("compile", "us.ihmc:ihmc-ci-core-api:0.17.14")
          }
       }
       catch (e: UnknownProjectException)
@@ -307,7 +306,7 @@ open class IHMCBuildExtension(val project: Project)
    fun mainClassJarWithLibFolder(mainClass: String)
    {
       project.allprojects {
-         (this as Project).run {
+         it.run {
             configureJarManifest(maintainer, companyName, licenseURL, mainClass, true)
          }
       }
@@ -316,7 +315,7 @@ open class IHMCBuildExtension(val project: Project)
    fun jarWithLibFolder()
    {
       project.allprojects {
-         (this as Project).run {
+         it.run {
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", true)
          }
       }
@@ -332,7 +331,7 @@ open class IHMCBuildExtension(val project: Project)
       
       val productGroup = group
       project.allprojects {
-         (this as Project).run {
+         it.run {
             group = productGroup
             publishVersion = getPublishVersion()
             version = publishVersion
@@ -430,9 +429,8 @@ open class IHMCBuildExtension(val project: Project)
          sourceSet.resources.setSrcDirs(emptySet<File>())
       }
       java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/main/java")))
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/main/java")))
-      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/main/resources")))
-      
+      java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/main/resources")))
+
       for (subproject in project.subprojects)
       {
          val java = subproject.convention.getPlugin(JavaPluginConvention::class.java)
@@ -445,13 +443,14 @@ open class IHMCBuildExtension(val project: Project)
          }
          val sourceSetName = toSourceSetName(subproject)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
-         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
-         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.srcDirs(setOf(project.file("src/$sourceSetName/resources")))
-         
+         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/resources")))
+
          if (subproject.name.endsWith("test"))
          {
-            val test = subproject.tasks.findByPath("test") as Test
-            test.testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
+            subproject.tasks.withType<Test>()
+            {
+               testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
+            }
          }
       }
 
@@ -466,14 +465,12 @@ open class IHMCBuildExtension(val project: Project)
 //               if (extraSourceSet == "test")
 //               {
 //                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/src")))
 //                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
 //               }
 //               else
 //               {
 //                  java.sourceSets.create(extraSourceSet)
 //                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
 //                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
 //               }
 //            }
@@ -521,7 +518,10 @@ open class IHMCBuildExtension(val project: Project)
          {
             publishVersion += "-$branchName"
          }
-         publishVersion += "-$integrationNumber"
+         if (isBambooBuild)
+         {
+            publishVersion += "-$integrationNumber"
+         }
          return publishVersion
       }
       else
@@ -599,6 +599,10 @@ open class IHMCBuildExtension(val project: Project)
             // All high-level project version numbers are the same
             externalDependencyVersion = publishVersion
          }
+         else if (snapshotModeProperty) // allows to retire `groupDependencyVersion` by allowing "source" to be
+         {                              // satisfied by snapshots, but only if snapshotMode = true
+            externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
+         }
          else
          {
             var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
@@ -609,51 +613,10 @@ open class IHMCBuildExtension(val project: Project)
       }
       // Try to resolve a snapshot, check for snapshotMode first
       // Only gonna happen on Bamboo, not supporting this for users
+      // NOTE: This code path will probably hardly be used soon
       else if (snapshotModeProperty && declaredVersion.startsWith("SNAPSHOT"))
       {
-         var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "")
-   
-         // Use Bamboo variables to resolve the version
-         if (isBambooBuild)
-         {
-            var closestVersion = "NOT-FOUND"
-            if (isChildBuild) // Match to parent build, exact branch and version
-            {
-               var childVersion = "SNAPSHOT"
-               if (isBranchBuild)
-               {
-                  childVersion += "-$branchName"
-               }
-               childVersion += "-$integrationNumber"
-               closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
-            }
-            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-            }
-            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
-            }
-            externalDependencyVersion = closestVersion
-         }
-         else
-         {
-            // For users, probably get rid of this soon
-            if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
-            {
-               externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
-            }
-            else // Get exact match on end of string
-            {
-               externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
-            }
-         }
-   
-         if (externalDependencyVersion.contains("NOT-FOUND"))
-         {
-            throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
-         }
+         externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
       }
       else // Pass directly to gradle as declared
       {
@@ -663,7 +626,59 @@ open class IHMCBuildExtension(val project: Project)
       logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
       return externalDependencyVersion
    }
-   
+
+   fun resolveSnapshotVersion(declaredVersion: String, groupId: String, artifactId: String): String
+   {
+      val externalDependencyVersion: String
+      var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "") // not sure where this came from
+
+      // Use Bamboo variables to resolve the version
+      if (isBambooBuild)
+      {
+         var closestVersion = "NOT-FOUND"
+         if (isChildBuild) // Match to parent build, exact branch and version
+         {
+            var childVersion = "SNAPSHOT"
+            if (isBranchBuild)
+            {
+               childVersion += "-$branchName"
+            }
+            childVersion += "-$integrationNumber"
+            closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
+         }
+         else // this was a bug for a long time where child builds could use an older snapshot with no warning
+         {
+            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
+            {
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
+            }
+            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
+            {
+               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
+            }
+         }
+         externalDependencyVersion = closestVersion
+      }
+      else
+      {
+         // For users, probably get rid of this soon
+         if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
+         {
+            externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
+         }
+         else // Get exact match on end of string
+         {
+            externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
+         }
+      }
+
+      if (externalDependencyVersion.contains("NOT-FOUND"))
+      {
+         throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
+      }
+      return externalDependencyVersion
+   }
+
    private fun getSnapshotRepositoryList(): List<String>
    {
       if (openSource)
@@ -924,6 +939,8 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
    {
+      logInfo(logger, "Looking for latest version: $groupId:$artifactId:$versionMatcher")
+
       var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
       
       if (highestVersion.contains("NOT-FOUND"))
@@ -971,7 +988,7 @@ open class IHMCBuildExtension(val project: Project)
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
       tasks.getByName("jar") {
-         (this as Jar).run {
+         (it as Jar).run {
             manifest.attributes.apply {
                put("Created-By", maintainer)
                put("Implementation-Title", name)
@@ -1052,7 +1069,7 @@ open class IHMCBuildExtension(val project: Project)
       publication.version = version as String
       
       publication.pom.withXml() {
-         (this as XmlProvider).run {
+         (it as XmlProvider).run {
             val dependenciesNode = asNode().appendNode("dependencies")
             
             configuration.allDependencies.forEach {
@@ -1084,23 +1101,5 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          classifier = "sources"
       }))
-   }
-   
-   /**
-    * @deprecated Use convertJobNameToKebabCasedName instead.
-    */
-   fun convertJobNameToHyphenatedName(jobName: String): String
-   {
-      return convertJobNameToKebabCasedName(jobName)
-   }
-   
-   /**
-    * Used for artifact-test-runner to keep easy Bamboo configuration.
-    * Job names are pascal cased on Bamboo and use this method to
-    * resolve their kebab cased artifact counterparts.
-    */
-   fun convertJobNameToKebabCasedName(jobName: String): String
-   {
-      return AgileTestingTools.pascalCasedToHyphenatedWithoutJob(jobName)
    }
 }

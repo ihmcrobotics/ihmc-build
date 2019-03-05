@@ -31,7 +31,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.14.0"
+      classpath "us.ihmc:ihmc-build:0.15.4"
    }
 }
 
@@ -62,16 +62,9 @@ excludeFromCompositeBuild = false
 
 **build.gradle**
 ```gradle
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.14.0"
-   }
+plugins {
+   id("us.ihmc.ihmc-build") version "0.15.4"
 }
-apply plugin: "us.ihmc.ihmc-build"
 
 ihmc {
    group = "us.ihmc"
@@ -157,7 +150,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.14.0"
+      classpath "us.ihmc:ihmc-build:0.15.4"
    }
 }
 
@@ -177,7 +170,7 @@ buildscript {
       jcenter()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.14.0"
+      classpath "us.ihmc:ihmc-build:0.15.4"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
@@ -244,6 +237,42 @@ For example, publishing a project group:
 `gradle cleanBuild`
 
 Cleans `build/` (Gradle), `bin/` (Eclipse), and `out/` (IntelliJ) build directories from all included projects.
+
+##### Snapshots
+
+Snapshots is an unsupported feature which is used internally in our CI.
+
+`publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots`
+
+Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions declared as `SNAPSHOT-*`, matching
+them to artifacts found to be available on IHMC's Artifactory snapshots repos.
+
+##### Maven Repositories
+
+To add a Maven repository, use the `repository` function in the `ihmc` extension. Note that projects that depend on this will also need to have these repositories declared, so use them sparingly.
+```
+ihmc {
+   ...
+
+   configureDependencyResolution()  // Between here ->
+   repository("http://maven-eclipse.github.io/maven")
+   repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+   configurePublications() // <- and here
+}
+```
+
+### Troubleshooting
+
+##### Group property requirement
+
+The [Gradle composite builds](https://docs.gradle.org/current/userguide/composite_builds.html) feature requires the `group` and `version` project properties
+to be set on all of the included projects. This is a common reason why a dependency 
+build will not be included. See more at https://docs.gradle.org/current/userguide/composite_builds.html.
+
+##### Gradle file trio requirement
+
+The `ihmc-build` plugin requires all projects to have a `build.gradle`, `settings.gradle`, and `gradle.properties` file to qualify for build inclusion. This
+another common reason that projects don't make it into the build.
 
 ### Learn more
 

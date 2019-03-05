@@ -1,4 +1,4 @@
-/src/test/builds/**/build
+/tests/**/build
 
 # Top level directories to ignore
 /build
