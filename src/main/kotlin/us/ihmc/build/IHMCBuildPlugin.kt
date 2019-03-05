@@ -4,6 +4,7 @@ import ca.cutterslade.gradle.analyze.AnalyzeDependenciesPlugin
 import com.dorongold.gradle.tasktree.TaskTreePlugin
 import org.gradle.api.*
 import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.plugins.HelpTasksPlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
@@ -27,6 +28,7 @@ class IHMCBuildPlugin : Plugin<Project>
             allproject.pluginManager.apply(EclipsePlugin::class.java)
             allproject.pluginManager.apply(IdeaPlugin::class.java)
             allproject.pluginManager.apply(TaskTreePlugin::class.java)
+            allproject.pluginManager.apply(HelpTasksPlugin::class.java)
          }
       }
       else
@@ -39,6 +41,7 @@ class IHMCBuildPlugin : Plugin<Project>
             allproject.pluginManager.apply(EclipsePlugin::class.java)
             allproject.pluginManager.apply(IdeaPlugin::class.java)
             allproject.pluginManager.apply(TaskTreePlugin::class.java)
+            allproject.pluginManager.apply(HelpTasksPlugin::class.java)
          }
 
          val ihmcBuildExtension = IHMCBuildExtension(project)
