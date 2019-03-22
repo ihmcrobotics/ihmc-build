@@ -31,7 +31,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.15.4"
+      classpath "us.ihmc:ihmc-build:0.15.7"
    }
 }
 
@@ -63,7 +63,7 @@ excludeFromCompositeBuild = false
 **build.gradle**
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.15.4"
+   id("us.ihmc.ihmc-build") version "0.15.7"
 }
 
 ihmc {
@@ -150,7 +150,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.15.4"
+      classpath "us.ihmc:ihmc-build:0.15.7"
    }
 }
 
@@ -170,7 +170,7 @@ buildscript {
       jcenter()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.15.4"
+      classpath "us.ihmc:ihmc-build:0.15.7"
    }
 }
 apply plugin: "us.ihmc.ihmc-build"
