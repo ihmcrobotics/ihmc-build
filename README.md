@@ -81,7 +81,6 @@ mainDependencies {
 }
 
 testDependencies {
-   compile group: 'junit', name: 'junit', version: '4.11'
 }
 ```
 
