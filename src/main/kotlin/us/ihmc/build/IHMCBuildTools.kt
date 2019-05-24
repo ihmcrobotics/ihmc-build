@@ -167,7 +167,7 @@ fun toPascalCased(anyCased: String): String
    var pascalCased = ""
    for (section in split)
    {
-      pascalCased += StringUtils.capitalize(section)
+      pascalCased += section.capitalize()
    }
    return pascalCased
 }
@@ -182,7 +182,7 @@ fun toCamelCased(anyCased: String): String
    }
    for (i in 1 until split.size)
    {
-      camelCased += StringUtils.capitalize(split[i])
+      camelCased += split[i].capitalize()
    }
    return camelCased
 }
