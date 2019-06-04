@@ -19,7 +19,8 @@ lateinit var LogTools: Logger
 
 class IHMCCIPlugin : Plugin<Project>
 {
-   val JUNIT_VERSION = "5.4.0"
+   val JUNIT_VERSION = "5.4.2"
+   val PLATFORM_VERSION = "1.4.2"
 
    lateinit var project: Project
    var cpuThreads = 8
@@ -140,6 +141,7 @@ class IHMCCIPlugin : Plugin<Project>
       else // add junit 5 dependencies
       {
          project.dependencies.add(compileConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         project.dependencies.add(compileConfigName, "org.junit.platform:junit-platform-launcher:$PLATFORM_VERSION")
          project.dependencies.add(runtimeConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
       }
 
