@@ -1,6 +1,6 @@
 plugins {
    id("us.ihmc.ihmc-build")
-   id("us.ihmc.ihmc-ci") version "4.8"
+   id("us.ihmc.ihmc-ci") version "4.25"
 }
 
 ihmc {
