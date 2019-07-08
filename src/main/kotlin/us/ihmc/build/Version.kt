@@ -1,9 +1,11 @@
 package us.ihmc.build
 
-class Version(private val version: String) : Comparable<Version>
+class Version(private val rawVersion: String) : Comparable<Version>
 {
+   private val version = rawVersion.trim().split("-").get(0)
+
    init {
-      if (!version.matches("[0-9]+(\\.[0-9]+)*".toRegex()))
+      if (version.isBlank() || !version.matches("[0-9]+(\\.[0-9]+)*".toRegex()))
          throw IllegalArgumentException("Invalid version format: $version")
    }
 
