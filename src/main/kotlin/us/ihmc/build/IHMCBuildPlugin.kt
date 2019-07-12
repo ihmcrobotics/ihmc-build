@@ -23,25 +23,25 @@ class IHMCBuildPlugin : Plugin<Project>
       {
          configureProjectGroup(project)
 
-         project.allprojects { allproject ->
-            allproject.pluginManager.apply(BasePlugin::class.java)
-            allproject.pluginManager.apply(EclipsePlugin::class.java)
-            allproject.pluginManager.apply(IdeaPlugin::class.java)
-            allproject.pluginManager.apply(TaskTreePlugin::class.java)
-            allproject.pluginManager.apply(HelpTasksPlugin::class.java)
+         project.allprojects {
+            this.pluginManager.apply(BasePlugin::class.java)
+            this.pluginManager.apply(EclipsePlugin::class.java)
+            this.pluginManager.apply(IdeaPlugin::class.java)
+            this.pluginManager.apply(TaskTreePlugin::class.java)
+            this.pluginManager.apply(HelpTasksPlugin::class.java)
          }
       }
       else
       {
-         project.allprojects { allproject ->
-            allproject.pluginManager.apply(JavaPlugin::class.java)
-            allproject.pluginManager.apply(IvyPublishPlugin::class.java)
-            allproject.pluginManager.apply(MavenPublishPlugin::class.java)
-            allproject.pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
-            allproject.pluginManager.apply(EclipsePlugin::class.java)
-            allproject.pluginManager.apply(IdeaPlugin::class.java)
-            allproject.pluginManager.apply(TaskTreePlugin::class.java)
-            allproject.pluginManager.apply(HelpTasksPlugin::class.java)
+         project.allprojects {
+            this.pluginManager.apply(JavaPlugin::class.java)
+            this.pluginManager.apply(IvyPublishPlugin::class.java)
+            this.pluginManager.apply(MavenPublishPlugin::class.java)
+            this.pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
+            this.pluginManager.apply(EclipsePlugin::class.java)
+            this.pluginManager.apply(IdeaPlugin::class.java)
+            this.pluginManager.apply(TaskTreePlugin::class.java)
+            this.pluginManager.apply(HelpTasksPlugin::class.java)
          }
 
          val ihmcBuildExtension = IHMCBuildExtension(project)

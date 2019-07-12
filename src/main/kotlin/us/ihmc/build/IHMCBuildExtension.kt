@@ -306,7 +306,7 @@ open class IHMCBuildExtension(val project: Project)
    fun mainClassJarWithLibFolder(mainClass: String)
    {
       project.allprojects {
-         it.run {
+         this.run {
             configureJarManifest(maintainer, companyName, licenseURL, mainClass, true)
          }
       }
@@ -315,7 +315,7 @@ open class IHMCBuildExtension(val project: Project)
    fun jarWithLibFolder()
    {
       project.allprojects {
-         it.run {
+         this.run {
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", true)
          }
       }
@@ -331,7 +331,7 @@ open class IHMCBuildExtension(val project: Project)
       
       val productGroup = group
       project.allprojects {
-         it.run {
+         this.run {
             group = productGroup
             publishVersion = getPublishVersion()
             version = publishVersion
@@ -988,7 +988,7 @@ open class IHMCBuildExtension(val project: Project)
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
       tasks.getByName("jar") {
-         (it as Jar).run {
+         (this as Jar).run {
             manifest.attributes.apply {
                put("Created-By", maintainer)
                put("Implementation-Title", name)
@@ -1069,7 +1069,7 @@ open class IHMCBuildExtension(val project: Project)
       publication.version = version as String
       
       publication.pom.withXml() {
-         (it as XmlProvider).run {
+         (this as XmlProvider).run {
             val dependenciesNode = asNode().appendNode("dependencies")
             
             configuration.allDependencies.forEach {

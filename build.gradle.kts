@@ -1,24 +1,14 @@
 import com.gradle.publish.MavenCoordinates
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompile
 
 plugins {
-   kotlin("jvm") version "1.3.20"
+   `kotlin-dsl`
    `java-gradle-plugin`
    `maven-publish`
    id("com.gradle.plugin-publish") version "0.10.0"
 }
 
 group = "us.ihmc"
-version = "0.15.8"
-
-java {
-   sourceCompatibility = JavaVersion.VERSION_1_8
-   targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-tasks.withType<KotlinJvmCompile> {
-   kotlinOptions.jvmTarget = "1.8"
-}
+version = "0.15.9"
 
 repositories {
    jcenter()
@@ -32,7 +22,6 @@ dependencies {
    compile("com.mashape.unirest:unirest-java:1.4.9")
    compile("us.ihmc:ihmc-commons:0.25.0")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
-   compile(gradleKotlinDsl())
 
    testCompile("org.junit.jupiter:junit-jupiter-api:5.3.1")
    testCompile("org.junit.jupiter:junit-jupiter-engine:5.3.1")
