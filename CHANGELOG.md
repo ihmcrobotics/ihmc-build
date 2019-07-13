@@ -52,7 +52,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.15.1" // new build plugin without ci
+      classpath "us.ihmc:ihmc-build:0.15.10" // new build plugin without ci
       classpath "us.ihmc:ihmc-ci-plugin:0.18.0" // apply ci separately now
    }
 }
