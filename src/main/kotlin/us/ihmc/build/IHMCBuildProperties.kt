@@ -10,7 +10,6 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
 {
    var folderName = projectPath.fileName.toString()
    var kebabCasedName: String = ""
-   var pascalCasedName: String = ""
    var excludeFromCompositeBuild = false
    var isProjectGroup: Boolean = false
    val extraSourceSets = ArrayList<String>()
@@ -27,7 +26,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
             excludeFromCompositeBuild = (properties.get(propertyKey)!! as String).toBoolean()
             if (excludeFromCompositeBuild)
             {
-               logInfo(logger, "Excluding " + projectPath.fileName.toString() + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
+               logInfo(logger, "Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
             }
          }
          if (propertyKey == "isProjectGroup")
@@ -35,12 +34,8 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
             isProjectGroup = isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
             if (isProjectGroup)
             {
-               logInfo(logger, "Found group: " + projectPath.fileName.toString() + " (isProjectGroup = $isProjectGroup) $projectPath")
+               logInfo(logger, "Found group: " + folderName + " (isProjectGroup = $isProjectGroup) $projectPath")
             }
-         }
-         if (propertyKey == "pascalCasedName")
-         {
-            pascalCasedName = properties.get(propertyKey)!! as String
          }
          if (propertyKey == "extraSourceSets")
          {
@@ -48,12 +43,8 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
          }
       }
    
-      kebabCasedName = kebabCasedNameCompatibilityDuplicate(projectPath.fileName.toString(), logger, properties)
-      if (pascalCasedName.isEmpty())
-      {
-         pascalCasedName = toPascalCased(projectPath.fileName.toString())
-      }
-      
+      kebabCasedName = kebabCasedNameCompatibilityDuplicate(folderName, logger, properties)
+
       for (i in 0 until extraSourceSets.size)
       {
          extraSourceSets.set(i, toKebabCased(extraSourceSets[i]))
@@ -72,9 +63,9 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       {
          return properties.get("kebabCasedName") as String
       }
-      else if (properties.containsKey("hyphenatedName") && !(properties.get("hyphenatedName") as String).startsWith("$"))
+      else if (properties.containsKey("title") && !(properties.get("title") as String).startsWith("$"))
       {
-         return properties.get("hyphenatedName") as String
+         return titleToKebabCase(properties.get("title") as String)
       }
       else
       {

@@ -66,13 +66,6 @@ fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraP
       logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
       return kebabCasedName
    }
-   else if (ext.has("hyphenatedName") && !(ext.get("hyphenatedName") as String).startsWith("$"))
-   {
-
-      val kebabCasedName = ext.get("hyphenatedName") as String
-      logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
-      return kebabCasedName
-   }
    else
    {
       val defaultValue = toKebabCased(projectName)
@@ -154,6 +147,16 @@ fun compositeSearchHeightCompatibility(logger: Logger, ext: ExtraPropertiesExten
       ext.set("compositeSearchHeight", defaultValue)
       return defaultValue
    }
+}
+
+fun titleToKebabCase(titleCased: String): String
+{
+   return titleCased.trim().toLowerCase().replace(Regex("\\s+"), "-")
+}
+
+fun titleToPascalCase(titleCased: String): String
+{
+   return titleCased.trim().replace(Regex("\\s+"), "")
 }
 
 fun toSourceSetName(subproject: Project): String
