@@ -64,7 +64,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          throwMissingException("isProjectGroup", "true")
       }
 
-      publishUrlCompatibility(logger, ext) // optional w/ default
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
 
       checkExcludeFromCompositeBuild()
@@ -84,7 +83,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          extraSourceSets = Eval.me(ext.get("extraSourceSets") as String) as ArrayList<String>
       }
 
-      publishUrlCompatibility(logger, ext) // optional w/ default
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
 
       checkExcludeFromCompositeBuild()

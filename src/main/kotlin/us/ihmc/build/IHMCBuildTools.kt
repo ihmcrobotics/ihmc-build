@@ -142,7 +142,7 @@ fun publishUrlCompatibility(logger: Logger, extra: ExtraPropertiesExtension): St
    }
    else
    {
-      throw MissingPropertyException("Please set publishUrl = local (default) in gradle.properties.")
+      return "local" // default
    }
 }
 
