@@ -10,12 +10,10 @@ import java.io.File
 
 class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val ext: ExtraPropertiesExtension)
 {
-   lateinit var pascalCasedName: String
    lateinit var extraSourceSets: ArrayList<String>
    lateinit var publishUrl: String
    var compositeSearchHeight: Int = 0
-   var excludeFromCompositeBuild: Boolean = false
-   
+
    init
    {
       logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
@@ -23,19 +21,13 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       
       if (Version(settings.gradle.gradleVersion).compareTo(Version("4.8")) < 0)
       {
-         val message = "Please upgrade to Gradle version 4.8 or higher! (Recommended versions: 4.10.2 or later)"
+         val message = "Please upgrade to Gradle version 4.8 or higher! (5+ is recommended)"
          logError(logger, message)
          throw GradleException(message)
       }
    }
    
-   @Deprecated("Here for backwards compatibility.")
-   fun configureProjectName(dummy: Any?)
-   {
-      // to be deleted
-   }
-   
-   fun configureExtraSourceSets(vararg dummy: Any?)
+   fun configureExtraSourceSets()
    {
       for (sourceSetName in extraSourceSets)
       {
@@ -66,40 +58,84 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    
    fun configureAsGroupOfProjects()
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
-      checkForPropertyInternal("isProjectGroup", "true")
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      publishUrl = publishUrlCompatibility(logger, ext)
-      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
-      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
-      checkForPropertyInternal("org.gradle.workers.max", "200")
+      configureTitle()
+
+      if (!containsValidStringProperty("isProjectGroup"))
+      {
+         throwMissingException("isProjectGroup", "true")
+      }
+
+      publishUrl = publishUrlCompatibility(logger, ext) // optional w/ default
+      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
+
+      checkExcludeFromCompositeBuild()
+      checkMaxGradleWorkers()
    }
-   
+
    fun checkRequiredPropertiesAreSet()
    {
-      settings.rootProject.name = kebabCasedNameCompatibility(settings.rootProject.name, logger, ext)
-      checkForPropertyInternal("pascalCasedName", "YourProjectPascalCased")
-      checkForPropertyInternal("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
-      publishUrl = publishUrlCompatibility(logger, ext)
-      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext)
-      checkForPropertyInternal("excludeFromCompositeBuild", "false (default)")
-      checkForPropertyInternal("org.gradle.workers.max", "200")
-   }
-   
-   private fun checkForPropertyInternal(property: String, message: String)
-   {
-      if (!ext.has(property))
+      configureTitle()
+
+      if (!containsValidStringProperty("extraSourceSets"))
       {
-         throw MissingPropertyException("Please set $property = $message in gradle.properties.")
+         throwMissingException("extraSourceSets", "[] (ex. [\"test\", \"visualizers\"]")
       }
       else
       {
-         when (property)
-         {
-            "pascalCasedName"             -> pascalCasedName = ext.get(property) as String
-            "extraSourceSets"             -> extraSourceSets = Eval.me(ext.get(property) as String) as ArrayList<String>
-            "excludeFromCompositeBuild"   -> excludeFromCompositeBuild = (ext.get(property) as String).toBoolean()
-         }
+         extraSourceSets = Eval.me(ext.get("extraSourceSets") as String) as ArrayList<String>
       }
+
+      publishUrl = publishUrlCompatibility(logger, ext) // optional w/ default
+      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
+
+      checkExcludeFromCompositeBuild()
+      checkMaxGradleWorkers()
+   }
+
+   private fun configureTitle()
+   {
+      if (containsValidStringProperty("title"))
+      {
+         settings.rootProject.name = titleToKebabCase(propertyAsString("title"))
+      }
+      else if (containsValidStringProperty("kebabCasedName") && containsValidStringProperty("pascalCasedName"))
+      {
+         settings.rootProject.name = propertyAsString("kebabCasedName")
+      }
+      else
+      {
+         throwMissingException("title", "Your Project Name")
+      }
+   }
+
+   private fun checkExcludeFromCompositeBuild()
+   {
+      if (!containsValidStringProperty("excludeFromCompositeBuild"))
+      {
+         throwMissingException("excludeFromCompositeBuild", "false (default)")
+      }
+   }
+
+   private fun checkMaxGradleWorkers()
+   {
+      if (!ext.has("org.gradle.workers.max"))
+      {
+         throwMissingException("org.gradle.workers.max", "200")
+      }
+   }
+
+   private fun containsValidStringProperty(propertyName: String): Boolean
+   {
+      return ext.has(propertyName) && !(ext.get(propertyName) as String).startsWith("$")
+   }
+
+   private fun throwMissingException(propertyName: String, exampleValue: String)
+   {
+      throw MissingPropertyException("Please set $propertyName = $exampleValue in gradle.properties.")
+   }
+
+   private fun propertyAsString(propertyName: String): String
+   {
+      return (ext.get(propertyName) as String).trim()
    }
 }
