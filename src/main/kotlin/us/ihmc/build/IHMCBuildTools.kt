@@ -58,11 +58,11 @@ fun isProjectGroupCompatibility(rawString: String): Boolean
    return rawString.trim().toLowerCase().contains("true");
 }
 
-fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraPropertiesExtension): String
+fun kebabCasedNameCompatibility(projectName: String, logger: Logger, extra: ExtraPropertiesExtension): String
 {
-   if (ext.has("kebabCasedName") && !(ext.get("kebabCasedName") as String).startsWith("$"))
+   if (containsValidStringProperty("kebabCasedName", extra))
    {
-      val kebabCasedName = ext.get("kebabCasedName") as String
+      val kebabCasedName = extra.get("kebabCasedName") as String
       logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
       return kebabCasedName
    }
@@ -70,57 +70,73 @@ fun kebabCasedNameCompatibility(projectName: String, logger: Logger, ext: ExtraP
    {
       val defaultValue = toKebabCased(projectName)
       logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
-      ext.set("kebabCasedName", defaultValue)
+      extra.set("kebabCasedName", defaultValue)
       return defaultValue
    }
 }
 
-fun snapshotModeCompatibility(logger: Logger, ext: ExtraPropertiesExtension): Boolean
+fun titleCasedNameCompatibility(projectName: String, extra: ExtraPropertiesExtension): String
 {
-   if (ext.has("snapshotMode") && !(ext.get("snapshotMode") as String).startsWith("$"))
+   if (containsValidStringProperty("title", extra))
    {
-      val snapshotMode = (ext.get("snapshotMode") as String).trim().toLowerCase().contains("true")
+      return propertyAsString("title", extra)
+   }
+   else if (containsValidStringProperty("pascalCasedName",  extra))
+   {
+      return propertyAsString("pascalCasedName", extra)
+   }
+   else
+   {
+      return projectName
+   }
+}
+
+fun snapshotModeCompatibility(logger: Logger, extra: ExtraPropertiesExtension): Boolean
+{
+   if (containsValidStringProperty("snapshotMode", extra))
+   {
+      val snapshotMode = (extra.get("snapshotMode") as String).trim().toLowerCase().contains("true")
       logInfo(logger, "Loaded snapshotMode = $snapshotMode")
       return snapshotMode;
    }
-   if (ext.has("publishMode") // Backwards compatibility
-         && !(ext.get("publishMode") as String).startsWith("$")
-         && (ext.get("publishMode") as String).trim().toLowerCase().contains("snapshot"))
+   if (extra.has("publishMode") // Backwards compatibility
+         && !(extra.get("publishMode") as String).startsWith("$")
+         && (extra.get("publishMode") as String).trim().toLowerCase().contains("snapshot"))
    {
-      logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set snapshotMode = true.")
+      logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set snapshotMode = true.")
       return true
    }
    
    return false
 }
 
-fun publishUrlCompatibility(logger: Logger, ext: ExtraPropertiesExtension): String
+fun publishUrlCompatibility(logger: Logger, extra: ExtraPropertiesExtension): String
 {
-   if (ext.has("publishMode")) // Backwards compatibility
+   if (extra.has("publishMode")) // Backwards compatibility
    {
       logWarn(logger, "publishMode has been replaced by publishUrl. See README for details.")
    }
-   if (ext.has("publishUrl") && !(ext.get("publishUrl") as String).startsWith("$"))
+   if (containsValidStringProperty("publishUrl", extra))
    {
-      return (ext.get("publishUrl") as String).trim()
+      return (extra.get("publishUrl") as String).trim()
    }
-   else if (ext.has("publishMode") && !(ext.get("publishMode") as String).startsWith("$")) // Backwards compatibility
+   else if (containsValidStringProperty("publishMode", extra)) // Backwards compatibility
    {
-      val publishModeString = (ext.get("publishMode") as String).trim().toLowerCase()
+      val publishModeString = (extra.get("publishMode") as String).trim().toLowerCase()
       
       if (publishModeString.contains("local"))
       {
-         logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set publishUrl = local.")
+         logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = local.")
          return "local"
       }
       else if (publishModeString.contains("snapshot"))
       {
-         logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set publishUrl = ihmcSnapshots.")
+         logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcSnapshots.")
          return "ihmcSnapshots"
       }
       else
       {
-         logWarn(logger, "Using publishMode = ${(ext.get("publishMode") as String)} to set publishUrl = ihmcRelease.")
+         logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcRelease.")
          return "ihmcRelease"
       }
    }
@@ -130,23 +146,33 @@ fun publishUrlCompatibility(logger: Logger, ext: ExtraPropertiesExtension): Stri
    }
 }
 
-fun compositeSearchHeightCompatibility(logger: Logger, ext: ExtraPropertiesExtension): Int
+fun compositeSearchHeightCompatibility(logger: Logger, extra: ExtraPropertiesExtension): Int
 {
-   if (ext.has("compositeSearchHeight") && !(ext.get("compositeSearchHeight") as String).startsWith("$"))
+   if (containsValidStringProperty("compositeSearchHeight", extra))
    {
-      return (ext.get("compositeSearchHeight") as String).toInt()
+      return (extra.get("compositeSearchHeight") as String).toInt()
    }
-   else if (ext.has("depthFromWorkspaceDirectory") && !(ext.get("depthFromWorkspaceDirectory") as String).startsWith("$"))
+   else if (containsValidStringProperty("depthFromWorkspaceDirectory", extra))
    {
-      return (ext.get("depthFromWorkspaceDirectory") as String).toInt()
+      return (extra.get("depthFromWorkspaceDirectory") as String).toInt()
    }
    else
    {
       val defaultValue = 0
       logInfo(logger, "No value found for compositeSearchHeight. Using default value: $defaultValue")
-      ext.set("compositeSearchHeight", defaultValue)
+      extra.set("compositeSearchHeight", defaultValue)
       return defaultValue
    }
+}
+
+fun containsValidStringProperty(propertyName: String, extra: ExtraPropertiesExtension): Boolean
+{
+   return extra.has(propertyName) && !(extra.get(propertyName) as String).startsWith("$")
+}
+
+fun propertyAsString(propertyName: String, extra: ExtraPropertiesExtension): String
+{
+   return (extra.get(propertyName) as String).trim()
 }
 
 fun titleToKebabCase(titleCased: String): String

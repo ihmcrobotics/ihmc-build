@@ -5,7 +5,7 @@ import com.dorongold.gradle.tasktree.TaskTreePlugin
 import org.gradle.api.*
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.plugins.HelpTasksPlugin
-import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.Delete
@@ -34,7 +34,7 @@ class IHMCBuildPlugin : Plugin<Project>
       else
       {
          project.allprojects {
-            this.pluginManager.apply(JavaPlugin::class.java)
+            this.pluginManager.apply(JavaLibraryPlugin::class.java)
             this.pluginManager.apply(IvyPublishPlugin::class.java)
             this.pluginManager.apply(MavenPublishPlugin::class.java)
             this.pluginManager.apply(AnalyzeDependenciesPlugin::class.java)

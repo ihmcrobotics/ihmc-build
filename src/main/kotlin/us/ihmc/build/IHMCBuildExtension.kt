@@ -6,6 +6,7 @@ import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
@@ -49,7 +50,8 @@ open class IHMCBuildExtension(val project: Project)
    private lateinit var artifactoryPassword: String
    private val publishUsername: String
    private val publishPassword: String
-   
+
+   private val titleCasedNameProperty: String
    private val kebabCasedNameProperty: String
    private val snapshotModeProperty: Boolean
    private val publishUrlProperty: String
@@ -92,7 +94,8 @@ open class IHMCBuildExtension(val project: Project)
    
       snapshotModeProperty = snapshotModeCompatibility(logger, project.extra)
       publishUrlProperty = publishUrlCompatibility(logger, project.extra)
-      
+
+      titleCasedNameProperty = titleCasedNameCompatibility(project.name, project.extra)
       kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
@@ -388,7 +391,7 @@ open class IHMCBuildExtension(val project: Project)
             
             val java = convention.getPlugin(JavaPluginConvention::class.java)
             
-            declarePublication(name, configurations.getByName("compile"), java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
+            declarePublication(name, configurations, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
    
@@ -1060,7 +1063,7 @@ open class IHMCBuildExtension(val project: Project)
       publishing.repositories.mavenLocal()
    }
    
-   private fun Project.declarePublication(artifactName: String, configuration: Configuration, sourceSet: SourceSet)
+   private fun Project.declarePublication(artifactName: String, configurations: ConfigurationContainer, sourceSet: SourceSet)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
@@ -1071,17 +1074,29 @@ open class IHMCBuildExtension(val project: Project)
       publication.pom.withXml() {
          (this as XmlProvider).run {
             val dependenciesNode = asNode().appendNode("dependencies")
-            
-            configuration.allDependencies.forEach {
-               if (it.name != "unspecified")
-               {
-                  val dependencyNode = dependenciesNode.appendNode("dependency")
-                  dependencyNode.appendNode("groupId", it.group)
-                  dependencyNode.appendNode("artifactId", it.name)
-                  dependencyNode.appendNode("version", it.version)
+
+            for (configuration in configurations)
+            {
+               configuration.allDependencies.forEach {
+                  if (it.name != "unspecified")
+                  {
+                     val dependencyNode = dependenciesNode.appendNode("dependency")
+                     dependencyNode.appendNode("groupId", it.group)
+                     dependencyNode.appendNode("artifactId", it.name)
+                     dependencyNode.appendNode("version", it.version)
+                     if (configuration.name.trim().toLowerCase() == "implementation")
+                     {
+                        dependencyNode.appendNode("scope", "runtime")
+                     }
+                     else
+                     {
+                        dependencyNode.appendNode("scope", "compile")
+                     }
+                  }
                }
             }
-            
+
+            asNode().appendNode("description", titleCasedNameProperty)
             asNode().appendNode("name", name)
             asNode().appendNode("url", vcsUrl)
             val licensesNode = asNode().appendNode("licenses")

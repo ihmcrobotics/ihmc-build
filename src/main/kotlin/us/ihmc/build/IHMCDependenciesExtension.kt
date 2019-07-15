@@ -2,44 +2,60 @@ package us.ihmc.build
 
 import groovy.lang.Closure
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.dsl.DependencyHandler
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.internal.metaobject.DynamicInvokeResult
 import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
 import org.gradle.kotlin.dsl.extra
 import org.gradle.util.CollectionUtils
 
-open class IHMCDependenciesExtension(private val rootProject: Project, private val name: String, private val ihmcBuildExtension: IHMCBuildExtension) : MethodMixIn
+open class IHMCDependenciesExtension(private val mainProject: Project,
+                                     private val sourceSetKebabCasedName: String,
+                                     private val ihmcBuildExtension: IHMCBuildExtension)
+   : MethodMixIn, // Groovy trick
+     IHMCKotlinDependencyHandlerDelegate()  // Kotlin trick
 {
-   private val logger = rootProject.logger
-   private val kebabCasedName: String = kebabCasedNameCompatibility(rootProject.name, logger, rootProject.extra)
+   private val logger = mainProject.logger
+   private val kebabCasedName: String = kebabCasedNameCompatibility(mainProject.name, logger, mainProject.extra)
    private val projectToConfigure by lazy {
-      if (name == "main")
+      if (sourceSetKebabCasedName == "main")
       {
-         rootProject
+         mainProject
       }
       else
       {
-         rootProject.project(":$kebabCasedName-$name")
+         mainProject.project(":$kebabCasedName-$sourceSetKebabCasedName")
       }
    }
-   private val dynamicMethods = DynamicMethods()
-   
-   private fun add(configurationName: String, dependencyNotation: Any)
+   val dependencies: DependencyHandler = projectToConfigure.dependencies
+
+   override val delegate: DependencyHandler get() = dependencies  // trick for Kotlin
+
+   private val dynamicMethods = DynamicMethods()  // trick for Groovy
+
+   override fun add(configurationName: String, dependencyNotation: Any): Dependency?  // trick for Kotlin
    {
-      val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
-      projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation)
+      return filterAndAddDependency(configurationName, dependencyNotation)
    }
-   
-   private fun add(configurationName: String, dependencyNotation: Any, configureClosure: Closure<Any>)
+
+   private fun filterAndAddDependency(configurationName: String, dependencyNotation: Any): Dependency?
    {
       val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
-      projectToConfigure.dependencies.add(configurationName, modifiedDependencyNotation, configureClosure)
+      return dependencies.add(configurationName, modifiedDependencyNotation)
+   }
+
+   private fun filterAndAddDependency(configurationName: String, dependencyNotation: Any, configureClosure: Closure<Any>): Dependency?
+   {
+      val modifiedDependencyNotation = processDependencyDeclaration(configurationName, dependencyNotation)
+      return dependencies.add(configurationName, modifiedDependencyNotation, configureClosure)
    }
    
    private fun processDependencyDeclaration(configurationName: String, dependencyNotation: Any): Any
    {
       val modifiedDependencyNotation = modifyDependency(dependencyNotation)
-   
+
       logDebug(logger, "Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
       
       if (configurationName != "compile")
@@ -126,7 +142,9 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          return dependencyNotation
       }
    }
-   
+
+   /// GROOVY DYNAMIC METHODS ///
+
    override fun getAdditionalMethods(): MethodAccess
    {
       return dynamicMethods
@@ -149,17 +167,17 @@ open class IHMCDependenciesExtension(private val rootProject: Project, private v
          val normalizedArgs = CollectionUtils.flattenCollections(*arguments)
          if (normalizedArgs.size == 2 && normalizedArgs[1] is Closure<*>)
          {
-            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Any, normalizedArgs[1] as Closure<Any>))
+            return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0] as Any, normalizedArgs[1] as Closure<Any>))
          }
          else if (normalizedArgs.size == 1)
          {
-            return DynamicInvokeResult.found(add(configuration.name, normalizedArgs[0] as Any))
+            return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0] as Any))
          }
          else
          {
             for (arg in normalizedArgs)
             {
-               add(configuration.name, arg as Any)
+               dependencies.add(configuration.name, arg as Any) // we don't know how to filter, let Gradle handle
             }
             return DynamicInvokeResult.found()
          }
