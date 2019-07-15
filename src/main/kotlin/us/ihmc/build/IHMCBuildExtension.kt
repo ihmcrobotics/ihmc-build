@@ -5,7 +5,6 @@ import com.mashape.unirest.http.exceptions.UnirestException
 import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
 import org.gradle.api.*
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.initialization.IncludedBuild
@@ -44,7 +43,7 @@ open class IHMCBuildExtension(val project: Project)
    var companyName: String = "IHMC"
    var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
    
-   private val bintrayUser: String
+   private val bintrayUsername: String
    private val bintrayApiKey: String
    private lateinit var artifactoryUsername: String
    private lateinit var artifactoryPassword: String
@@ -85,8 +84,8 @@ open class IHMCBuildExtension(val project: Project)
    
    init
    {
-      bintrayUser = setupPropertyWithDefault("bintray_user", "unset_user")
-      bintrayApiKey = setupPropertyWithDefault("bintray_key", "unset_api_key")
+      bintrayUsername = bintrayUsernameCompatibility(logger, project.extra)
+      bintrayApiKey = bintrayApiKeyCompatibility(logger, project.extra)
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
@@ -173,11 +172,7 @@ open class IHMCBuildExtension(val project: Project)
                logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
             }
          }
-         if (propertyName == "bintray_user" || propertyName == "bintray_key")
-         {
-            logInfo(logger, "Please set bintray_user and bintray_key in /path/to/user/.gradle/gradle.properties.")
-         }
-         
+
          logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
          project.extra.set(propertyName, defaultValue)
          return defaultValue
@@ -1053,7 +1048,7 @@ open class IHMCBuildExtension(val project: Project)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "Bintray" + toPascalCased(repoName)
          url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
-         credentials.username = bintrayUser
+         credentials.username = bintrayUsername
          credentials.password = bintrayApiKey
       })
    }

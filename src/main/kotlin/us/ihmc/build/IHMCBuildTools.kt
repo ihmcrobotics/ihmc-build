@@ -152,6 +152,42 @@ fun publishUrlIsKeyword(publishUrl: String, keyword: String): Boolean
    return sanitized == keyword
 }
 
+fun bintrayUsernameCompatibility(logger: Logger, extra: ExtraPropertiesExtension): String
+{
+   if (containsValidStringProperty("bintrayUsername", extra))
+   {
+      return propertyAsString("bintrayUsername", extra)
+   }
+   else if (containsValidStringProperty("bintray_user", extra))
+   {
+      logQuiet(logger, "Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
+      return propertyAsString("bintray_user", extra)
+   }
+   else
+   {
+      logInfo(logger, "Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
+      return "unset"
+   }
+}
+
+fun bintrayApiKeyCompatibility(logger: Logger, extra: ExtraPropertiesExtension): String
+{
+   if (containsValidStringProperty("bintrayApiKey", extra))
+   {
+      return propertyAsString("bintrayApiKey", extra)
+   }
+   else if (containsValidStringProperty("bintray_key", extra))
+   {
+      logQuiet(logger, "Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
+      return propertyAsString("bintray_key", extra)
+   }
+   else
+   {
+      logInfo(logger, "Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
+      return "unset"
+   }
+}
+
 fun compositeSearchHeightCompatibility(logger: Logger, extra: ExtraPropertiesExtension): Int
 {
    if (containsValidStringProperty("compositeSearchHeight", extra))
