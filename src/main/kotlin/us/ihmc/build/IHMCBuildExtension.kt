@@ -1078,14 +1078,14 @@ open class IHMCBuildExtension(val project: Project)
 
             for (configuration in configurations)
             {
-               configuration.allDependencies.forEach {
+               configuration.dependencies.forEach {
                   if (it.name != "unspecified")
                   {
                      val dependencyNode = dependenciesNode.appendNode("dependency")
                      dependencyNode.appendNode("groupId", it.group)
                      dependencyNode.appendNode("artifactId", it.name)
                      dependencyNode.appendNode("version", it.version)
-                     if (configuration.name.trim().toLowerCase() == "implementation")
+                     if (configuration.name == "implementation")
                      {
                         dependencyNode.appendNode("scope", "runtime")
                      }
