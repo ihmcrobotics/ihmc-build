@@ -146,6 +146,12 @@ fun publishUrlCompatibility(logger: Logger, extra: ExtraPropertiesExtension): St
    }
 }
 
+fun publishUrlIsKeyword(publishUrl: String, keyword: String): Boolean
+{
+   val sanitized = publishUrl.toLowerCase().replace("-", "")
+   return sanitized == keyword
+}
+
 fun compositeSearchHeightCompatibility(logger: Logger, extra: ExtraPropertiesExtension): Int
 {
    if (containsValidStringProperty("compositeSearchHeight", extra))

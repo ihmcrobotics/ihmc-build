@@ -341,11 +341,12 @@ open class IHMCBuildExtension(val project: Project)
             
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
             
-            if (publishUrlProperty.toLowerCase() == "local")
+            if (publishUrlIsKeyword(publishUrlProperty, "local"))
             {
                declareMavenLocal()
             }
-            else if (publishUrlProperty == "ihmcSnapshots" || publishUrlProperty == "ihmcSnapshot")
+            else if (publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshots")
+                  || publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshot"))
             {
                if (openSource)
                {
@@ -356,7 +357,7 @@ open class IHMCBuildExtension(val project: Project)
                   declareArtifactory("proprietary-snapshots")
                }
             }
-            else if (publishUrlProperty == "ihmcRelease")
+            else if (publishUrlIsKeyword(publishUrlProperty, "ihmcrelease"))
             {
                if (openSource)
                {
@@ -367,7 +368,7 @@ open class IHMCBuildExtension(val project: Project)
                   declareArtifactory("proprietary-releases")
                }
             }
-            else if (publishUrlProperty == "ihmcVendor")
+            else if (publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
             {
                if (openSource)
                {
