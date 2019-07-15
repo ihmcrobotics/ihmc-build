@@ -6,6 +6,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.3] - 2019-07-14
+
+### Major Features
+
+- Switch to Gradle Java Library plugin [1]
+- Gradle Kotlin script support
+- Support `title` property
+- Support Java 11+ and Gradle 5.5+
+
+[1] https://docs.gradle.org/current/userguide/java_library_plugin.html
+
+### Minor Enhancements
+
+- Relax `publishUrl` keyword strictness
+- Declaring `publishUrl` is no longer required (default value is "local")
+- `bintrayUsername` and `bintrayApiKey` are now accepted (`bintay_user` and `bintray_key`
+are now deprecated)
+
+### Deprecation Removal
+
+- `hyphenatedName` is no longer acknowledged
+- Remove old `IHMCSettingsConfigurator` method signatures
+
+### Examples
+
+##### `title` property
+
+You can now use `title` instead of `kebabCasedName` and `pascalCasedName`.
+
+**gradle.properties**
+```
+title = IHMC Commons   // kebab: ihmc-commons, pascal: IHMCCommons
+```
+
+In `build.gradle` and `build.gradle.kts` files you can make use of the `api` and `implementation`
+dependency types. `api` is a direct replacement for `compile`. `implementation` blocks consuming libraries
+from accessing that library transitively.
+
+```
+mainDependencies {
+   api("org.apache.commons:commons-lang3:3.8.1")
+   implementation("commons-io:commons-io:2.6")
+}
+```
+
 ## [0.15.7] - 2019-03-05
 - Apply `HelpTasksPlugin` to all projects to fix `compositeTask` for those tasks in Gradle 5.
 
@@ -84,7 +129,8 @@ it is no longer the case that the IHMCDependenciesExtension would override `1.0`
 - Add unit tests for test suite generation using ihmc-ci
 - Add binray properties to README
 
-[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.7...HEAD
+[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.3...HEAD
+[0.16.3]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.7...0.16.3
 [0.15.7]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.6...0.15.7
 [0.15.6]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.5...0.15.6
 [0.15.5]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.4...0.15.5
