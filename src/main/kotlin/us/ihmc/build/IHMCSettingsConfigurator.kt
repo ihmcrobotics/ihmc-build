@@ -11,7 +11,6 @@ import java.io.File
 class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val ext: ExtraPropertiesExtension)
 {
    lateinit var extraSourceSets: ArrayList<String>
-   lateinit var publishUrl: String
    var compositeSearchHeight: Int = 0
 
    init
@@ -65,7 +64,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          throwMissingException("isProjectGroup", "true")
       }
 
-      publishUrl = publishUrlCompatibility(logger, ext) // optional w/ default
+      publishUrlCompatibility(logger, ext) // optional w/ default
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
 
       checkExcludeFromCompositeBuild()
@@ -85,7 +84,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          extraSourceSets = Eval.me(ext.get("extraSourceSets") as String) as ArrayList<String>
       }
 
-      publishUrl = publishUrlCompatibility(logger, ext) // optional w/ default
+      publishUrlCompatibility(logger, ext) // optional w/ default
       compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
 
       checkExcludeFromCompositeBuild()
