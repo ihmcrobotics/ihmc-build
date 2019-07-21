@@ -1,14 +1,42 @@
 # IHMC Build Plugin
 
-Composite build and IDE classpath separation support for JVM Gradle projects. Currently for use only by IHMC projects.
+Composite build and IDE classpath separation support for JVM Gradle projects.
 
-### Table of Contents
+### Main features
+
+- Seperate source set classpaths when building projects in IDEs
+- Utilize composite builds to make each project standalone by default
+- Keep Bamboo CI configuration powerful, minimal, and flexible
+
+#### Contents
+1. [Properties](#properties)
 1. [Quick project setup](#quick-project-setup)
 1. [Groups of projects](#groups-of-projects)
 1. [Commands](#commands)
 1. [Learn more](#learn-more)
 1. [Advantages over standard Gradle](#advantages-over-standard-gradle)
 1. [Future plans](#future-plans)
+
+### Properties
+
+`title` - The "Title Cased Name" of your project. This will be converted to kebab and Pascal casing in various build phases.
+(i.e. "title-cased-name" and "TitleCasedName")
+
+`extraSourceSets` - Classpath separated "source sets" that have their own dependencies and are published in separate artifacts. 
+(i.e. ["test", "visualizers"]) 
+These will be represented by Gradle subprojects
+under the hood and located where Gradle would normally place its concept of source sets. `ihmc-build` takes care of setting up the "test"
+source set project as if it were a normal source set.
+
+`compositeSearchHeight` - When building from this directory, set how many directories to go up and search for builds to include.
+If this is not the root project, this setting is ignored.
+
+`excludeFromCompositeBuild` - "Opt out" of being included in other composite builds. This setting is ignored if this project
+is the build root.
+
+(for project groups) `projectGroup` - If this project exists only to contain other `ihmc-build` projects. (i.e. a "glue" project)
+
+(optional) `publishUrl` - See publishing commands below. Defaults to "local"
 
 ### Quick project setup
 
@@ -23,44 +51,15 @@ your-project
 └─ ...
 ```
 
-**settings.gradle**
-```gradle
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.16.3"
-   }
-}
-
-import us.ihmc.build.IHMCSettingsConfigurator
-
-/** Browse source at https://github.com/ihmcrobotics/ihmc-build */
-def ihmcSettingsConfigurator = new IHMCSettingsConfigurator(settings, logger, ext)
-ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
-ihmcSettingsConfigurator.configureExtraSourceSets()
-ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
-```
-
-**gradle.properties**
+Fill out `gradle.properties`:
 ```ini
-kebabCasedName = your-project
-pascalCasedName = YourProject
+title = Your Project Title
 extraSourceSets = ["test"]
-publishUrl = local
-
-# When building from this directory, set how many directories
-# to go up and do a search for more builds to include.
 compositeSearchHeight = 0
-
-# When another build is searching for builds to include,
-# tell it to leave you out.
 excludeFromCompositeBuild = false
 ```
 
-**build.gradle**
+Fill out `build.gradle`:
 ```gradle
 plugins {
    id("us.ihmc.ihmc-build") version "0.16.3"
@@ -82,6 +81,27 @@ mainDependencies {
 
 testDependencies {
 }
+```
+
+Copy the following into `settings.gradle`:
+```gradle
+buildscript {
+   repositories {
+      maven { url "https://plugins.gradle.org/m2/" }
+      mavenLocal()
+   }
+   dependencies {
+      classpath "us.ihmc:ihmc-build:0.16.3"
+   }
+}
+
+import us.ihmc.build.IHMCSettingsConfigurator
+
+/** Browse source at https://github.com/ihmcrobotics/ihmc-build */
+def ihmcSettingsConfigurator = new IHMCSettingsConfigurator(settings, logger, ext)
+ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
+ihmcSettingsConfigurator.configureExtraSourceSets()
+ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 ```
 
 ### Groups of projects
@@ -127,17 +147,8 @@ The Gradle build files for the projects that do not contain `src/main/java` dire
 ```ini
 kebabCasedName = your-project
 pascalCasedName = YourProject
-publishUrl = local
-
-# Tells the build plugin to always include subprojects
 isProjectGroup = true
-
-# When building from this directory, set how many directories
-# to go up and do a search for more builds to include.
 compositeSearchHeight = 0
-
-# When another build is searching for builds to include,
-# tell it to leave this entire project group out.
 excludeFromCompositeBuild = false
 ```
 
