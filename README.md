@@ -10,11 +10,11 @@ Composite build and IDE classpath separation support for JVM Gradle projects.
 
 #### Contents
 1. [Properties](#properties)
-1. [Quick project setup](#quick-project-setup)
-1. [Groups of projects](#groups-of-projects)
 1. [Commands](#commands)
+1. [Creating a new project](#creating-a-new-project)
+1. [Groups of projects](#groups-of-projects)
+1. [Troubleshooting](#troubleshooting)
 1. [Learn more](#learn-more)
-1. [Advantages over standard Gradle](#advantages-over-standard-gradle)
 1. [Future plans](#future-plans)
 
 ### Properties
@@ -34,11 +34,100 @@ If this is not the root project, this setting is ignored.
 `excludeFromCompositeBuild` - "Opt out" of being included in other composite builds. This setting is ignored if this project
 is the build root.
 
-(for project groups) `projectGroup` - If this project exists only to contain other `ihmc-build` projects. (i.e. a "glue" project)
-
 (optional) `publishUrl` - See publishing commands below. Defaults to "local"
 
-### Quick project setup
+(optional) `projectGroup` - If this project exists only to contain other `ihmc-build` projects. (i.e. a "glue" project)
+
+### Commands
+
+##### Running tasks over all projects in the build
+
+Most of the time, you will be in an environment with more that one included build. If you want to run a Gradle task on all of
+them at once, use:
+
+`gradle compositeTask -PtaskName=someTaskName`
+
+For example, to run the Java plugin's `compileJava` task on your project plus all included Java projects, run:
+
+`gradle compositeTask -PtaskName=compileJava`.
+
+As always, pass any additional properties required for your task
+via additional `-PsomeProperty=someValue`.
+
+To run multiple tasks over all builds you can separate them with commas. `taskName` and `taskNames` both work.
+
+`gradle compositeTask -PtaskNames=task1,task2,task3`
+
+##### Publishing releases
+
+Set `bintrayUsername` and `bintrayApiKey` in `~/.gradle/gradle.properties` after generating an API key on Bintray.
+
+`gradle publish -PpublishUrl=ihmcRelease`
+
+The above command publishes `your-project-0.1.0.jar` to Bintray if the `openSource` option is set to "true" in the `ihmc` block. 
+Otherwise, it will publish to Artifactory `proprietary-releases`.
+
+##### Publishing locally
+
+To publish `your-project-LOCAL.jar` to `$home/.m2`:
+
+`gradle publish -PpublishUrl=local`
+
+##### Publishing to custom repositories/URLs
+
+Use the `publishUrl` property to pass the URL and `publishUsername` and `publishPassword` to authenticate:
+
+`gradle publish -PpublishUrl=https://my.site/repo -PpublishUsername=username -PpublishPassword=password`
+
+You can also code this in the `build.gradle` to a keyword with the `addPublishUrl()` function:
+
+`build.gradle`:
+```gradle
+ihmc {
+   ...
+   
+   configureDependencyResolution()  // Between here ->
+   addPublishUrl("myVendor", "https://my.site/my-repo", publishUsername, publishPassword)
+   configurePublications() // <- and here
+}
+```
+
+##### Publishing all projects at once
+
+The `publishAll` task is provided as an alias for `gradle compositeTask -PtaskName=publish`:
+
+`gradle publishAll`
+
+For example, to publish a group of projects:
+
+`gradle publishAll -PpublishUrl=ihmcRelease`
+
+##### Clean build directories
+
+The `cleanBuild` task is provided as an alias for `gradle compositeTask -PtaskName=clean`.
+
+The `cleanIDE` task is provided as an alias for `gradle compositeTask -PtaskNames=cleanEclipse,cleanIdea,cleanBuildship`.
+
+`gradle cleanBuild`
+
+Cleans `build/` (Gradle), `bin/` (Eclipse), and `out/` (IntelliJ) build directories from all included projects.
+
+##### Maven Repositories
+
+To add a Maven repository, use the `repository` function in the `ihmc` extension. Note that projects that depend on this will 
+also need to have these repositories declared, so use them sparingly.
+```
+ihmc {
+   ...
+
+   configureDependencyResolution()  // Between here ->
+   repository("http://maven-eclipse.github.io/maven")
+   repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+   configurePublications() // <- and here
+}
+```
+
+### Creating a new project
 
 Create the following file structure:
 ```
@@ -106,7 +195,10 @@ ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 
 ### Groups of projects
 
-Handling groups of independently buildable projects is a core focus of this plugin. The [repository-group](https://github.com/ihmcrobotics/repository-group) project provides root level scripts so you can get started quickly and easily keep build scripts up to date with a periodic `git pull`. See the [repository-group README](https://github.com/ihmcrobotics/repository-group/blob/master/README.md) for more details.
+Handling groups of independently buildable projects is a core focus of this plugin. 
+The [repository-group](https://github.com/ihmcrobotics/repository-group) project provides root level scripts 
+so you can get started quickly and easily keep build scripts up to date with a periodic `git pull`. 
+See the [repository-group README](https://github.com/ihmcrobotics/repository-group/blob/master/README.md) for more details.
 
 Consider the following layout:
 
@@ -143,7 +235,7 @@ repository-group
 
 The Gradle build files for the projects that do not contain `src/main/java` directories have a few differences from the ones above:
 
-**gradle.properties (group)**
+`gradle.properties` for project group:
 ```ini
 kebabCasedName = your-project
 pascalCasedName = YourProject
@@ -152,7 +244,14 @@ compositeSearchHeight = 0
 excludeFromCompositeBuild = false
 ```
 
-**settings.gradle (group)**
+`build.gradle` for project group:
+```gradle
+plugins {
+   id("us.ihmc.ihmc-build") version "0.16.3"
+}
+```
+
+`settings.gradle` for project group:
 ```gradle
 buildscript {
    repositories {
@@ -171,106 +270,6 @@ ihmcSettingsConfigurator.configureAsGroupOfProjects()
 ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 ```
 
-**build.gradle (group)**
-```gradle
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-      jcenter()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.16.3"
-   }
-}
-apply plugin: "us.ihmc.ihmc-build"
-```
-
-### Commands
-
-The following covers running tasks over your builds, which may be composite builds.
-
-##### Custom Commands
-
-`gradle compositeTask -PtaskName=someTaskName`
-
-For example, to run the Java plugin's `compileJava` task on your project plus all included Java projects, run:
-
-`gradle compositeTask -PtaskName=compileJava`.
-
-As always, pass any additional properties required for your task
-via additional `-PsomeProperty=someValue`.
-
-##### Publish release
-
-Set `bintray_user` and `bintray_key` in `~/.gradle/gradle.properties` after generating an API key on Bintray.
-
-`gradle publish -PpublishUrl=ihmcRelease`
-
-Publishes `your-project-0.1.0.jar` to Bintray if openSource == true, else publish to Artifactory. Uses declared `version` in build.gradle
-
-##### Publish locally
-
-`gradle publish -PpublishUrl=local`
-
-Publish `your-project-LOCAL.jar` to `$home/.m2`
-
-##### Publish Custom URL
-
-`gradle publish -PpublishUrl=https://my.site/repo -PpublishUsername=username -PpublishPassword=password`
-
-or use the `addPublishUrl()` function:
-
-**build.gradle**
-```gradle
-ihmc {
-   ...
-   
-   configureDependencyResolution()  // Between here ->
-   addPublishUrl("myVendor", "https://my.site/my-repo", publishUsername, publishPassword)
-   configurePublications() // <- and here
-}
-```
-
-##### Publish Over Composite Build
-
-For convenience, an alias for `gradle compositeTask -PtaskName=publish`:
-
-`gradle publishAll`
-
-For example, publishing a project group:
-
-`gradle publishAll -PpublishUrl=ihmcRelease`
-
-##### Clean build directories
-
-`gradle cleanBuild`
-
-Cleans `build/` (Gradle), `bin/` (Eclipse), and `out/` (IntelliJ) build directories from all included projects.
-
-##### Snapshots
-
-Snapshots is an unsupported feature which is used internally in our CI.
-
-`publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots`
-
-Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions declared as `SNAPSHOT-*`, matching
-them to artifacts found to be available on IHMC's Artifactory snapshots repos.
-
-##### Maven Repositories
-
-To add a Maven repository, use the `repository` function in the `ihmc` extension. Note that projects that depend on this will also need to have these repositories declared, so use them sparingly.
-```
-ihmc {
-   ...
-
-   configureDependencyResolution()  // Between here ->
-   repository("http://maven-eclipse.github.io/maven")
-   repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
-   configurePublications() // <- and here
-}
-```
-
 ### Troubleshooting
 
 ##### Group property requirement
@@ -286,17 +285,21 @@ another common reason that projects don't make it into the build.
 
 ### Learn more
 
+##### Snapshots
+
+Snapshots is an unsupported feature which is used internally in our CI.
+
+`publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots`
+
+Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions 
+declared as `SNAPSHOT-*`, matching
+them to artifacts found to be available on IHMC's Artifactory snapshots repos.
+
 Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.ihmc-build
 
 Documentation on Confluence: https://confluence.ihmc.us/display/BUILD/New+Build+Configuration+Documentation
 
 Presentation outlining the purpose of this project: https://docs.google.com/presentation/d/1xH8kKYqLaBkRXms_04nb_yyoV6MRchLO8EAtz9WqfZA/edit?usp=sharing
-
-### Advantages over standard Gradle
-
-- Seperate source set classpaths when building projects in IDEs
-- Utilize composite builds to make each project standalone by default
-- Keep Bamboo CI configuration powerful, minimal, and flexible
 
 ### Future plans
 
