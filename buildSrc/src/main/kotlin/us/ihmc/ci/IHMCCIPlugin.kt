@@ -1,7 +1,6 @@
 package us.ihmc.ci;
 
 import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.requests.CancellableRequest
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -10,6 +9,7 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.kotlin.dsl.withType
 import org.json.JSONObject
 import us.ihmc.ci.sourceCodeParser.parseForTags
 import java.io.File
@@ -151,13 +151,14 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun configureTestTask(project: Project)
    {
-      project.tasks.withType(Test::class.java) { test ->
-         test.doFirst {
+      project.tasks.withType<Test>()
+      {
+         doFirst {
             // create a default category if not found
             val categoryConfig = postProcessCategoryConfig()
-            applyCategoryConfigToGradleTest(test, categoryConfig, project)
+            applyCategoryConfigToGradleTest(this as Test, categoryConfig, project)
          }
-         test.finalizedBy(addPhonyTestXmlTask(project))
+         finalizedBy(addPhonyTestXmlTask(project))
       }
    }
 
@@ -181,11 +182,11 @@ class IHMCCIPlugin : Plugin<Project>
          test.useJUnitPlatform {
             for (tag in categoryConfig.includeTags)
             {
-               it.includeTags(tag)
+               this.includeTags(tag)
             }
             for (tag in categoryConfig.excludeTags)
             {
-               it.excludeTags(tag)
+               this.excludeTags(tag)
             }
             // If the "fast" category includes nothing, this excludes all tags included by other
             // categories, which makes it run only untagged tests and tests that would not be run
@@ -197,7 +198,7 @@ class IHMCCIPlugin : Plugin<Project>
                {
                   for (tag in definedCategory.value.includeTags)
                   {
-                     it.excludeTags(tag)
+                     this.excludeTags(tag)
                   }
                }
             }
@@ -314,7 +315,7 @@ class IHMCCIPlugin : Plugin<Project>
    fun addPhonyTestXmlTask(anyproject: Project): Task?
    {
       return anyproject.tasks.create("addPhonyTestXml") {
-         it.doLast {
+         this.doLast {
             var testsFound = false
             for (path in anyproject.rootDir.walkBottomUp())
             {
