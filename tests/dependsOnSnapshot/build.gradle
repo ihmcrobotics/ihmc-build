@@ -33,9 +33,9 @@ ihmc {
 }
 
 mainDependencies {
-   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+   api("org.apache.commons:commons-lang3:3.7")
 }
 
 testDependencies {
-   compile group: 'us.ihmc', name: 'ihmc-ci-core-api', version: '0.18.0'
+   api("us.ihmc:ihmc-ci-core-api:0.18.0")
 }
