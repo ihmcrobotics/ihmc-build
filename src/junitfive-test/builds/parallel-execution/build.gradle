@@ -34,7 +34,7 @@ ihmc.sourceSetProject("test").test {
 }
 
 mainDependencies {
-   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
+   api("org.apache.commons:commons-lang3:3.8.1")
 }
 
 testDependencies {
