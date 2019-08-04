@@ -50,7 +50,7 @@ class IHMCBuildPlugin : Plugin<Project>
          for (subproject in project.subprojects)
          {
             val sourceSetKebabCasedName = toSourceSetName(subproject)
-            val sourceSetCamelCasedName = toCamelCased(sourceSetKebabCasedName)
+            val sourceSetCamelCasedName = kebabToCamelCase(sourceSetKebabCasedName)
             project.extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
          }
       }

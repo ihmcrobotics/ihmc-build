@@ -1021,7 +1021,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = toPascalCased(keyword)
+         name = kebabToPascalCase(keyword)
          url = uri(publishUrl.url)
          if (publishUrl.hasCredentials())
          {
@@ -1035,7 +1035,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = "Artifactory" + toPascalCased(repoName)
+         name = "Artifactory" + kebabToPascalCase(repoName)
          url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
@@ -1046,7 +1046,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = "Bintray" + toPascalCased(repoName)
+         name = "Bintray" + kebabToPascalCase(repoName)
          url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
          credentials.username = bintrayUsername
          credentials.password = bintrayApiKey

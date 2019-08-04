@@ -1,6 +1,5 @@
 package us.ihmc.build
 
-import groovy.lang.MissingPropertyException
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.gradle.api.GradleException
@@ -60,7 +59,11 @@ fun isProjectGroupCompatibility(rawString: String): Boolean
 
 fun kebabCasedNameCompatibility(projectName: String, logger: Logger, extra: ExtraPropertiesExtension): String
 {
-   if (containsValidStringProperty("kebabCasedName", extra))
+   if (containsValidStringProperty("title", extra))
+   {
+      return titleToKebabCase(propertyAsString("title", extra))
+   }
+   else if (containsValidStringProperty("kebabCasedName", extra))
    {
       val kebabCasedName = extra.get("kebabCasedName") as String
       logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
@@ -232,9 +235,9 @@ fun toSourceSetName(subproject: Project): String
    return toKebabCased(subproject.name.substringAfter(subproject.parent!!.name + "-"))
 }
 
-fun toPascalCased(anyCased: String): String
+fun kebabToPascalCase(kebabCased: String): String
 {
-   val split = anyCased.split("-")
+   val split = kebabCased.split("-")
    var pascalCased = ""
    for (section in split)
    {
@@ -243,9 +246,9 @@ fun toPascalCased(anyCased: String): String
    return pascalCased
 }
 
-fun toCamelCased(anyCased: String): String
+fun kebabToCamelCase(kebabCased: String): String
 {
-   val split = anyCased.split("-")
+   val split = kebabCased.split("-")
    var camelCased = ""
    if (split.size > 0)
    {
