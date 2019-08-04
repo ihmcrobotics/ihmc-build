@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.6] - 2019-08-04
+
+### Bug fix
+
+- Fix casing bug when using `title` property
+
 ## [0.16.5] - 2019-07-23
 
 ### Bug fix
@@ -135,8 +141,9 @@ it is no longer the case that the IHMCDependenciesExtension would override `1.0`
 - Add unit tests for test suite generation using ihmc-ci
 - Add binray properties to README
 
-[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.5...HEAD
-[0.16.3]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.3...0.16.5
+[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.6...HEAD
+[0.16.6]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.5...0.16.6
+[0.16.5]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.3...0.16.5
 [0.16.3]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.7...0.16.3
 [0.15.7]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.6...0.15.7
 [0.15.6]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.5...0.15.6
