@@ -111,4 +111,10 @@ abstract class IHMCKotlinDependencyHandlerDelegate : DependencyHandler {
 
     override fun enforcedPlatform(notation: Any, configureAction: Action<in Dependency>): Dependency =
         delegate.enforcedPlatform(notation, configureAction)
+
+    override fun testFixtures(notation: Any, configureAction: Action<in Dependency>): Dependency =
+          delegate.testFixtures(notation, configureAction)
+
+    override fun testFixtures(notation: Any): Dependency =
+          delegate.testFixtures(notation)
 }
