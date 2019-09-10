@@ -17,7 +17,7 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
      IHMCKotlinDependencyHandlerDelegate()  // Kotlin trick
 {
    private val logger = mainProject.logger
-   private val kebabCasedName: String = IHMCBuildTools.kebabCasedNameCompatibility(mainProject.name, logger, mainProject.extra)
+   private val kebabCasedName: String = IHMCBuildTools.kebabCasedNameCompatibility(mainProject.name, mainProject.extra)
    private val projectToConfigure by lazy {
       if (sourceSetKebabCasedName == "main")
       {
@@ -55,11 +55,11 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    {
       val modifiedDependencyNotation = modifyDependency(dependencyNotation)
 
-      IHMCBuildTools.logDebug(logger, "Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
+      LogTools.debug("Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
       
       if (configurationName != "compile")
       {
-         IHMCBuildTools.logDebug(logger, " Unusual dependency on configuration: " + configurationName + ": " + dependencyNotation)
+         LogTools.debug(" Unusual dependency on configuration: " + configurationName + ": " + dependencyNotation)
       }
       
       return modifiedDependencyNotation

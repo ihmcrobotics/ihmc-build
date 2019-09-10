@@ -11,55 +11,16 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
+lateinit var LogTools: IHMCBuildLogTools
+
 object IHMCBuildTools
 {
-   fun logQuiet(logger: Logger, message: Any)
-   {
-      logger.quiet(ihmcBuildMessage(message))
-   }
-
-   fun logInfo(logger: Logger, message: Any)
-   {
-      logger.info(ihmcBuildMessage(message))
-   }
-
-   fun logWarn(logger: Logger, message: Any)
-   {
-      logger.warn(ihmcBuildMessage(message))
-   }
-
-   fun logError(logger: Logger, message: Any)
-   {
-      logger.error(ihmcBuildMessage(message))
-   }
-
-   fun logDebug(logger: Logger, message: Any)
-   {
-      logger.debug(ihmcBuildMessage(message))
-   }
-
-   fun logTrace(logger: Logger, trace: Any)
-   {
-      logger.trace(trace.toString())
-   }
-
-   fun hardCrash(logger: Logger, message: Any)
-   {
-      logError(logger, message)
-      throw GradleException("[ihmc-build] " + message as String)
-   }
-
-   fun ihmcBuildMessage(message: Any): String
-   {
-      return "[ihmc-build] " + message
-   }
-
    fun isProjectGroupCompatibility(rawString: String): Boolean
    {
       return rawString.trim().toLowerCase().contains("true");
    }
 
-   fun kebabCasedNameCompatibility(projectName: String, logger: Logger, extra: ExtraPropertiesExtension): String
+   fun kebabCasedNameCompatibility(projectName: String, extra: ExtraPropertiesExtension): String
    {
       if (containsValidStringProperty("title", extra))
       {
@@ -68,13 +29,13 @@ object IHMCBuildTools
       else if (containsValidStringProperty("kebabCasedName", extra))
       {
          val kebabCasedName = extra.get("kebabCasedName") as String
-         logInfo(logger, "Loaded kebabCasedName = $kebabCasedName")
+         LogTools.info("Loaded kebabCasedName = $kebabCasedName")
          return kebabCasedName
       }
       else
       {
          val defaultValue = toKebabCased(projectName)
-         logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
+         LogTools.info("No value found for kebabCasedName. Using default value: $defaultValue")
          extra.set("kebabCasedName", defaultValue)
          return defaultValue
       }
@@ -96,30 +57,30 @@ object IHMCBuildTools
       }
    }
 
-   fun snapshotModeCompatibility(logger: Logger, extra: ExtraPropertiesExtension): Boolean
+   fun snapshotModeCompatibility(extra: ExtraPropertiesExtension): Boolean
    {
       if (containsValidStringProperty("snapshotMode", extra))
       {
          val snapshotMode = (extra.get("snapshotMode") as String).trim().toLowerCase().contains("true")
-         logInfo(logger, "Loaded snapshotMode = $snapshotMode")
+         LogTools.info("Loaded snapshotMode = $snapshotMode")
          return snapshotMode;
       }
       if (extra.has("publishMode") // Backwards compatibility
             && !(extra.get("publishMode") as String).startsWith("$")
             && (extra.get("publishMode") as String).trim().toLowerCase().contains("snapshot"))
       {
-         logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set snapshotMode = true.")
+         LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set snapshotMode = true.")
          return true
       }
 
       return false
    }
 
-   fun publishUrlCompatibility(logger: Logger, extra: ExtraPropertiesExtension): String
+   fun publishUrlCompatibility(extra: ExtraPropertiesExtension): String
    {
       if (extra.has("publishMode")) // Backwards compatibility
       {
-         logWarn(logger, "publishMode has been replaced by publishUrl. See README for details.")
+         LogTools.warn("publishMode has been replaced by publishUrl. See README for details.")
       }
       if (containsValidStringProperty("publishUrl", extra))
       {
@@ -131,17 +92,17 @@ object IHMCBuildTools
 
          if (publishModeString.contains("local"))
          {
-            logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = local.")
+            LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = local.")
             return "local"
          }
          else if (publishModeString.contains("snapshot"))
          {
-            logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcSnapshots.")
+            LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcSnapshots.")
             return "ihmcSnapshots"
          }
          else
          {
-            logWarn(logger, "Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcRelease.")
+            LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcRelease.")
             return "ihmcRelease"
          }
       }
@@ -157,7 +118,7 @@ object IHMCBuildTools
       return sanitized == keyword
    }
 
-   fun bintrayUsernameCompatibility(logger: Logger, extra: ExtraPropertiesExtension): String
+   fun bintrayUsernameCompatibility(extra: ExtraPropertiesExtension): String
    {
       if (containsValidStringProperty("bintrayUsername", extra))
       {
@@ -165,17 +126,17 @@ object IHMCBuildTools
       }
       else if (containsValidStringProperty("bintray_user", extra))
       {
-         logQuiet(logger, "Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
+         LogTools.quiet("Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
          return propertyAsString("bintray_user", extra)
       }
       else
       {
-         logInfo(logger, "Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
+         LogTools.info("Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
          return "unset"
       }
    }
 
-   fun bintrayApiKeyCompatibility(logger: Logger, extra: ExtraPropertiesExtension): String
+   fun bintrayApiKeyCompatibility(extra: ExtraPropertiesExtension): String
    {
       if (containsValidStringProperty("bintrayApiKey", extra))
       {
@@ -183,17 +144,17 @@ object IHMCBuildTools
       }
       else if (containsValidStringProperty("bintray_key", extra))
       {
-         logQuiet(logger, "Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
+         LogTools.quiet("Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
          return propertyAsString("bintray_key", extra)
       }
       else
       {
-         logInfo(logger, "Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
+         LogTools.info("Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
          return "unset"
       }
    }
 
-   fun compositeSearchHeightCompatibility(logger: Logger, extra: ExtraPropertiesExtension): Int
+   fun compositeSearchHeightCompatibility(extra: ExtraPropertiesExtension): Int
    {
       if (containsValidStringProperty("compositeSearchHeight", extra))
       {
@@ -206,7 +167,7 @@ object IHMCBuildTools
       else
       {
          val defaultValue = 0
-         logInfo(logger, "No value found for compositeSearchHeight. Using default value: $defaultValue")
+         LogTools.info("No value found for compositeSearchHeight. Using default value: $defaultValue")
          extra.set("compositeSearchHeight", defaultValue)
          return defaultValue
       }
@@ -312,7 +273,7 @@ object IHMCBuildTools
    /**
     * Temporary tool for converting projects to new folder structure quickly.
     */
-   fun moveSourceFolderToMavenStandard(logger: Logger, projectDir: Path, sourceSetName: String)
+   fun moveSourceFolderToMavenStandard(projectDir: Path, sourceSetName: String)
    {
       val oldSourceFolder: Path
       if (sourceSetName == "main")
@@ -324,11 +285,11 @@ object IHMCBuildTools
          oldSourceFolder = projectDir.resolve(sourceSetName)
       }
       val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
-      moveAPackage(logger, oldSourceFolder, mavenFolder, "us")
-      moveAPackage(logger, oldSourceFolder, mavenFolder, "optiTrack")
+      moveAPackage(oldSourceFolder, mavenFolder, "us")
+      moveAPackage(oldSourceFolder, mavenFolder, "optiTrack")
    }
 
-   private fun moveAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+   private fun moveAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
    {
       if (Files.exists(oldSourceFolder))
       {
@@ -337,9 +298,9 @@ object IHMCBuildTools
 
          if (Files.exists(oldUs))
          {
-            logQuiet(logger, mavenFolder)
-            logQuiet(logger, oldUs)
-            logQuiet(logger, newUs)
+            LogTools.quiet(mavenFolder)
+            LogTools.quiet(oldUs)
+            LogTools.quiet(newUs)
 
             FileTools.deleteQuietly(newUs)
 
@@ -349,7 +310,7 @@ object IHMCBuildTools
             }
             catch (e: Exception)
             {
-               logTrace(logger, e.stackTrace)
+               LogTools.trace(e.stackTrace)
             }
          }
       }
@@ -358,7 +319,7 @@ object IHMCBuildTools
    /**
     * Temporary tool for converting projects to new folder structure quickly.
     */
-   fun revertSourceFolderFromMavenStandard(logger: Logger, projectDir: Path, sourceSetName: String)
+   fun revertSourceFolderFromMavenStandard(projectDir: Path, sourceSetName: String)
    {
       val oldSourceFolder: Path
       if (sourceSetName == "main")
@@ -372,25 +333,25 @@ object IHMCBuildTools
       val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
       if (Files.exists(oldSourceFolder))
       {
-         revertAPackage(logger, oldSourceFolder, mavenFolder, "us")
-         revertAPackage(logger, oldSourceFolder, mavenFolder, "optiTrack")
+         revertAPackage(oldSourceFolder, mavenFolder, "us")
+         revertAPackage(oldSourceFolder, mavenFolder, "optiTrack")
       }
       else
       {
-         logWarn(logger, "File not exist: $oldSourceFolder")
+         LogTools.warn("File not exist: $oldSourceFolder")
       }
    }
 
-   private fun revertAPackage(logger: Logger, oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+   private fun revertAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
    {
       val oldUs = oldSourceFolder.resolve(packageName)
       val newUs = mavenFolder.resolve(packageName)
 
       if (Files.exists(newUs))
       {
-         logQuiet(logger, mavenFolder)
-         logQuiet(logger, oldUs)
-         logQuiet(logger, newUs)
+         LogTools.quiet(mavenFolder)
+         LogTools.quiet(oldUs)
+         LogTools.quiet(newUs)
 
          FileTools.deleteQuietly(oldUs)
 
@@ -400,12 +361,12 @@ object IHMCBuildTools
          }
          catch (e: Exception)
          {
-            logTrace(logger, e.stackTrace)
+            LogTools.trace(e.stackTrace)
          }
       }
       else
       {
-         logWarn(logger, "File not exist: $oldUs")
+         LogTools.warn("File not exist: $oldUs")
       }
    }
 

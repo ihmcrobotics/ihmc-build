@@ -26,7 +26,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
             excludeFromCompositeBuild = (properties.get(propertyKey)!! as String).toBoolean()
             if (excludeFromCompositeBuild)
             {
-               IHMCBuildTools.logInfo(logger, "Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
+               LogTools.info("Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
             }
          }
          if (propertyKey == "isProjectGroup")
@@ -34,7 +34,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
             isProjectGroup = IHMCBuildTools.isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
             if (isProjectGroup)
             {
-               IHMCBuildTools.logInfo(logger, "Found group: " + folderName + " (isProjectGroup = $isProjectGroup) $projectPath")
+               LogTools.info("Found group: " + folderName + " (isProjectGroup = $isProjectGroup) $projectPath")
             }
          }
          if (propertyKey == "extraSourceSets")
@@ -70,7 +70,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       else
       {
          val defaultValue = IHMCBuildTools.toKebabCased(projectName)
-         IHMCBuildTools.logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
+         LogTools.info("No value found for kebabCasedName. Using default value: $defaultValue")
          properties.set("kebabCasedName", defaultValue)
          return defaultValue
       }

@@ -18,6 +18,8 @@ class IHMCBuildPlugin : Plugin<Project>
 {
    override fun apply(project: Project)
    {
+      LogTools = IHMCBuildLogTools(project.logger)
+
       if (project.hasProperty("isProjectGroup") &&
           IHMCBuildTools.isProjectGroupCompatibility(project.property("isProjectGroup") as String))
       {
@@ -211,13 +213,13 @@ class IHMCBuildPlugin : Plugin<Project>
       {
          subproject.task(targetTaskName, closureOf<Task> {
             // Declare empty task if it doesn't exist
-            IHMCBuildTools.logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
+            LogTools.info("${subproject.name}: Declaring empty task: $targetTaskName")
          })
       }
       catch (e: InvalidUserDataException)
       {
          // if the task exists or something else goes wrong
-         IHMCBuildTools.logInfo(project.logger, "${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
+         LogTools.info("${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
       }
    }
 
@@ -232,9 +234,9 @@ class IHMCBuildPlugin : Plugin<Project>
                   val childFile = File(project.projectDir, childDir)
                   val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
-                  IHMCBuildTools.moveSourceFolderToMavenStandard(project.logger, childPath, "main")
-                  IHMCBuildTools.moveSourceFolderToMavenStandard(project.logger, childPath, "test")
-                  IHMCBuildTools.moveSourceFolderToMavenStandard(project.logger, childPath, "visualizers")
+                  IHMCBuildTools.moveSourceFolderToMavenStandard(childPath, "main")
+                  IHMCBuildTools.moveSourceFolderToMavenStandard(childPath, "test")
+                  IHMCBuildTools.moveSourceFolderToMavenStandard(childPath, "visualizers")
                }
             }
          }
@@ -248,9 +250,9 @@ class IHMCBuildPlugin : Plugin<Project>
                   val childFile = File(project.projectDir, childDir)
                   val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
-                  IHMCBuildTools.revertSourceFolderFromMavenStandard(project.logger, childPath, "main")
-                  IHMCBuildTools.revertSourceFolderFromMavenStandard(project.logger, childPath, "test")
-                  IHMCBuildTools.revertSourceFolderFromMavenStandard(project.logger, childPath, "visualizers")
+                  IHMCBuildTools.revertSourceFolderFromMavenStandard(childPath, "main")
+                  IHMCBuildTools.revertSourceFolderFromMavenStandard(childPath, "test")
+                  IHMCBuildTools.revertSourceFolderFromMavenStandard(childPath, "visualizers")
                }
             }
          }
