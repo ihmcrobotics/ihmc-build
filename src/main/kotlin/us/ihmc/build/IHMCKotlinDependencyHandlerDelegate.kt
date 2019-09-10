@@ -17,7 +17,6 @@ import org.gradle.api.artifacts.type.ArtifactTypeContainer
 import org.gradle.api.attributes.AttributesSchema
 import org.gradle.api.plugins.ExtensionContainer
 
-
 /**
  * Facilitates the implementation of the [DependencyHandler] interface by delegation via subclassing.
  *
