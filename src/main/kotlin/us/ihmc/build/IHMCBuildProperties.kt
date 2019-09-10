@@ -26,15 +26,15 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
             excludeFromCompositeBuild = (properties.get(propertyKey)!! as String).toBoolean()
             if (excludeFromCompositeBuild)
             {
-               logInfo(logger, "Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
+               IHMCBuildTools.logInfo(logger, "Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
             }
          }
          if (propertyKey == "isProjectGroup")
          {
-            isProjectGroup = isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
+            isProjectGroup = IHMCBuildTools.isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
             if (isProjectGroup)
             {
-               logInfo(logger, "Found group: " + folderName + " (isProjectGroup = $isProjectGroup) $projectPath")
+               IHMCBuildTools.logInfo(logger, "Found group: " + folderName + " (isProjectGroup = $isProjectGroup) $projectPath")
             }
          }
          if (propertyKey == "extraSourceSets")
@@ -47,7 +47,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
 
       for (i in 0 until extraSourceSets.size)
       {
-         extraSourceSets.set(i, toKebabCased(extraSourceSets[i]))
+         extraSourceSets.set(i, IHMCBuildTools.toKebabCased(extraSourceSets[i]))
       }
       
       allArtifacts.add(kebabCasedName)
@@ -65,12 +65,12 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       }
       else if (properties.containsKey("title") && !(properties.get("title") as String).startsWith("$"))
       {
-         return titleToKebabCase(properties.get("title") as String)
+         return IHMCBuildTools.titleToKebabCase(properties.get("title") as String)
       }
       else
       {
-         val defaultValue = toKebabCased(projectName)
-         logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
+         val defaultValue = IHMCBuildTools.toKebabCased(projectName)
+         IHMCBuildTools.logInfo(logger, "No value found for kebabCasedName. Using default value: $defaultValue")
          properties.set("kebabCasedName", defaultValue)
          return defaultValue
       }

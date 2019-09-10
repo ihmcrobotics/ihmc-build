@@ -84,18 +84,18 @@ open class IHMCBuildExtension(val project: Project)
    
    init
    {
-      bintrayUsername = bintrayUsernameCompatibility(logger, project.extra)
-      bintrayApiKey = bintrayApiKeyCompatibility(logger, project.extra)
+      bintrayUsername = IHMCBuildTools.bintrayUsernameCompatibility(logger, project.extra)
+      bintrayApiKey = IHMCBuildTools.bintrayApiKeyCompatibility(logger, project.extra)
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
       publishPassword = setupPropertyWithDefault("publishPassword", "")
    
-      snapshotModeProperty = snapshotModeCompatibility(logger, project.extra)
-      publishUrlProperty = publishUrlCompatibility(logger, project.extra)
+      snapshotModeProperty = IHMCBuildTools.snapshotModeCompatibility(logger, project.extra)
+      publishUrlProperty = IHMCBuildTools.publishUrlCompatibility(logger, project.extra)
 
-      titleCasedNameProperty = titleCasedNameCompatibility(project.name, project.extra)
-      kebabCasedNameProperty = kebabCasedNameCompatibility(project.name, logger, project.extra)
+      titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
+      kebabCasedNameProperty = IHMCBuildTools.kebabCasedNameCompatibility(project.name, logger, project.extra)
       
       val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
       val bambooPlanKeyProperty = setupPropertyWithDefault("bambooPlanKey", "UNKNOWN-KEY")
@@ -128,7 +128,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          integrationNumber = tryIntegrationNumberRequest(buildKey)
          tryCount++
-         logInfo(logger, "Integration number for $buildKey: $integrationNumber")
+         IHMCBuildTools.logInfo(logger, "Integration number for $buildKey: $integrationNumber")
       }
       
       return integrationNumber
@@ -142,7 +142,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       catch (e: UnirestException)
       {
-         logInfo(logger, "Failed to retrieve integration number. Trying again... " + e.message)
+         IHMCBuildTools.logInfo(logger, "Failed to retrieve integration number. Trying again... " + e.message)
          ThreadTools.sleep(100)
          try
          {
@@ -169,11 +169,11 @@ open class IHMCBuildExtension(val project: Project)
          {
             if (!openSource && isBambooBuild)
             {
-               logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
+               IHMCBuildTools.logWarn(logger, "Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
             }
          }
 
-         logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
+         IHMCBuildTools.logInfo(logger, "No value found for $propertyName. Using default value: $defaultValue")
          project.extra.set(propertyName, defaultValue)
          return defaultValue
       }
@@ -188,22 +188,22 @@ open class IHMCBuildExtension(val project: Project)
          if (property.key as String == "group")
          {
             group = property.value as String
-            logInfo(logger, "Loaded group: " + group)
+            IHMCBuildTools.logInfo(logger, "Loaded group: " + group)
          }
          if (property.key as String == "version")
          {
             version = property.value as String
-            logInfo(logger, "Loaded version: " + version)
+            IHMCBuildTools.logInfo(logger, "Loaded version: " + version)
          }
          if (property.key as String == "vcsUrl")
          {
             vcsUrl = property.value as String
-            logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
+            IHMCBuildTools.logInfo(logger, "Loaded vcsUrl: " + vcsUrl)
          }
          if (property.key as String == "openSource")
          {
             openSource = Eval.me(property.value as String) as Boolean
-            logInfo(logger, "Loaded openSource: " + openSource)
+            IHMCBuildTools.logInfo(logger, "Loaded openSource: " + openSource)
          }
       }
    }
@@ -336,12 +336,12 @@ open class IHMCBuildExtension(val project: Project)
             
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
             
-            if (publishUrlIsKeyword(publishUrlProperty, "local"))
+            if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "local"))
             {
                declareMavenLocal()
             }
-            else if (publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshots")
-                  || publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshot"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshots")
+                  || IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshot"))
             {
                if (openSource)
                {
@@ -352,7 +352,7 @@ open class IHMCBuildExtension(val project: Project)
                   declareArtifactory("proprietary-snapshots")
                }
             }
-            else if (publishUrlIsKeyword(publishUrlProperty, "ihmcrelease"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcrelease"))
             {
                if (openSource)
                {
@@ -363,7 +363,7 @@ open class IHMCBuildExtension(val project: Project)
                   declareArtifactory("proprietary-releases")
                }
             }
-            else if (publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
             {
                if (openSource)
                {
@@ -380,7 +380,7 @@ open class IHMCBuildExtension(val project: Project)
             }
             else // User passes new url in manually
             {
-               logInfo(logger, "Declaring user publish repository: $publishUrlProperty")
+               IHMCBuildTools.logInfo(logger, "Declaring user publish repository: $publishUrlProperty")
                val userPublishUrl = IHMCPublishUrl(publishUrlProperty, publishUsername, publishPassword)
                declareCustomPublishUrl("User", userPublishUrl)
             }
@@ -440,7 +440,7 @@ open class IHMCBuildExtension(val project: Project)
             sourceSet.java.setSrcDirs(emptySet<File>())
             sourceSet.resources.setSrcDirs(emptySet<File>())
          }
-         val sourceSetName = toSourceSetName(subproject)
+         val sourceSetName = IHMCBuildTools.toSourceSetName(subproject)
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
          java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/resources")))
 
@@ -532,7 +532,7 @@ open class IHMCBuildExtension(val project: Project)
    /** Public API. **/
    fun isBuildRoot(): Boolean
    {
-      return isBuildRoot(project)
+      return IHMCBuildTools.isBuildRoot(project)
    }
    
    fun thisProjectIsIncludedBuild(): Boolean
@@ -542,7 +542,7 @@ open class IHMCBuildExtension(val project: Project)
    
    fun getIncludedBuilds(): Collection<IncludedBuild>
    {
-      if (isBuildRoot(project))
+      if (IHMCBuildTools.isBuildRoot(project))
       {
          return project.gradle.includedBuilds
       }
@@ -606,7 +606,7 @@ open class IHMCBuildExtension(val project: Project)
          {
             var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
                   " $artifactId in your composite build or use a release."
-            logError(logger, message)
+            IHMCBuildTools.logError(logger, message)
             throw GradleException("[ihmc-build] " + message)
          }
       }
@@ -621,8 +621,8 @@ open class IHMCBuildExtension(val project: Project)
       {
          externalDependencyVersion = declaredVersion
       }
-      
-      logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
+
+      IHMCBuildTools.logInfo(logger, "Passing version to Gradle: $groupId:$artifactId:$externalDependencyVersion")
       return externalDependencyVersion
    }
 
@@ -746,7 +746,7 @@ open class IHMCBuildExtension(val project: Project)
                {
                   repositoryVersions["$groupId:$artifactId"]!!.add(version)
                }
-               logInfo(logger, "Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
+               IHMCBuildTools.logInfo(logger, "Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
                return true
             }
          }
@@ -780,7 +780,7 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (repoPath.itemPath.matches(Regex(".*\\d\\.pom$")))
                {
-                  logInfo(logger, "Hitting Artifactory for POM: " + repoPath.itemPath)
+                  IHMCBuildTools.logInfo(logger, "Hitting Artifactory for POM: " + repoPath.itemPath)
                   val inputStream = downloadItemFromArtifactory(repository, repoPath)
                   
                   parsePOMInputStream(inputStream, groupId, artifactId, versionToCheck)
@@ -869,8 +869,8 @@ open class IHMCBuildExtension(val project: Project)
       if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
       {
          pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
-         
-         logInfo(logger, "Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
+
+         IHMCBuildTools.logInfo(logger, "Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
          val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
          val versionPath = gradleCache.resolve(groupId).resolve(artifactId).resolve(versionToCheck)
          
@@ -896,7 +896,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       if (!versionExists(groupId, artifactId, versionToCheck))
       {
-         logInfo(logger, "Version doesn't exist: $groupId:$artifactId:$versionToCheck")
+         IHMCBuildTools.logInfo(logger, "Version doesn't exist: $groupId:$artifactId:$versionToCheck")
          return false
       }
       else
@@ -938,7 +938,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
    {
-      logInfo(logger, "Looking for latest version: $groupId:$artifactId:$versionMatcher")
+      IHMCBuildTools.logInfo(logger, "Looking for latest version: $groupId:$artifactId:$versionMatcher")
 
       var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
       
@@ -947,17 +947,17 @@ open class IHMCBuildExtension(val project: Project)
       
       while (!performPOMCheck(groupId, artifactId, highestVersion))
       {
-         logInfo(logger, "Failed POM check: $groupId:$artifactId:$highestVersion")
+         IHMCBuildTools.logInfo(logger, "Failed POM check: $groupId:$artifactId:$highestVersion")
          repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
          highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
          
          if (highestVersion.contains("NOT-FOUND"))
          {
-            logError(logger, "Rollback failed, no more versions found: $groupId:$artifactId:$highestVersion")
+            IHMCBuildTools.logError(logger, "Rollback failed, no more versions found: $groupId:$artifactId:$highestVersion")
             break;
          }
-         
-         logInfo(logger, "Rolling back to: $groupId:$artifactId:$highestVersion")
+
+         IHMCBuildTools.logInfo(logger, "Rolling back to: $groupId:$artifactId:$highestVersion")
       }
       
       return highestVersion
@@ -1021,7 +1021,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = kebabToPascalCase(keyword)
+         name = IHMCBuildTools.kebabToPascalCase(keyword)
          url = uri(publishUrl.url)
          if (publishUrl.hasCredentials())
          {
@@ -1035,7 +1035,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = "Artifactory" + kebabToPascalCase(repoName)
+         name = "Artifactory" + IHMCBuildTools.kebabToPascalCase(repoName)
          url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
@@ -1046,7 +1046,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
-         name = "Bintray" + kebabToPascalCase(repoName)
+         name = "Bintray" + IHMCBuildTools.kebabToPascalCase(repoName)
          url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
          credentials.username = bintrayUsername
          credentials.password = bintrayApiKey

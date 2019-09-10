@@ -19,7 +19,7 @@ class IHMCBuildPlugin : Plugin<Project>
    override fun apply(project: Project)
    {
       if (project.hasProperty("isProjectGroup") &&
-          isProjectGroupCompatibility(project.property("isProjectGroup") as String))
+          IHMCBuildTools.isProjectGroupCompatibility(project.property("isProjectGroup") as String))
       {
          configureProjectGroup(project)
 
@@ -49,8 +49,8 @@ class IHMCBuildPlugin : Plugin<Project>
          project.extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension))
          for (subproject in project.subprojects)
          {
-            val sourceSetKebabCasedName = toSourceSetName(subproject)
-            val sourceSetCamelCasedName = kebabToCamelCase(sourceSetKebabCasedName)
+            val sourceSetKebabCasedName = IHMCBuildTools.toSourceSetName(subproject)
+            val sourceSetCamelCasedName = IHMCBuildTools.kebabToCamelCase(sourceSetKebabCasedName)
             project.extensions.add(sourceSetCamelCasedName + "Dependencies", IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension))
          }
       }
@@ -144,7 +144,7 @@ class IHMCBuildPlugin : Plugin<Project>
       })
       
       // For the build root, make the global task depend on all the included build global tasks
-      if (isBuildRoot(project))
+      if (IHMCBuildTools.isBuildRoot(project))
       {
          project.tasks.getByName(globalTaskName, closureOf<Task> {
             for (includedBuild in project.gradle.includedBuilds)
@@ -194,7 +194,7 @@ class IHMCBuildPlugin : Plugin<Project>
       })
       
       // For the build root, make the global task depend on all the included build global tasks
-      if (isBuildRoot(project))
+      if (IHMCBuildTools.isBuildRoot(project))
       {
          project.tasks.getByName(globalTaskName, closureOf<Task> {
             for (includedBuild in project.gradle.includedBuilds)
@@ -211,13 +211,13 @@ class IHMCBuildPlugin : Plugin<Project>
       {
          subproject.task(targetTaskName, closureOf<Task> {
             // Declare empty task if it doesn't exist
-            logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
+            IHMCBuildTools.logInfo(project.logger, "${subproject.name}: Declaring empty task: $targetTaskName")
          })
       }
       catch (e: InvalidUserDataException)
       {
          // if the task exists or something else goes wrong
-         logInfo(project.logger, "${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
+         IHMCBuildTools.logInfo(project.logger, "${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
       }
    }
 
@@ -232,9 +232,9 @@ class IHMCBuildPlugin : Plugin<Project>
                   val childFile = File(project.projectDir, childDir)
                   val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
-                  moveSourceFolderToMavenStandard(project.logger, childPath, "main")
-                  moveSourceFolderToMavenStandard(project.logger, childPath, "test")
-                  moveSourceFolderToMavenStandard(project.logger, childPath, "visualizers")
+                  IHMCBuildTools.moveSourceFolderToMavenStandard(project.logger, childPath, "main")
+                  IHMCBuildTools.moveSourceFolderToMavenStandard(project.logger, childPath, "test")
+                  IHMCBuildTools.moveSourceFolderToMavenStandard(project.logger, childPath, "visualizers")
                }
             }
          }
@@ -248,9 +248,9 @@ class IHMCBuildPlugin : Plugin<Project>
                   val childFile = File(project.projectDir, childDir)
                   val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
-                  revertSourceFolderFromMavenStandard(project.logger, childPath, "main")
-                  revertSourceFolderFromMavenStandard(project.logger, childPath, "test")
-                  revertSourceFolderFromMavenStandard(project.logger, childPath, "visualizers")
+                  IHMCBuildTools.revertSourceFolderFromMavenStandard(project.logger, childPath, "main")
+                  IHMCBuildTools.revertSourceFolderFromMavenStandard(project.logger, childPath, "test")
+                  IHMCBuildTools.revertSourceFolderFromMavenStandard(project.logger, childPath, "visualizers")
                }
             }
          }

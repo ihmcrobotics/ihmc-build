@@ -15,13 +15,13 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
 
    init
    {
-      logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
+      IHMCBuildTools.logInfo(logger, "Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
       
       if (SemanticVersionNumber(settings.gradle.gradleVersion).compareTo(SemanticVersionNumber("5.3.1")) < 0)
       {
          val message = "Gradle versions earlier than 5.3.1 are not supported. Please upgrade to the latest version."
-         logError(logger, message)
+         IHMCBuildTools.logError(logger, message)
          throw GradleException(message)
       }
    }
@@ -37,7 +37,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       
       for (sourceSetName in extraSourceSets)
       {
-         val kebabCasedSourceSetName = toKebabCased(sourceSetName)
+         val kebabCasedSourceSetName = IHMCBuildTools.toKebabCased(sourceSetName)
          settings.include("src/$kebabCasedSourceSetName")
          settings.project(":src/$kebabCasedSourceSetName").name = settings.rootProject.name + "-" + kebabCasedSourceSetName
       }
@@ -64,7 +64,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          throwMissingException("isProjectGroup", "true")
       }
 
-      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
+      compositeSearchHeight = IHMCBuildTools.compositeSearchHeightCompatibility(logger, ext) // optional w/ default
 
       checkExcludeFromCompositeBuild()
       checkMaxGradleWorkers()
@@ -83,7 +83,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
          extraSourceSets = Eval.me(ext.get("extraSourceSets") as String) as ArrayList<String>
       }
 
-      compositeSearchHeight = compositeSearchHeightCompatibility(logger, ext) // optional w/ default
+      compositeSearchHeight = IHMCBuildTools.compositeSearchHeightCompatibility(logger, ext) // optional w/ default
 
       checkExcludeFromCompositeBuild()
       checkMaxGradleWorkers()
@@ -93,7 +93,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    {
       if (containsValidStringProperty("title"))
       {
-         settings.rootProject.name = titleToKebabCase(propertyAsString("title"))
+         settings.rootProject.name = IHMCBuildTools.titleToKebabCase(propertyAsString("title"))
       }
       else if (containsValidStringProperty("kebabCasedName") && containsValidStringProperty("pascalCasedName"))
       {

@@ -35,7 +35,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          compositeSearchPath = compositeSearchPath.resolve("..")
       }
       compositeSearchPath = compositeSearchPath.toRealPath()
-      logInfo(logger, "Repository group path: " + compositeSearchPath)
+      IHMCBuildTools.logInfo(logger, "Repository group path: " + compositeSearchPath)
    }
    
    /**
@@ -60,7 +60,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       for (buildToInclude in buildsToInclude)
       {
-         logQuiet(logger, "Including build: " + buildToInclude)
+         IHMCBuildTools.logQuiet(logger, "Including build: " + buildToInclude)
       }
       
       return buildsToInclude
@@ -72,7 +72,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       {
          for (newMatchingBuild in findNewMatchingBuilds(kebabCasedDependency))
          {
-            logInfo(logger, "Adding dependency: " + newMatchingBuild.projectPath)
+            IHMCBuildTools.logInfo(logger, "Adding dependency: " + newMatchingBuild.projectPath)
             findTransitivesRecursive(newMatchingBuild.kebabCasedName)
          }
       }
@@ -118,7 +118,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          // Make sure the names match up. See {@link #matchNames}
          if (!transitiveIncludedBuilds.contains(propertiesFromKebabCasedName(artifactName)) && matchNames(artifactName, kebabCasedDependency))
          {
-            logInfo(logger, "Matched: " + kebabCasedDependency + " to " + artifactName)
+            IHMCBuildTools.logInfo(logger, "Matched: " + kebabCasedDependency + " to " + artifactName)
             transitiveIncludedBuilds.add(propertiesFromKebabCasedName(artifactName))
             matched.add(propertiesFromKebabCasedName(artifactName))
          }
@@ -141,7 +141,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             for (artifactName in includedBuildProperties.allArtifacts) // map test, etc. source set projects
             {
                kebabCasedNameToPropertiesMap.put(artifactName, includedBuildProperties)
-               logInfo(logger, "Found: " + artifactName + ": " + directory)
+               IHMCBuildTools.logInfo(logger, "Found: " + artifactName + ": " + directory)
             }
             pathToPropertiesMap.put(directory, includedBuildProperties)
          }
@@ -221,12 +221,12 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       {
          val builder = AstBuilder()
          val bytesInFile = String(Files.readAllBytes(buildFile))
-         logInfo(logger, "Parsing for dependencies: " + buildFile)
+         IHMCBuildTools.logInfo(logger, "Parsing for dependencies: " + buildFile)
          
          // Handle empty build.gradle
          if (bytesInFile.trim().isEmpty())
          {
-            logWarn(logger, "Build file is empty: $buildFile")
+            IHMCBuildTools.logWarn(logger, "Build file is empty: $buildFile")
             return dependencySet
          }
          
@@ -240,25 +240,25 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          for (dependency in dependencies)
          {
-            logDebug(logger, "Found declared dependency: " + dependency[1])
+            IHMCBuildTools.logDebug(logger, "Found declared dependency: " + dependency[1])
             dependencySet.add(dependency[1])
          }
       }
       catch (e: NoSuchFileException)
       {
-         logInfo(logger, "Build not found on disk: " + e.message)
+         IHMCBuildTools.logInfo(logger, "Build not found on disk: " + e.message)
       }
       catch (e: GradleScriptException)
       {
-         logWarn(logger, "Cannot evaluate " + buildFile + ": " + e.message)
+         IHMCBuildTools.logWarn(logger, "Cannot evaluate " + buildFile + ": " + e.message)
       }
       catch (e: MultipleCompilationErrorsException)
       {
-         logWarn(logger, "Cannot evaluate " + buildFile + ": " + e.message)
+         IHMCBuildTools.logWarn(logger, "Cannot evaluate " + buildFile + ": " + e.message)
       }
       catch (e: IOException)
       {
-         logTrace(logger, e.stackTrace)
+         IHMCBuildTools.logTrace(logger, e.stackTrace)
       }
       return dependencySet
    }
@@ -288,7 +288,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       override fun visitMapExpression(expression: MapExpression)
       {
-         logDebug(logger, "Found map entry: " + expression.getText())
+         IHMCBuildTools.logDebug(logger, "Found map entry: " + expression.getText())
          val mapEntryExpressions: List<MapEntryExpression> = expression.getMapEntryExpressions()
          if (mapEntryExpressions.size >= 3)
          {
