@@ -1,6 +1,6 @@
 package us.ihmc.build
 
-class Version(private val rawVersion: String) : Comparable<Version>
+class SemanticVersionNumber(private val rawVersion: String) : Comparable<SemanticVersionNumber>
 {
    private val version = rawVersion.trim().split("-").get(0)
 
@@ -14,7 +14,7 @@ class Version(private val rawVersion: String) : Comparable<Version>
       return this.version
    }
 
-   override operator fun compareTo(that: Version): Int
+   override operator fun compareTo(that: SemanticVersionNumber): Int
    {
       if (that == null)
          return 1
@@ -45,6 +45,6 @@ class Version(private val rawVersion: String) : Comparable<Version>
          return true
       if (that == null)
          return false
-      return if (this.javaClass != that.javaClass) false else this.compareTo(that as Version) == 0
+      return if (this.javaClass != that.javaClass) false else this.compareTo(that as SemanticVersionNumber) == 0
    }
 }
