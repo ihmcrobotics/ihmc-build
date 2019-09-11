@@ -34,7 +34,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
             isProjectGroup = IHMCBuildTools.isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
             if (isProjectGroup)
             {
-               LogTools.info("Found group: " + folderName + " (isProjectGroup = $isProjectGroup) $projectPath")
+               LogTools.info("Found group: $folderName (isProjectGroup = $isProjectGroup) $projectPath")
             }
          }
          if (propertyKey == "extraSourceSets")
@@ -43,7 +43,7 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
          }
       }
    
-      kebabCasedName = kebabCasedNameCompatibilityDuplicate(folderName, logger, properties)
+      kebabCasedName = kebabCasedNameCompatibilityDuplicate(folderName, properties)
 
       for (i in 0 until extraSourceSets.size)
       {
@@ -53,11 +53,11 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       allArtifacts.add(kebabCasedName)
       for (extraSourceSet in extraSourceSets)
       {
-         allArtifacts.add(kebabCasedName + "-" + extraSourceSet)
+         allArtifacts.add("$kebabCasedName-$extraSourceSet")
       }
    }
    
-   fun kebabCasedNameCompatibilityDuplicate(projectName: String, logger: Logger, properties: Properties): String
+   fun kebabCasedNameCompatibilityDuplicate(projectName: String, properties: Properties): String
    {
       if (properties.containsKey("kebabCasedName") && !(properties.get("kebabCasedName") as String).startsWith("$"))
       {
