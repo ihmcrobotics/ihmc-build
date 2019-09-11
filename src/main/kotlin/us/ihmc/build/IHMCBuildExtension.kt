@@ -986,11 +986,11 @@ open class IHMCBuildExtension(val project: Project)
          manifest.attributes.apply {
             put("Created-By", maintainer)
             put("Implementation-Title", name)
-            put("Implementation-Version", archiveVersion)
+            put("Implementation-Version", archiveVersion.get())
             put("Implementation-Vendor", companyName)
 
             put("Bundle-Name", name)
-            put("Bundle-Version", archiveVersion)
+            put("Bundle-Version", archiveVersion.get())
             put("Bundle-License", licenseURL)
             put("Bundle-Vendor", companyName)
 
