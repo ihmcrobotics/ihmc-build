@@ -173,6 +173,36 @@ object IHMCBuildTools
       }
    }
 
+   fun ciDatabaseUrlCompatibility(extra: ExtraPropertiesExtension): String
+   {
+      if (containsValidStringProperty("ciDatabaseUrl", extra))
+      {
+         return (extra.get("ciDatabaseUrl") as String).trim()
+      }
+      else
+      {
+         val defaultValue = ""
+         LogTools.info("No value found for ciDatabaseUrl. Using default value: $defaultValue")
+         extra.set("ciDatabaseUrl", defaultValue)
+         return defaultValue
+      }
+   }
+
+   fun artifactoryUrlCompatibility(extra: ExtraPropertiesExtension): String
+   {
+      if (containsValidStringProperty("artifactoryUrl", extra))
+      {
+         return (extra.get("artifactoryUrl") as String).trim()
+      }
+      else
+      {
+         val defaultValue = "https://artifactory.ihmc.us"
+         LogTools.info("No value found for artifactoryUrl. Using default value: $defaultValue")
+         extra.set("artifactoryUrl", defaultValue)
+         return defaultValue
+      }
+   }
+
    fun containsValidStringProperty(propertyName: String, extra: ExtraPropertiesExtension): Boolean
    {
       return extra.has(propertyName) && !(extra.get(propertyName) as String).startsWith("$")

@@ -53,6 +53,8 @@ open class IHMCBuildExtension(val project: Project)
    private val kebabCasedNameProperty: String
    private val snapshotModeProperty: Boolean
    private val publishUrlProperty: String
+   private val ciDatabaseUrlProperty: String
+   private val artifactoryUrlProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
    
    // Bamboo variables
@@ -92,6 +94,8 @@ open class IHMCBuildExtension(val project: Project)
    
       snapshotModeProperty = IHMCBuildTools.snapshotModeCompatibility(project.extra)
       publishUrlProperty = IHMCBuildTools.publishUrlCompatibility(project.extra)
+      ciDatabaseUrlProperty = IHMCBuildTools.ciDatabaseUrlCompatibility(project.extra)
+      artifactoryUrlProperty = IHMCBuildTools.artifactoryUrlCompatibility(project.extra)
 
       titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
       kebabCasedNameProperty = IHMCBuildTools.kebabCasedNameCompatibility(project.name, project.extra)
@@ -137,7 +141,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       try
       {
-         return Unirest.get("http://alcaniz.ihmc.us:8087").queryString("globalBuildNumber", buildKey).asString().getBody()
+         return Unirest.get(ciDatabaseUrlProperty).queryString("integrationNumber", buildKey).asString().body
       }
       catch (e: UnirestException)
       {
@@ -214,23 +218,16 @@ open class IHMCBuildExtension(val project: Project)
          declareMavenCentral()
          repository("http://clojars.org/repo/")
          declareJCenter()
-         repository("http://10.6.6.221:8081/artifactory/snapshots/")
+         repository("$artifactoryUrlProperty/artifactory/snapshots/")
          repository("http://dl.bintray.com/ihmcrobotics/maven-release")
          if (!openSource)
          {
-            repository("http://10.6.6.221:8081/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
-            repository("http://10.6.6.221:8081/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
-            repository("http://10.6.6.221:8081/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
+            repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+            repository("$artifactoryUrlProperty/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
+            repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
          repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-         repository("https://artifactory.ihmc.us/artifactory/snapshots/")
-         if (!openSource)
-         {
-            repository("https://artifactory.ihmc.us/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
-            repository("https://artifactory.ihmc.us/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
-            repository("https://artifactory.ihmc.us/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
-         }
       }
       else
       {
@@ -247,7 +244,7 @@ open class IHMCBuildExtension(val project: Project)
       
       try // always declare dependency on "main" from "test"
       {
-         val testProject = project.project(":" + kebabCasedNameProperty + "-test")
+         val testProject = project.project(":$kebabCasedNameProperty-test")
          testProject.dependencies {
             add("compile", project)
          }
@@ -827,7 +824,9 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun artifactoryException(path: String): GradleException
    {
-      return GradleException("Problem authenticating or retrieving item from Artifactory: $path. Try logging into artifactory.ihmc.us with the credentials used (artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
+      return GradleException("Problem authenticating or retrieving item from Artifactory: $path. " +
+                             "Try logging into artifactory.ihmc.us with the credentials used " +
+                             "(artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
    }
    
    private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
