@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2019-09-11
+
+- Support Gradle 5.6.1
+
+### Improvements
+
+- Extract LogTools to avoid logger boilerplate
+- Refactors and cleanup
+
 ## [0.16.6] - 2019-08-04
 
 ### Bug fix
@@ -141,7 +150,8 @@ it is no longer the case that the IHMCDependenciesExtension would override `1.0`
 - Add unit tests for test suite generation using ihmc-ci
 - Add binray properties to README
 
-[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.6...HEAD
+[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.17.0...HEAD
+[0.17.0]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.6...0.17.0
 [0.16.6]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.5...0.16.6
 [0.16.5]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.3...0.16.5
 [0.16.3]: https://github.com/ihmcrobotics/ihmc-build/compare/0.15.7...0.16.3
