@@ -125,11 +125,11 @@ class IHMCBuildPlugin : Plugin<Project>
             }
             catch (e: NullPointerException)
             {
-               configureEmptySubprojectTask(allproject, targetTaskName, project)
+               configureEmptySubprojectTask(allproject, targetTaskName)
             }
             catch (e: UnknownTaskException)
             {
-               configureEmptySubprojectTask(allproject, targetTaskName, project)
+               configureEmptySubprojectTask(allproject, targetTaskName)
             }
          }
       }
@@ -175,11 +175,11 @@ class IHMCBuildPlugin : Plugin<Project>
             }
             catch (e: NullPointerException)
             {
-               configureEmptySubprojectTask(subproject, targetTaskName, project)
+               configureEmptySubprojectTask(subproject, targetTaskName)
             }
             catch (e: UnknownTaskException)
             {
-               configureEmptySubprojectTask(subproject, targetTaskName, project)
+               configureEmptySubprojectTask(subproject, targetTaskName)
             }
          }
       }
@@ -207,7 +207,7 @@ class IHMCBuildPlugin : Plugin<Project>
       }
    }
    
-   private fun configureEmptySubprojectTask(subproject: Project, targetTaskName: String, project: Project)
+   private fun configureEmptySubprojectTask(subproject: Project, targetTaskName: String)
    {
       try
       {
@@ -232,7 +232,6 @@ class IHMCBuildPlugin : Plugin<Project>
                if (File(project.projectDir, childDir + "/build.gradle").exists())
                {
                   val childFile = File(project.projectDir, childDir)
-                  val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
                   IHMCBuildTools.moveSourceFolderToMavenStandard(childPath, "main")
                   IHMCBuildTools.moveSourceFolderToMavenStandard(childPath, "test")
@@ -248,7 +247,6 @@ class IHMCBuildPlugin : Plugin<Project>
                if (File(project.projectDir, childDir + "/build.gradle").exists())
                {
                   val childFile = File(project.projectDir, childDir)
-                  val tempFile = File(project.projectDir, "TMP" + childDir)
                   val childPath = childFile.toPath()
                   IHMCBuildTools.revertSourceFolderFromMavenStandard(childPath, "main")
                   IHMCBuildTools.revertSourceFolderFromMavenStandard(childPath, "test")
