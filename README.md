@@ -151,7 +151,7 @@ excludeFromCompositeBuild = false
 Fill out `build.gradle`:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.17.0"
+   id("us.ihmc.ihmc-build") version "0.17.1"
 }
 
 ihmc {
@@ -180,7 +180,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.17.0"
+      classpath "us.ihmc:ihmc-build:0.17.1"
    }
 }
 
@@ -247,7 +247,7 @@ excludeFromCompositeBuild = false
 `build.gradle` for project group:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.17.0"
+   id("us.ihmc.ihmc-build") version "0.17.1"
 }
 ```
 
@@ -259,7 +259,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.17.0"
+      classpath "us.ihmc:ihmc-build:0.17.1"
    }
 }
 
