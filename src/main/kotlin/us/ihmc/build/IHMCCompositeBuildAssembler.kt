@@ -96,6 +96,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       }
       else
       {
+         // TODO: Parse also build.gradle.kts files
          for (declaredDependency in parseDependenciesFromGradleFile(properties.projectPath.resolve("build.gradle")))
          {
             if (kebabCasedNameToPropertiesMap.containsKey(declaredDependency))
