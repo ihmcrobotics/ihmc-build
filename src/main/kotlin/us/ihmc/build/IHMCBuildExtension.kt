@@ -63,7 +63,7 @@ open class IHMCBuildExtension(val project: Project)
    private val isBranchBuild: Boolean
    private val branchName: String
    
-   private val includedBuildMap: HashMap<String, Boolean> = hashMapOf()
+   private val includedBuildMap = hashMapOf<String, Boolean>()
    
    private val artifactory: Artifactory by lazy {
       val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
@@ -75,8 +75,8 @@ open class IHMCBuildExtension(val project: Project)
       }
       builder.build()
    }
-   private val repositoryVersions: HashMap<String, TreeSet<String>> = hashMapOf()
-   private val pomDependencies: HashMap<String, ArrayList<ArrayList<String>>> = hashMapOf()
+   private val repositoryVersions = hashMapOf<String, TreeSet<String>>()
+   private val pomDependencies = hashMapOf<String, ArrayList<ArrayList<String>>>()
    private val documentBuilderFactory by lazy {
       DocumentBuilderFactory.newInstance()
    }
@@ -771,7 +771,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
       {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
+         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
          
          for (repository in getSnapshotRepositoryList())
          {
@@ -790,7 +790,7 @@ open class IHMCBuildExtension(val project: Project)
       
       return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
    }
-   
+
    private fun searchArtifactory(repository: String, groupId: String, artifactId: String): List<RepoPath>
    {
       try
@@ -867,7 +867,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
       {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
+         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
 
          LogTools.info("Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
          val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
