@@ -14,12 +14,10 @@ class SemanticVersionNumber(private val rawVersion: String) : Comparable<Semanti
       return this.version
    }
 
-   override operator fun compareTo(that: SemanticVersionNumber): Int
+   override operator fun compareTo(other: SemanticVersionNumber): Int
    {
-      if (that == null)
-         return 1
       val thisParts = this.get().split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-      val thatParts = that.get().split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+      val thatParts = other.get().split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
       val length = Math.max(thisParts.size, thatParts.size)
       for (i in 0 until length)
       {
@@ -39,12 +37,17 @@ class SemanticVersionNumber(private val rawVersion: String) : Comparable<Semanti
       return 0
    }
 
-   override fun equals(that: Any?): Boolean
+   override fun equals(other: Any?): Boolean
    {
-      if (this === that)
+      if (this === other)
          return true
-      if (that == null)
+      if (other == null)
          return false
-      return if (this.javaClass != that.javaClass) false else this.compareTo(that as SemanticVersionNumber) == 0
+      return if (this.javaClass != other.javaClass) false else this.compareTo(other as SemanticVersionNumber) == 0
+   }
+
+   override fun hashCode(): Int
+   {
+      return super.hashCode()
    }
 }
