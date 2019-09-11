@@ -410,6 +410,7 @@ open class IHMCBuildExtension(val project: Project)
       customPublishUrls[keyword] = IHMCPublishUrl(url, "",
                                                   setupPropertyWithDefault("publishPassword", ""))
    }
+
    fun addPublishUrl(keyword: String, url: String, username: String, password: String)
    {
       customPublishUrls[keyword] = IHMCPublishUrl(url, publishUsername,
@@ -431,23 +432,23 @@ open class IHMCBuildExtension(val project: Project)
 
       for (subproject in project.subprojects)
       {
-         val java = subproject.convention.getPlugin(JavaPluginConvention::class.java)
-         java.sourceCompatibility = JavaVersion.VERSION_1_8
-         java.targetCompatibility = JavaVersion.VERSION_1_8
-         for (sourceSet in java.sourceSets)
+         val javaSubproject = subproject.convention.getPlugin(JavaPluginConvention::class.java)
+         javaSubproject.sourceCompatibility = JavaVersion.VERSION_1_8
+         javaSubproject.targetCompatibility = JavaVersion.VERSION_1_8
+         for (sourceSet in javaSubproject.sourceSets)
          {
             sourceSet.java.setSrcDirs(emptySet<File>())
             sourceSet.resources.setSrcDirs(emptySet<File>())
          }
          val sourceSetName = IHMCBuildTools.toSourceSetName(subproject)
-         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
-         java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/resources")))
+         javaSubproject.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("src/$sourceSetName/java")))
+         javaSubproject.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("src/$sourceSetName/resources")))
 
          if (subproject.name.endsWith("test"))
          {
             subproject.tasks.withType<Test>()
             {
-               testClassesDirs = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
+               testClassesDirs = javaSubproject.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME).output.classesDirs
             }
          }
       }
@@ -739,7 +740,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          for (repository in getSnapshotRepositoryList())
          {
-            if (searchArtifactory(repository, groupId, artifactId, version).size > 0)
+            if (searchArtifactory(repository, groupId, artifactId, version).isNotEmpty())
             {
                if (repositoryVersions.containsKey("$groupId:$artifactId"))
                {
@@ -772,7 +773,6 @@ open class IHMCBuildExtension(val project: Project)
       {
          pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf()
          
-         var pomPath: RepoPath
          for (repository in getSnapshotRepositoryList())
          {
             for (repoPath in searchArtifactory(repository, groupId, artifactId, versionToCheck))
@@ -985,32 +985,30 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
-      tasks.getByName("jar") {
-         (this as Jar).run {
-            manifest.attributes.apply {
-               put("Created-By", maintainer)
-               put("Implementation-Title", name)
-               put("Implementation-Version", version)
-               put("Implementation-Vendor", companyName)
-               
-               put("Bundle-Name", name)
-               put("Bundle-Version", version)
-               put("Bundle-License", licenseURL)
-               put("Bundle-Vendor", companyName)
-               
-               if (!thisProjectIsIncludedBuild() && libFolder)
+      tasks.withType(Jar::class.java) {
+         manifest.attributes.apply {
+            put("Created-By", maintainer)
+            put("Implementation-Title", name)
+            put("Implementation-Version", archiveVersion)
+            put("Implementation-Vendor", companyName)
+
+            put("Bundle-Name", name)
+            put("Bundle-Version", archiveVersion)
+            put("Bundle-License", licenseURL)
+            put("Bundle-Vendor", companyName)
+
+            if (!thisProjectIsIncludedBuild() && libFolder)
+            {
+               var dependencyJarLocations = " "
+               for (file in configurations.getByName("runtime"))
                {
-                  var dependencyJarLocations = " "
-                  for (file in configurations.getByName("runtime"))
-                  {
-                     dependencyJarLocations += "lib/" + file.name + " "
-                  }
-                  put("Class-Path", dependencyJarLocations.trim())
+                  dependencyJarLocations += "lib/" + file.name + " "
                }
-               if (!thisProjectIsIncludedBuild() && mainClass != "NO_MAIN")
-               {
-                  put("Main-Class", mainClass)
-               }
+               put("Class-Path", dependencyJarLocations.trim())
+            }
+            if (!thisProjectIsIncludedBuild() && mainClass != "NO_MAIN")
+            {
+               put("Main-Class", mainClass)
             }
          }
       }
@@ -1035,7 +1033,7 @@ open class IHMCBuildExtension(val project: Project)
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven(closureOf<MavenArtifactRepository> {
          name = "Artifactory" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("https://artifactory.ihmc.us/artifactory/" + repoName)
+         url = uri("https://artifactory.ihmc.us/artifactory/$repoName")
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
       })
@@ -1066,41 +1064,39 @@ open class IHMCBuildExtension(val project: Project)
       publication.artifactId = artifactName
       publication.version = version as String
       
-      publication.pom.withXml() {
-         (this as XmlProvider).run {
-            val dependenciesNode = asNode().appendNode("dependencies")
+      publication.pom.withXml {
+         val dependenciesNode = asNode().appendNode("dependencies")
 
-            for (configuration in configurations)
-            {
-               configuration.dependencies.forEach {
-                  if (it.name != "unspecified")
+         for (configuration in configurations)
+         {
+            configuration.dependencies.forEach { dependency ->
+               if (dependency.name != "unspecified")
+               {
+                  val dependencyNode = dependenciesNode.appendNode("dependency")
+                  dependencyNode.appendNode("groupId", dependency.group)
+                  dependencyNode.appendNode("artifactId", dependency.name)
+                  dependencyNode.appendNode("version", dependency.version)
+                  if (configuration.name == "implementation")
                   {
-                     val dependencyNode = dependenciesNode.appendNode("dependency")
-                     dependencyNode.appendNode("groupId", it.group)
-                     dependencyNode.appendNode("artifactId", it.name)
-                     dependencyNode.appendNode("version", it.version)
-                     if (configuration.name == "implementation")
-                     {
-                        dependencyNode.appendNode("scope", "runtime")
-                     }
-                     else
-                     {
-                        dependencyNode.appendNode("scope", "compile")
-                     }
+                     dependencyNode.appendNode("scope", "runtime")
+                  }
+                  else
+                  {
+                     dependencyNode.appendNode("scope", "compile")
                   }
                }
             }
-
-            asNode().appendNode("description", titleCasedNameProperty)
-            asNode().appendNode("name", name)
-            asNode().appendNode("url", vcsUrl)
-            val licensesNode = asNode().appendNode("licenses")
-            
-            val licenseNode = licensesNode.appendNode("license")
-            licenseNode.appendNode("name", licenseName)
-            licenseNode.appendNode("url", licenseURL)
-            licenseNode.appendNode("distribution", "repo")
          }
+
+         asNode().appendNode("description", titleCasedNameProperty)
+         asNode().appendNode("name", name)
+         asNode().appendNode("url", vcsUrl)
+         val licensesNode = asNode().appendNode("licenses")
+
+         val licenseNode = licensesNode.appendNode("license")
+         licenseNode.appendNode("name", licenseName)
+         licenseNode.appendNode("url", licenseURL)
+         licenseNode.appendNode("distribution", "repo")
       }
       
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
@@ -1109,7 +1105,7 @@ open class IHMCBuildExtension(val project: Project)
       
       publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
          from(sourceSet.allJava)
-         classifier = "sources"
+         archiveClassifier.set("sources")
       }))
    }
 }
