@@ -407,14 +407,12 @@ open class IHMCBuildExtension(val project: Project)
    
    fun addPublishUrl(keyword: String, url: String)
    {
-      customPublishUrls[keyword] = IHMCPublishUrl(url, "",
-                                                  setupPropertyWithDefault("publishPassword", ""))
+      customPublishUrls[keyword] = IHMCPublishUrl(url, "", setupPropertyWithDefault("publishPassword", ""))
    }
 
    fun addPublishUrl(keyword: String, url: String, username: String, password: String)
    {
-      customPublishUrls[keyword] = IHMCPublishUrl(url, publishUsername,
-                                                  setupPropertyWithDefault("publishPassword", ""))
+      customPublishUrls[keyword] = IHMCPublishUrl(url, username, password)
    }
    
    fun setupJavaSourceSets()
