@@ -302,6 +302,7 @@ object IHMCBuildTools
 
    fun parseDependenciesFromGradleKtsFile(buildFile: Path): SortedSet<String>
    {
+      LogTools.debug("Parsing build file: ${buildFile.toAbsolutePath().normalize()} ")
       val dependencySet = TreeSet<String>()
 
       val fileAsString = String(Files.readAllBytes(buildFile))
@@ -317,7 +318,8 @@ object IHMCBuildTools
 
          val dependencyBlockString = "   " + fileAsString.substring(end, end + indexAfterEndBracket - 1).trim()
 
-         extractDependencyArtifactNames(dependencyBlockString)
+         LogTools.debug("Matched: $dependencyBlockString ")
+         dependencySet.addAll(extractDependencyArtifactNames(dependencyBlockString))
       }
 
       return dependencySet

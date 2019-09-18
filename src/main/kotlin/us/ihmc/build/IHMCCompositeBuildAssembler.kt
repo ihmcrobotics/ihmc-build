@@ -105,6 +105,15 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          {
             declaredDependencies = IHMCBuildTools.parseDependenciesFromGradleKtsFile(properties.projectPath.resolve("build.gradle.kts"))
          }
+         else
+         {
+            throw GradleException("Did not find a build.gradle or build.gradle.kts file")
+         }
+
+         for (declaredDependency in declaredDependencies)
+         {
+            LogTools.debug("Found dependency: $declaredDependency")
+         }
 
          for (declaredDependency in declaredDependencies!!)
          {
