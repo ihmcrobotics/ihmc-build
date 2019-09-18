@@ -335,8 +335,3 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       return pathToPropertiesMap.get(path)!!
    }
 }
-
-fun main()
-{
-   IHMCBuildTools.parseDependenciesFromGradleKtsFile(Paths.get("/home/duncan/dev/integrated/group/ihmc-open-robotics-software/ihmc-robot-models/build.gradle.kts"))
-}
