@@ -5,7 +5,7 @@ buildscript {
    }
 
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.18.0"
+      classpath "us.ihmc:ihmc-build:0.18.5"
    }
 }
 
