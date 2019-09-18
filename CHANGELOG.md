@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2019-09-18
+
+Support build.gradle.kts in composite build setups.
+
+## [0.17.1] - 2019-09-11
+
+Extract CI properties.
+
 ## [0.17.0] - 2019-09-11
 
 - Support Gradle 5.6.1
@@ -150,7 +158,9 @@ it is no longer the case that the IHMCDependenciesExtension would override `1.0`
 - Add unit tests for test suite generation using ihmc-ci
 - Add binray properties to README
 
-[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.17.0...HEAD
+[Unreleased]: https://github.com/ihmcrobotics/ihmc-build/compare/0.18.0...HEAD
+[0.18.0]: https://github.com/ihmcrobotics/ihmc-build/compare/0.17.1...0.18.0
+[0.17.1]: https://github.com/ihmcrobotics/ihmc-build/compare/0.17.0...0.17.1
 [0.17.0]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.6...0.17.0
 [0.16.6]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.5...0.16.6
 [0.16.5]: https://github.com/ihmcrobotics/ihmc-build/compare/0.16.3...0.16.5
