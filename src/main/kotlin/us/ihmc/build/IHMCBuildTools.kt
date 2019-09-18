@@ -2,9 +2,9 @@ package us.ihmc.build
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.mutable.MutableInt
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import us.ihmc.commons.nio.FileTools
 import java.nio.file.Files
@@ -298,6 +298,66 @@ object IHMCBuildTools
       kebab += '-';
 
       return kebab;
+   }
+
+   fun parseDependenciesFromGradleKtsFile(buildFile: Path): SortedSet<String>
+   {
+      val dependencySet = TreeSet<String>()
+
+      val fileAsString = String(Files.readAllBytes(buildFile))
+
+      val pattern = Regex("ependencies[ \\t\\x0B\\S]*\\{").toPattern()
+      val matcher = pattern.matcher(fileAsString);
+
+      while (matcher.find())
+      {
+         val end = matcher.end()
+
+         val indexAfterEndBracket = matchingBracket(fileAsString.substring(end), MutableInt(0))
+
+         val dependencyBlockString = "   " + fileAsString.substring(end, end + indexAfterEndBracket - 1).trim()
+
+         extractDependencyArtifactNames(dependencyBlockString)
+      }
+
+      return dependencySet
+   }
+
+   fun extractDependencyArtifactNames(dependencyBlockString: String): SortedSet<String>
+   {
+      val artifactNames = TreeSet<String>()
+
+      val pattern = Regex("(compile|implementation|api|runtime)[ \\t\\x0B]*\\([ \\t\\x0B]*\\\"[\\s\\-\\w\\.]+:[\\s\\:\\-\\w\\.]+\\\"").toPattern()
+      val matcher = pattern.matcher(dependencyBlockString);
+      while (matcher.find())
+      {
+         val match = matcher.toMatchResult().group()
+         val artifactName = match.split(":")[1]
+
+         artifactNames.add(artifactName)
+      }
+
+      return artifactNames
+   }
+
+   fun matchingBracket(string: String, i: MutableInt): Int
+   {
+      while (i.value < string.length)
+      {
+         if (string[i.value] == '{')
+         {
+            i.increment()
+            i.setValue(matchingBracket(string, i))
+         }
+         if (string[i.value] == '}')
+         {
+            return i.value + 1
+         }
+
+         i.increment()
+      }
+
+      throw GradleException("No end bracket for dependencies block")
    }
 
    /**
