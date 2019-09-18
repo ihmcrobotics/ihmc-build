@@ -308,47 +308,21 @@ object IHMCBuildTools
 
       val fileAsString = String(Files.readAllBytes(buildFile))
 
-//      val kotlinizedString = "package us.ihmc\n object KotlinDslFile\n {\n" + fileAsString + "\n}\n"
-//         LogTools.info(kotlinizedString)
-//      val parsed = Parser.parseFile(kotlinizedString)
-//      for (decl in parsed.decls)
-//      {
-//         LogTools.info(decl)
-//      }
-
-
       val pattern = Pattern.compile("ependencies[ \\t\\x0B\\S]*\\{")
       val matcher = pattern.matcher(fileAsString);
 
       while (matcher.find())
       {
-         val start = matcher.start()
-
-         // from start pass to recursive matchingBracket method
-
-
          val end = matcher.end()
-
-         val substring = fileAsString.substring(end)
-
-//         println(substring)
 
          val indexAfterEndBracket = matchingBracket(fileAsString.substring(end), MutableInt(0))
 
-//         println(start.toString() + " " + (indexAfterEndBracket - 1).toString())
-//         val dependencyBlockString = fileAsString.substring(start, end + indexAfterEndBracket)
-         val dependencyBlockString = fileAsString.substring(end, end + indexAfterEndBracket - 1)
+         val dependencyBlockString = "   " + fileAsString.substring(end, end + indexAfterEndBracket - 1).trim()
 
          println(dependencyBlockString)
-//         LogTools.info(dependencyBlockString)
 
          // add dependencies
       }
-
-//      fileAsString.index
-      // ependencies[ \t\x0B\S]*\{
-
-      // come up with regular expression with loop pattern?
 
       return dependencySet
    }
@@ -359,13 +333,11 @@ object IHMCBuildTools
       {
          if (string[i.value] == '{')
          {
-//            println("found opening bracket " + i.value + " " + string[i.value])
             i.increment()
             i.setValue(matchingBracket(string, i))
          }
          if (string[i.value] == '}')
          {
-//            println("returning on char " + i.value + " " + string[i.value])
             return i.value + 1
          }
 
