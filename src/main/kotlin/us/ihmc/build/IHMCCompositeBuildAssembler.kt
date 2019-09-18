@@ -8,12 +8,12 @@ import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.gradle.api.GradleException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.logging.Logger
-import java.io.File
-import java.io.FileFilter
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.*
+import java.util.regex.Pattern
 
 class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
@@ -96,8 +96,17 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       }
       else
       {
-         // TODO: Parse also build.gradle.kts files
-         for (declaredDependency in parseDependenciesFromGradleFile(properties.projectPath.resolve("build.gradle")))
+         var declaredDependencies: SortedSet<String>? = null
+         if (Files.isRegularFile(properties.projectPath.resolve("build.gradle")))
+         {
+            declaredDependencies = parseDependenciesFromGradleFile(properties.projectPath.resolve("build.gradle"))
+         }
+         else if (Files.isRegularFile(properties.projectPath.resolve("build.gradle.kts")))
+         {
+            declaredDependencies = IHMCBuildTools.parseDependenciesFromGradleKtsFile(properties.projectPath.resolve("build.gradle.kts"))
+         }
+
+         for (declaredDependency in declaredDependencies!!)
          {
             if (kebabCasedNameToPropertiesMap.containsKey(declaredDependency))
             {
@@ -214,7 +223,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       return false
    }
-   
+
    private fun parseDependenciesFromGradleFile(buildFile: Path): SortedSet<String>
    {
       val dependencySet = TreeSet<String>()
@@ -325,4 +334,9 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
    {
       return pathToPropertiesMap.get(path)!!
    }
+}
+
+fun main()
+{
+   IHMCBuildTools.parseDependenciesFromGradleKtsFile(Paths.get("/home/duncan/dev/integrated/group/ihmc-open-robotics-software/ihmc-robot-models/build.gradle.kts"))
 }
