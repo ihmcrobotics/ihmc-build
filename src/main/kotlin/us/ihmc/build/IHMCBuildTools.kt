@@ -5,13 +5,11 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.mutable.MutableInt
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import us.ihmc.commons.nio.FileTools
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import java.util.regex.Pattern
 
 lateinit var LogTools: IHMCBuildLogTools
 
@@ -308,7 +306,7 @@ object IHMCBuildTools
 
       val fileAsString = String(Files.readAllBytes(buildFile))
 
-      val pattern = Pattern.compile("ependencies[ \\t\\x0B\\S]*\\{")
+      val pattern = Regex("ependencies[ \\t\\x0B\\S]*\\{").toPattern()
       val matcher = pattern.matcher(fileAsString);
 
       while (matcher.find())
@@ -319,12 +317,27 @@ object IHMCBuildTools
 
          val dependencyBlockString = "   " + fileAsString.substring(end, end + indexAfterEndBracket - 1).trim()
 
-         println(dependencyBlockString)
-
-         // add dependencies
+         extractDependencyArtifactNames(dependencyBlockString)
       }
 
       return dependencySet
+   }
+
+   fun extractDependencyArtifactNames(dependencyBlockString: String): SortedSet<String>
+   {
+      val artifactNames = TreeSet<String>()
+
+      val pattern = Regex("(compile|implementation|api|runtime)[ \\t\\x0B]*\\([ \\t\\x0B]*\\\"[\\s\\-\\w\\.]+:[\\s\\:\\-\\w\\.]+\\\"").toPattern()
+      val matcher = pattern.matcher(dependencyBlockString);
+      while (matcher.find())
+      {
+         val match = matcher.toMatchResult().group()
+         val artifactName = match.split(":")[1]
+
+         artifactNames.add(artifactName)
+      }
+
+      return artifactNames
    }
 
    fun matchingBracket(string: String, i: MutableInt): Int
