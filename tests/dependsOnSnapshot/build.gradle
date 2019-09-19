@@ -33,7 +33,7 @@ ihmc {
 }
 
 mainDependencies {
-   api("org.apache.commons:commons-lang3:3.7")
+   api("org.apache.commons:commons-lang3:3.9")
 }
 
 testDependencies {
