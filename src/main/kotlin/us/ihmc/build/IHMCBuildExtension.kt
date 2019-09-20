@@ -1080,12 +1080,9 @@ open class IHMCBuildExtension(val project: Project)
          licenseNode.appendNode("distribution", "repo")
       }
 
+      publication.artifact(tasks.withType<Jar>().getByName("jar"))
 
-      publication.artifact(tasks.withType<Jar>().getByName(sourceSet.name + "ClassesJar") {
-         from(sourceSet.output)
-      })
-
-      publication.artifact(tasks.withType<Jar>().getByName(sourceSet.name + "SourcesJar") {
+      publication.artifact(tasks.create("sourceJar", Jar::class.java) {
          from(sourceSet.allJava)
          archiveClassifier.set("sources")
       })
