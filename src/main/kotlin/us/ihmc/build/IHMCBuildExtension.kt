@@ -6,7 +6,6 @@ import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
 import org.gradle.api.*
 import org.gradle.api.artifacts.ConfigurationContainer
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
@@ -14,7 +13,6 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
-import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
@@ -386,20 +384,6 @@ open class IHMCBuildExtension(val project: Project)
             declarePublication(name, configurations, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
-   
-      val jarAllTask = project.task("jarAll")
-      for (allproject in project.allprojects)
-      {
-         jarAllTask.dependsOn(allproject.tasks.getByName("mainClassesJar"))
-         jarAllTask.dependsOn(allproject.tasks.getByName("mainSourcesJar"))
-      }
-   
-//      for (subproject in project.subprojects)
-//      {
-//         subproject.tasks.getByName("publishHandle", closureOf<Task> {
-//            dependsOn(subproject.tasks.getByName("publish"))
-//         })
-//      }
    }
    
    fun addPublishUrl(keyword: String, url: String)
@@ -1014,7 +998,7 @@ open class IHMCBuildExtension(val project: Project)
    fun Project.declareCustomPublishUrl(keyword: String, publishUrl: IHMCPublishUrl)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven(closureOf<MavenArtifactRepository> {
+      publishing.repositories.maven {
          name = IHMCBuildTools.kebabToPascalCase(keyword)
          url = uri(publishUrl.url)
          if (publishUrl.hasCredentials())
@@ -1022,29 +1006,29 @@ open class IHMCBuildExtension(val project: Project)
             credentials.username = publishUrl.username
             credentials.password = publishUrl.password
          }
-      })
+      }
    }
    
    fun Project.declareArtifactory(repoName: String)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven(closureOf<MavenArtifactRepository> {
+      publishing.repositories.maven {
          name = "Artifactory" + IHMCBuildTools.kebabToPascalCase(repoName)
          url = uri("https://artifactory.ihmc.us/artifactory/$repoName")
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
-      })
+      }
    }
    
    fun Project.declareBintray(repoName: String)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven(closureOf<MavenArtifactRepository> {
+      publishing.repositories.maven {
          name = "Bintray" + IHMCBuildTools.kebabToPascalCase(repoName)
          url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
          credentials.username = bintrayUsername
          credentials.password = bintrayApiKey
-      })
+      }
    }
    
    fun Project.declareMavenLocal()
@@ -1095,14 +1079,15 @@ open class IHMCBuildExtension(val project: Project)
          licenseNode.appendNode("url", licenseURL)
          licenseNode.appendNode("distribution", "repo")
       }
-      
-      publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "ClassesJar", closureOf<Jar> {
+
+
+      publication.artifact(tasks.withType<Jar>().getByName(sourceSet.name + "ClassesJar") {
          from(sourceSet.output)
-      }))
-      
-      publication.artifact(task(mapOf("type" to Jar::class.java), sourceSet.name + "SourcesJar", closureOf<Jar> {
+      })
+
+      publication.artifact(tasks.withType<Jar>().getByName(sourceSet.name + "SourcesJar") {
          from(sourceSet.allJava)
          archiveClassifier.set("sources")
-      }))
+      })
    }
 }

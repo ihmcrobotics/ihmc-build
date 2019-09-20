@@ -1,12 +1,9 @@
 package us.ihmc.build
 
-import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.mutable.MutableInt
-import org.gradle.api.GradleException
-import org.gradle.api.Project
+import org.gradle.api.*
 import org.gradle.api.plugins.ExtraPropertiesExtension
-import us.ihmc.commons.nio.FileTools
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -362,103 +359,89 @@ object IHMCBuildTools
       throw GradleException("No end bracket for dependencies block")
    }
 
-   /**
-    * Temporary tool for converting projects to new folder structure quickly.
-    */
-   fun moveSourceFolderToMavenStandard(projectDir: Path, sourceSetName: String)
+   fun defineDynamicCompositeTask(project: Project)
    {
-      val oldSourceFolder: Path
-      if (sourceSetName == "main")
+      if (project.hasProperty("taskName") || project.hasProperty("taskNames"))
       {
-         oldSourceFolder = projectDir.resolve("src")
-      }
-      else
-      {
-         oldSourceFolder = projectDir.resolve(sourceSetName)
-      }
-      val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
-      moveAPackage(oldSourceFolder, mavenFolder, "us")
-      moveAPackage(oldSourceFolder, mavenFolder, "optiTrack")
-   }
+         val taskNames = arrayListOf<String>()
 
-   private fun moveAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
-   {
-      if (Files.exists(oldSourceFolder))
-      {
-         val oldUs = oldSourceFolder.resolve(packageName)
-         val newUs = mavenFolder.resolve(packageName)
-
-         if (Files.exists(oldUs))
+         if (project.hasProperty("taskName"))
          {
-            LogTools.quiet(mavenFolder)
-            LogTools.quiet(oldUs)
-            LogTools.quiet(newUs)
+            taskNames.addAll((project.property("taskName") as String).split(","))
+         }
 
-            FileTools.deleteQuietly(newUs)
+         if (project.hasProperty("taskNames"))
+         {
+            taskNames.addAll((project.property("taskNames") as String).split(","))
+         }
 
-            try
-            {
-               FileUtils.moveDirectory(oldUs.toFile(), newUs.toFile())
-            }
-            catch (e: Exception)
-            {
-               LogTools.trace(e.stackTrace)
-            }
+         if (taskNames.size > 0)
+         {
+            defineDeepCompositeTask("compositeTask", taskNames, project)
          }
       }
+   }
+
+   fun defineDeepCompositeTask(compositeTaskName: String, targetTaskName: String, project: Project): Task
+   {
+      return defineDeepCompositeTask(compositeTaskName, arrayListOf(targetTaskName), project)
    }
 
    /**
-    * Temporary tool for converting projects to new folder structure quickly.
+    * Create a task that runs the target tasks in both this project and the included
+    * projects as well. Since we can't reference subprojects of composite included builds,
+    * we must use a two layer hierarchy.
     */
-   fun revertSourceFolderFromMavenStandard(projectDir: Path, sourceSetName: String)
+   fun defineDeepCompositeTask(compositeTaskName: String, targetTaskNames: ArrayList<String>, project: Project): Task
    {
-      val oldSourceFolder: Path
-      if (sourceSetName == "main")
-      {
-         oldSourceFolder = projectDir.resolve("src")
-      }
-      else
-      {
-         oldSourceFolder = projectDir.resolve(sourceSetName)
-      }
-      val mavenFolder = projectDir.resolve("src").resolve(sourceSetName).resolve("java")
-      if (Files.exists(oldSourceFolder))
-      {
-         revertAPackage(oldSourceFolder, mavenFolder, "us")
-         revertAPackage(oldSourceFolder, mavenFolder, "optiTrack")
-      }
-      else
-      {
-         LogTools.warn("File not exist: $oldSourceFolder")
+      return project.tasks.create(compositeTaskName) {
+         // Configure every project to have a "handle" task that depends on all the task names
+         project.allprojects.forEach { allproject ->
+            targetTaskNames.forEach { targetTaskName ->
+
+               // Configure every project to have at least an empty task with the names
+               if (allproject.tasks.findByPath(targetTaskName) == null)
+               {
+                  configureEmptySubprojectTask(allproject, targetTaskName)
+               }
+
+               dependsOn(allproject.tasks.getByName(targetTaskName))
+            }
+         }
+
+         // For the build root, make the global task depend on all the included build global tasks
+         if (isBuildRoot(project))
+         {
+            project.gradle.includedBuilds.forEach {
+               dependsOn(it.task(":$compositeTaskName"))
+            }
+         }
       }
    }
 
-   private fun revertAPackage(oldSourceFolder: Path, mavenFolder: Path, packageName: String)
+   /**
+    * Declare empty task if it doesn't exist so it can be called without errors
+    */
+   fun configureEmptySubprojectTask(subproject: Project, targetTaskName: String)
    {
-      val oldUs = oldSourceFolder.resolve(packageName)
-      val newUs = mavenFolder.resolve(packageName)
-
-      if (Files.exists(newUs))
+      try
       {
-         LogTools.quiet(mavenFolder)
-         LogTools.quiet(oldUs)
-         LogTools.quiet(newUs)
-
-         FileTools.deleteQuietly(oldUs)
-
-         try
-         {
-            FileUtils.moveDirectory(newUs.toFile(), oldUs.toFile())
-         }
-         catch (e: Exception)
-         {
-            LogTools.trace(e.stackTrace)
-         }
+         LogTools.info("${subproject.name}: Declaring empty task: $targetTaskName")
+         subproject.tasks.create(targetTaskName)
       }
-      else
+      catch (e: InvalidUserDataException)
       {
-         LogTools.warn("File not exist: $oldUs")
+         // if the task exists or something else goes wrong
+         LogTools.error("${subproject.name}: InvalidUserDataException: ${e.message}: $targetTaskName")
+      }
+   }
+
+   fun enforceMultiprojectTaskDependency(taskName: String, project: Project)
+   {
+      project.tasks.getByName(taskName) {
+         project.subprojects.forEach { subproject ->
+            dependsOn(subproject.tasks.getByPath(taskName))
+         }
       }
    }
 
