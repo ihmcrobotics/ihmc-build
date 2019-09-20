@@ -94,23 +94,25 @@ ihmc {
 
 ##### Publishing all projects at once
 
-The `publishAll` task is provided as an alias for `gradle compositeTask -PtaskName=publish`:
+The `compositePublish` task is provided as an alias for `gradle compositeTask -PtaskName=publish`:
 
-`gradle publishAll`
+`gradle compositePublish`
 
 For example, to publish a group of projects:
 
-`gradle publishAll -PpublishUrl=ihmcRelease`
+`gradle compositePublish -PpublishUrl=ihmcRelease`
 
 ##### Clean build directories
 
-The `cleanBuild` task is provided as an alias for `gradle compositeTask -PtaskName=clean`.
+The `clean` task is extended to also clean `bin/` and `out/`. `clean` normally only deletes `build/`.
 
-The `cleanIDE` task is provided as an alias for `gradle compositeTask -PtaskNames=cleanEclipse,cleanIdea,cleanBuildship`.
+A `cleanBuildship` task has been added to clean `.settings`.
 
-`gradle cleanBuild`
+A `cleanIDE` task has been added to group `cleanEclipse`, `cleanIdea`, and `cleanBuildship`.
 
-Cleans `build/` (Gradle), `bin/` (Eclipse), and `out/` (IntelliJ) build directories from all included projects.
+The `compositeClean` task is provided as an alias for `gradle compositeTask -PtaskName=clean`.
+
+The `compositeCleanIDE` task is provided as an alias for `gradle compositeTask -PtaskNames=cleanEclipse,cleanIdea,cleanBuildship`.
 
 ##### Maven Repositories
 
