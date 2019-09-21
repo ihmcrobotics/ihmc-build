@@ -45,7 +45,7 @@ fun parseForTags(testProject: Project, testsToTagsMap: HashMap<String, HashSet<S
       val discoveryRequest = builder.build()
       debugClasspathSelectors(discoveryRequest)
       testPlan = launcher.discover(discoveryRequest)
-      recursiveBuildMap(testPlan!!.roots, testPlan, testsToTagsMap)
+      recursiveBuildMap(testPlan.roots, testPlan, testsToTagsMap)
       LogTools.debug("[ihmc-ci] Contains tests: ${testPlan.containsTests()}")
    }
    finally
