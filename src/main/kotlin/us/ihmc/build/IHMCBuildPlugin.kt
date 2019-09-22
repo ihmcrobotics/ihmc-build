@@ -23,24 +23,24 @@ class IHMCBuildPlugin : Plugin<Project>
           IHMCBuildTools.isProjectGroupCompatibility(project.property("isProjectGroup") as String))
       {
          project.allprojects {
-            this.pluginManager.apply(BasePlugin::class.java)
-            this.pluginManager.apply(EclipsePlugin::class.java)
-            this.pluginManager.apply(IdeaPlugin::class.java)
-            this.pluginManager.apply(TaskTreePlugin::class.java)
-            this.pluginManager.apply(HelpTasksPlugin::class.java)
+            pluginManager.apply(BasePlugin::class.java)
+            pluginManager.apply(EclipsePlugin::class.java)
+            pluginManager.apply(IdeaPlugin::class.java)
+            pluginManager.apply(TaskTreePlugin::class.java)
+            pluginManager.apply(HelpTasksPlugin::class.java)
          }
       }
       else
       {
          project.allprojects {
-            this.pluginManager.apply(JavaLibraryPlugin::class.java)
-            this.pluginManager.apply(IvyPublishPlugin::class.java)
-            this.pluginManager.apply(MavenPublishPlugin::class.java)
-            this.pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
-            this.pluginManager.apply(EclipsePlugin::class.java)
-            this.pluginManager.apply(IdeaPlugin::class.java)
-            this.pluginManager.apply(TaskTreePlugin::class.java)
-            this.pluginManager.apply(HelpTasksPlugin::class.java)
+            pluginManager.apply(JavaLibraryPlugin::class.java)
+            pluginManager.apply(IvyPublishPlugin::class.java)
+            pluginManager.apply(MavenPublishPlugin::class.java)
+            pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
+            pluginManager.apply(EclipsePlugin::class.java)
+            pluginManager.apply(IdeaPlugin::class.java)
+            pluginManager.apply(TaskTreePlugin::class.java)
+            pluginManager.apply(HelpTasksPlugin::class.java)
          }
 
          val ihmcBuildExtension = IHMCBuildExtension(project)
