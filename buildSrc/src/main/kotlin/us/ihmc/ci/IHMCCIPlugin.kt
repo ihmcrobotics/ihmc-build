@@ -141,6 +141,7 @@ class IHMCCIPlugin : Plugin<Project>
       else // add junit 5 dependencies
       {
          project.dependencies.add(compileConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         project.dependencies.add(compileConfigName, "org.junit.platform:junit-platform-commons:$PLATFORM_VERSION")
          project.dependencies.add(compileConfigName, "org.junit.platform:junit-platform-launcher:$PLATFORM_VERSION")
          project.dependencies.add(runtimeConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
       }
