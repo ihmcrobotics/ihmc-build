@@ -513,12 +513,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       return IHMCBuildTools.isBuildRoot(project)
    }
-   
-   fun thisProjectIsIncludedBuild(): Boolean
-   {
-      return !project.gradle.startParameter.isSearchUpwards
-   }
-   
+
    fun getIncludedBuilds(): Collection<IncludedBuild>
    {
       if (IHMCBuildTools.isBuildRoot(project))
@@ -978,16 +973,16 @@ open class IHMCBuildExtension(val project: Project)
             put("Bundle-License", licenseURL)
             put("Bundle-Vendor", companyName)
 
-            if (!thisProjectIsIncludedBuild() && libFolder)
+            if (isBuildRoot() && libFolder)
             {
                var dependencyJarLocations = " "
-               for (file in configurations.getByName("runtime"))
+               for (file in configurations.getByName("default"))
                {
                   dependencyJarLocations += "lib/" + file.name + " "
                }
                put("Class-Path", dependencyJarLocations.trim())
             }
-            if (!thisProjectIsIncludedBuild() && mainClass != "NO_MAIN")
+            if (isBuildRoot() && mainClass != "NO_MAIN")
             {
                put("Main-Class", mainClass)
             }
