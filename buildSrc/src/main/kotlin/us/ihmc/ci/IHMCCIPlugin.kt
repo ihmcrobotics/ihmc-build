@@ -51,6 +51,7 @@ class IHMCCIPlugin : Plugin<Project>
 
       loadProperties()
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
+      project.extensions.add("junitVersion", JUnitExtension(JUNIT_VERSION, PLATFORM_VERSION))
 
       for (testProject in testProjects(project))
       {
