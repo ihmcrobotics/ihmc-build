@@ -24,12 +24,12 @@ object TagParser
     */
    fun parseForTags(testProject: Project, testsToTagsMap: HashMap<String, HashSet<String>>)
    {
-      LogTools.info("Discovering tests in $testProject")
+      LogTools.info("[ihmc-ci] Discovering tests in $testProject")
 
       val contextClasspathUrls = arrayListOf<URL>()   // all of the tests and dependencies
       val selectorPaths = hashSetOf<Path>()           // just the test classes in this project
       assembleTestClasspath(testProject, contextClasspathUrls, selectorPaths)
-      LogTools.debug("Classpath entries: " + contextClasspathUrls.toString())
+      LogTools.debug("[ihmc-ci] Classpath entries: " + contextClasspathUrls.toString())
 
       val originalClassLoader = Thread.currentThread().contextClassLoader
       val customClassLoader = URLClassLoader.newInstance(contextClasspathUrls.toTypedArray(), originalClassLoader)
@@ -47,7 +47,7 @@ object TagParser
          debugClasspathSelectors(discoveryRequest)
          testPlan = launcher.discover(discoveryRequest)
          recursiveBuildMap(testPlan.roots, testPlan, testsToTagsMap)
-         LogTools.debug("Contains tests: ${testPlan.containsTests()}")
+         LogTools.debug("[ihmc-ci] Contains tests: ${testPlan.containsTests()}")
       }
       finally
       {
@@ -57,27 +57,27 @@ object TagParser
 
    private fun recursiveBuildMap(set: Set<TestIdentifier>, testPlan: TestPlan, testsToTagsMap: HashMap<String, HashSet<String>>)
    {
-      set.forEach { testIdentifier ->
-         if (testIdentifier.type == TestDescriptor.Type.TEST && testIdentifier.source.isPresent && testIdentifier.source.get() is MethodSource)
+      set.forEach {
+         if (it.type == TestDescriptor.Type.TEST && it.source.isPresent && it.source.get() is MethodSource)
          {
-            val methodSource = testIdentifier.source.get() as MethodSource
-            LogTools.debug("Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} path: $methodSource")
+            val methodSource = it.source.get() as MethodSource
+            LogTools.debug("[ihmc-ci] Test id: ${it.displayName} tags: ${it.tags} path: $methodSource")
             val fullyQualifiedTestName = methodSource.className + "." + methodSource.methodName
             if (!testsToTagsMap.containsKey(fullyQualifiedTestName))
             {
                testsToTagsMap.put(fullyQualifiedTestName, hashSetOf())
             }
 
-            testIdentifier.tags.forEach { testTag ->
-               testsToTagsMap[fullyQualifiedTestName]!!.add(testTag.name)
+            it.tags.forEach {
+               testsToTagsMap[fullyQualifiedTestName]!!.add(it.name)
             }
          }
          else
          {
-            LogTools.debug("Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} type: ${testIdentifier.type}")
+            LogTools.debug("[ihmc-ci] Test id: ${it.displayName} tags: ${it.tags} type: ${it.type}")
          }
 
-         recursiveBuildMap(testPlan.getChildren(testIdentifier), testPlan, testsToTagsMap)
+         recursiveBuildMap(testPlan.getChildren(it), testPlan, testsToTagsMap)
       }
    }
 
@@ -89,43 +89,32 @@ object TagParser
    private fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
    {
       val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
-//      val java = testProject.convention.getPlugin(JavaLibraryPlugin::class.java)
-//      testProject.plugins.
-//      testProject.configurations.getByName("default").forEach { file ->
-      java.sourceSets.getByName("main").compileClasspath.forEach { file ->
-         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
-      }
-      java.sourceSets.getByName("main").runtimeClasspath.forEach { file ->
-         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
-      }
-   }
-
-   private fun addStuffToClasspath(file: File, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
-   {
-      var entryString = file.toString()
-      val uri = file.toURI()
-      val path = file.toPath()
-      if (entryString.endsWith(".jar"))
-      {
-         contextClasspathUrls.add(uri.toURL())
-      }
-      else if (!entryString.endsWith("/"))
-      {
-         val fileWithSlash = File("$entryString/") // TODO: Is this necessary?
-         contextClasspathUrls.add(fileWithSlash.toURI().toURL())
-         selectorPaths.add(fileWithSlash.toPath())
-      }
-      else
-      {
-         contextClasspathUrls.add(uri.toURL())
-         selectorPaths.add(path)
+      java.sourceSets.getByName("main").runtimeClasspath.forEach {
+         var entryString = it.toString()
+         val uri = it.toURI()
+         val path = it.toPath()
+         if (entryString.endsWith(".jar"))
+         {
+            contextClasspathUrls.add(uri.toURL())
+         }
+         else if (!entryString.endsWith("/"))
+         {
+            val file = File("$entryString/")
+            contextClasspathUrls.add(file.toURI().toURL())
+            selectorPaths.add(file.toPath())
+         }
+         else
+         {
+            contextClasspathUrls.add(uri.toURL())
+            selectorPaths.add(path)
+         }
       }
    }
 
    private fun debugClasspathSelectors(discoveryRequest: LauncherDiscoveryRequest)
    {
       discoveryRequest.getSelectorsByType(ClasspathRootSelector::class.java).forEach {
-         LogTools.debug("Selector: $it")
+         LogTools.debug("[ihmc-ci] Selector: $it")
       }
    }
 
@@ -133,7 +122,7 @@ object TagParser
    {
       // make sure context class loader is working
       customClassLoader.urLs.forEach {
-         LogTools.debug(it.toString())
+         LogTools.debug("[ihmc-ci] " + it.toString())
       }
    }
 }

@@ -11,7 +11,6 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.kotlin.dsl.withType
 import org.json.JSONObject
-import us.ihmc.ci.sourceCodeParser.TagParser
 import java.io.File
 import java.nio.charset.Charset
 
