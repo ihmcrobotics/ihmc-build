@@ -11,7 +11,7 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.kotlin.dsl.withType
 import org.json.JSONObject
-import us.ihmc.ci.sourceCodeParser.parseForTags
+import us.ihmc.ci.sourceCodeParser.TagParser
 import java.io.File
 import java.nio.charset.Charset
 
@@ -40,7 +40,7 @@ class IHMCCIPlugin : Plugin<Project>
    val testsToTagsMap = lazy {
       val map = hashMapOf<String, HashSet<String>>()
       testProjects(project).forEach {
-         parseForTags(it, map)
+         TagParser.parseForTags(it, map)
       }
       map
    }
