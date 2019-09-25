@@ -1,15 +1,9 @@
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.19.5"
-      classpath "us.ihmc:ihmc-ci-plugin:0.20.6"
-   }
+plugins {
+   id("us.ihmc.ihmc-build") version "0.19.5"
+   id("us.ihmc.log-tools") version "0.3.1"
+   id("us.ihmc.ihmc-ci") version "5.3"
+   id("us.ihmc.ihmc-cd") version "0.2"
 }
-apply plugin: "us.ihmc.ihmc-build"
-apply plugin: "us.ihmc.ihmc-ci-plugin"
 
 ihmc {
    group = "us.ihmc"
@@ -30,6 +24,4 @@ mainDependencies {
 }
 
 testDependencies {
-   implementation "org.junit.jupiter:junit-jupiter-api:5.4.0"
-   runtimeOnly "org.junit.jupiter:junit-jupiter-engine:5.4.0"
 }
