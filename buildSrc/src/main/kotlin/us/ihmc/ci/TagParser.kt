@@ -1,6 +1,7 @@
 package us.ihmc.ci
 
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.discovery.ClasspathRootSelector
@@ -57,27 +58,27 @@ object TagParser
 
    private fun recursiveBuildMap(set: Set<TestIdentifier>, testPlan: TestPlan, testsToTagsMap: HashMap<String, HashSet<String>>)
    {
-      set.forEach {
-         if (it.type == TestDescriptor.Type.TEST && it.source.isPresent && it.source.get() is MethodSource)
+      set.forEach { testIdentifier ->
+         if (testIdentifier.type == TestDescriptor.Type.TEST && testIdentifier.source.isPresent && testIdentifier.source.get() is MethodSource)
          {
-            val methodSource = it.source.get() as MethodSource
-            LogTools.debug("[ihmc-ci] Test id: ${it.displayName} tags: ${it.tags} path: $methodSource")
+            val methodSource = testIdentifier.source.get() as MethodSource
+            LogTools.debug("[ihmc-ci] Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} path: $methodSource")
             val fullyQualifiedTestName = methodSource.className + "." + methodSource.methodName
             if (!testsToTagsMap.containsKey(fullyQualifiedTestName))
             {
                testsToTagsMap.put(fullyQualifiedTestName, hashSetOf())
             }
 
-            it.tags.forEach {
-               testsToTagsMap[fullyQualifiedTestName]!!.add(it.name)
+            testIdentifier.tags.forEach { testTag ->
+               testsToTagsMap[fullyQualifiedTestName]!!.add(testTag.name)
             }
          }
          else
          {
-            LogTools.debug("[ihmc-ci] Test id: ${it.displayName} tags: ${it.tags} type: ${it.type}")
+            LogTools.debug("[ihmc-ci] Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} type: ${testIdentifier.type}")
          }
 
-         recursiveBuildMap(testPlan.getChildren(it), testPlan, testsToTagsMap)
+         recursiveBuildMap(testPlan.getChildren(testIdentifier), testPlan, testsToTagsMap)
       }
    }
 
@@ -89,25 +90,36 @@ object TagParser
    private fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
    {
       val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
-      java.sourceSets.getByName("main").runtimeClasspath.forEach {
-         var entryString = it.toString()
-         val uri = it.toURI()
-         val path = it.toPath()
-         if (entryString.endsWith(".jar"))
-         {
-            contextClasspathUrls.add(uri.toURL())
-         }
-         else if (!entryString.endsWith("/"))
-         {
-            val file = File("$entryString/")
-            contextClasspathUrls.add(file.toURI().toURL())
-            selectorPaths.add(file.toPath())
-         }
-         else
-         {
-            contextClasspathUrls.add(uri.toURL())
-            selectorPaths.add(path)
-         }
+//      val java = testProject.convention.getPlugin(JavaLibraryPlugin::class.java)
+//      testProject.plugins.
+//      testProject.configurations.getByName("default").forEach { file ->
+      java.sourceSets.getByName("main").compileClasspath.forEach { file ->
+         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
+      }
+      java.sourceSets.getByName("main").runtimeClasspath.forEach { file ->
+         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
+      }
+   }
+
+   private fun addStuffToClasspath(file: File, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
+   {
+      var entryString = file.toString()
+      val uri = file.toURI()
+      val path = file.toPath()
+      if (entryString.endsWith(".jar"))
+      {
+         contextClasspathUrls.add(uri.toURL())
+      }
+      else if (!entryString.endsWith("/"))
+      {
+         val fileWithSlash = File("$entryString/") // TODO: Is this necessary?
+         contextClasspathUrls.add(fileWithSlash.toURI().toURL())
+         selectorPaths.add(fileWithSlash.toPath())
+      }
+      else
+      {
+         contextClasspathUrls.add(uri.toURL())
+         selectorPaths.add(path)
       }
    }
 
