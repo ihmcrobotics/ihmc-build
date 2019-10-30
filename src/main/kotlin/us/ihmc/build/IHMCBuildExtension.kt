@@ -217,14 +217,14 @@ open class IHMCBuildExtension(val project: Project)
          repository("http://clojars.org/repo/")
          declareJCenter()
          repository("$artifactoryUrlProperty/artifactory/snapshots/")
-         repository("http://dl.bintray.com/ihmcrobotics/maven-release")
+         repository("https://dl.bintray.com/ihmcrobotics/maven-release")
          if (!openSource)
          {
             repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
-         repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+         repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
       }
       else
@@ -232,8 +232,8 @@ open class IHMCBuildExtension(val project: Project)
          declareMavenCentral()
          declareJCenter()
          repository("http://clojars.org/repo/")
-         repository("http://dl.bintray.com/ihmcrobotics/maven-release")
-         repository("http://dl.bintray.com/ihmcrobotics/maven-vendor")
+         repository("https://dl.bintray.com/ihmcrobotics/maven-release")
+         repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          declareMavenLocal()
       }
