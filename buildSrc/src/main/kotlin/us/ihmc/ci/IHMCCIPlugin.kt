@@ -199,7 +199,10 @@ class IHMCCIPlugin : Plugin<Project>
                {
                   for (tag in definedCategory.value.includeTags)
                   {
-                     this.excludeTags(tag)
+                     if (tag != "fast") // this allows @Tag("fast") to be used
+                     {
+                        this.excludeTags(tag)
+                     }
                   }
                }
             }
@@ -278,7 +281,10 @@ class IHMCCIPlugin : Plugin<Project>
       {
          testsToTagsMap.value.forEach {
             it.value.forEach {
-               categoryConfig.excludeTags.add(it)
+               if (it != "fast")
+               {
+                  categoryConfig.excludeTags.add(it)
+               }
             }
          }
          categoryConfig.includeTags.clear()  // include is a whitelist, so must clear it
