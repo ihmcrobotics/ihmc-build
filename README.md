@@ -150,10 +150,12 @@ compositeSearchHeight = 0
 excludeFromCompositeBuild = false
 ```
 
-Fill out `build.gradle`:
+#### Using Kotlin Script (recommended)
+
+Fill out `build.gradle.kts`:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.17.1"
+   id("us.ihmc.ihmc-build") version "0.19.7"
 }
 
 ihmc {
@@ -161,13 +163,60 @@ ihmc {
    version = "0.1.0"
    vcsUrl = "https://your.vcs/url"
    openSource = false
+   maintainer = "Your Name"
+
+   configureDependencyResolution()
+   configurePublications()
+}
+
+mainDependencies {
+   api("some:main-dependency:0.1")
+}
+
+testDependencies {
+}
+
+```
+
+Copy the following into `settings.gradle.kts`:
+```gradle
+buildscript {
+   repositories {
+      maven { url = uri("https://plugins.gradle.org/m2/") }
+      mavenLocal()
+   }
+   dependencies {
+      classpath("us.ihmc:ihmc-build:0.19.7")
+   }
+}
+
+val ihmcSettingsConfigurator = us.ihmc.build.IHMCSettingsConfigurator(settings, logger, extra)
+ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
+ihmcSettingsConfigurator.configureExtraSourceSets()
+ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
+```
+
+#### Using Groovy
+
+Fill out `build.gradle`:
+```gradle
+plugins {
+   id("us.ihmc.ihmc-build") version "0.19.7"
+}
+
+ihmc {
+   group = "us.ihmc"
+   version = "0.1.0"
+   vcsUrl = "https://your.vcs/url"
+   openSource = false
+   maintainer = "Your Name"
    
    configureDependencyResolution()
    configurePublications()
 }
 
 mainDependencies {
-   compile group: 'some', name: 'main-dependency', version: '0.1'
+   api("some:main-dependency:0.1")
 }
 
 testDependencies {
@@ -182,7 +231,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.17.1"
+      classpath "us.ihmc:ihmc-build:0.19.7"
    }
 }
 
@@ -239,17 +288,44 @@ The Gradle build files for the projects that do not contain `src/main/java` dire
 
 `gradle.properties` for project group:
 ```ini
-kebabCasedName = your-project
-pascalCasedName = YourProject
+title = Your Project
 isProjectGroup = true
 compositeSearchHeight = 0
 excludeFromCompositeBuild = false
 ```
 
+#### Using Kotlin Script (recommended)
+
+`build.gradle.kts` for project group:
+```gradle
+plugins {
+   id("us.ihmc.ihmc-build") version "0.19.7"
+}
+```
+
+`settings.gradle.kts` for project group:
+```gradle
+buildscript {
+   repositories {
+      maven { url = uri("https://plugins.gradle.org/m2/") }
+      mavenLocal()
+   }
+   dependencies {
+      classpath("us.ihmc:ihmc-build:0.19.7")
+   }
+}
+
+val ihmcSettingsConfigurator = us.ihmc.build.IHMCSettingsConfigurator(settings, logger, extra)
+ihmcSettingsConfigurator.configureAsGroupOfProjects()
+ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
+```
+
+#### Using Groovy
+
 `build.gradle` for project group:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.17.1"
+   id("us.ihmc.ihmc-build") version "0.19.7"
 }
 ```
 
@@ -261,7 +337,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath "us.ihmc:ihmc-build:0.17.1"
+      classpath "us.ihmc:ihmc-build:0.19.7"
    }
 }
 
