@@ -200,6 +200,21 @@ object IHMCBuildTools
       }
    }
 
+   fun compatibilityVersionCompatibility(extra: ExtraPropertiesExtension): String
+   {
+      if (containsValidStringProperty("compatibilityVersion", extra))
+      {
+         return (extra.get("compatibilityVersion") as String).trim()
+      }
+      else
+      {
+         val defaultValue = "CURRENT"
+         LogTools.info("No value found for compatibilityVersion. Using default value: $defaultValue")
+         extra.set("compatibilityVersion", defaultValue)
+         return defaultValue
+      }
+   }
+
    fun containsValidStringProperty(propertyName: String, extra: ExtraPropertiesExtension): Boolean
    {
       return extra.has(propertyName) && !(extra.get(propertyName) as String).startsWith("$")

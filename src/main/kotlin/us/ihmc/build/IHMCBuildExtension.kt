@@ -53,6 +53,7 @@ open class IHMCBuildExtension(val project: Project)
    private val publishUrlProperty: String
    private val ciDatabaseUrlProperty: String
    private val artifactoryUrlProperty: String
+   private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
    
    // Bamboo variables
@@ -94,6 +95,7 @@ open class IHMCBuildExtension(val project: Project)
       publishUrlProperty = IHMCBuildTools.publishUrlCompatibility(project.extra)
       ciDatabaseUrlProperty = IHMCBuildTools.ciDatabaseUrlCompatibility(project.extra)
       artifactoryUrlProperty = IHMCBuildTools.artifactoryUrlCompatibility(project.extra)
+      compatibilityVersionProperty = IHMCBuildTools.compatibilityVersionCompatibility(project.extra)
 
       titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
       kebabCasedNameProperty = IHMCBuildTools.kebabCasedNameCompatibility(project.name, project.extra)
@@ -235,6 +237,12 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://dl.bintray.com/ihmcrobotics/maven-release")
          repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         repository("https://jitpack.io")
+         if (!openSource)
+         {
+            repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
+            repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
+         }
          declareMavenLocal()
       }
       
@@ -399,8 +407,11 @@ open class IHMCBuildExtension(val project: Project)
    fun setupJavaSourceSets()
    {
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
-      java.sourceCompatibility = JavaVersion.VERSION_1_8
-      java.targetCompatibility = JavaVersion.VERSION_1_8
+      if (compatibilityVersionProperty != "CURRENT")
+      {
+         java.sourceCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
+         java.targetCompatibility = JavaVersion.valueOf(compatibilityVersionProperty);
+      }
       for (sourceSet in java.sourceSets)
       {
          sourceSet.java.setSrcDirs(emptySet<File>())
@@ -412,8 +423,11 @@ open class IHMCBuildExtension(val project: Project)
       for (subproject in project.subprojects)
       {
          val javaSubproject = subproject.convention.getPlugin(JavaPluginConvention::class.java)
-         javaSubproject.sourceCompatibility = JavaVersion.VERSION_1_8
-         javaSubproject.targetCompatibility = JavaVersion.VERSION_1_8
+         if (compatibilityVersionProperty != "CURRENT")
+         {
+            javaSubproject.sourceCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
+            javaSubproject.targetCompatibility = JavaVersion.valueOf(compatibilityVersionProperty);
+         }
          for (sourceSet in javaSubproject.sourceSets)
          {
             sourceSet.java.setSrcDirs(emptySet<File>())
