@@ -4,6 +4,7 @@ import com.mashape.unirest.http.Unirest
 import com.mashape.unirest.http.exceptions.UnirestException
 import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
+import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.*
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.initialization.IncludedBuild
@@ -500,7 +501,22 @@ open class IHMCBuildExtension(val project: Project)
       else
          return project.project(project.name + "-" + sourceSetName)
    }
-   
+
+   fun javaFXModule(moduleName: String, version: String): String
+   {
+      return "org.openjfx:javafx-$moduleName:$version:${javaFXOSIdentifier()}"
+   }
+
+   fun javaFXOSIdentifier(): String
+   {
+      return when
+      {
+         SystemUtils.IS_OS_WINDOWS -> "win"
+         SystemUtils.IS_OS_MAC     -> "mac"
+         else                      -> "linux"
+      }
+   }
+
    private fun getPublishVersion(): String
    {
       if (snapshotModeProperty)
