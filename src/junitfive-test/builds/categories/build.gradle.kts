@@ -1,8 +1,8 @@
 plugins {
-   id("us.ihmc.ihmc-build")
-   id("us.ihmc.log-tools-plugin") version "0.6.3"
-   id("us.ihmc.ihmc-ci") version "7.7"
-   id("us.ihmc.ihmc-cd") version "1.23"
+   id("us.ihmc.ihmc-build") version "0.20.1"
+   id("us.ihmc.log-tools") version "0.3.1"
+   id("us.ihmc.ihmc-ci") version "5.3"
+   id("us.ihmc.ihmc-cd") version "1.8"
 }
 
 ihmc {
@@ -15,16 +15,16 @@ ihmc {
    configurePublications()
 }
 
-//categories.configure("all") {
-//
-//}
+categories.configure("all") {
 
-//ihmc.sourceSetProject("test").tasks.named("test", Test::class.java) {
+}
+
+//ihmc.sourceSetProject("test").test {
 //
 //}
 
 mainDependencies {
-   api("org.apache.commons:commons-lang3:3.12.0")
+   api("org.apache.commons:commons-lang3:3.9")
 }
 
 testDependencies {
