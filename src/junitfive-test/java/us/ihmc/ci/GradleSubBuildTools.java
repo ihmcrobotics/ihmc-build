@@ -6,14 +6,14 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class GradleSubBuildTools
 {
    public static String buildsDir = "builds/";
-   public static String gradleCommand = SystemUtils.IS_OS_WINDOWS ? "gradlew.bat" : "gradlew";
+   public static String gradleCommand = SystemUtils.IS_OS_WINDOWS ? "gradlew.bat" : "gradle";
    public static String gradleExe = Paths.get(buildsDir + gradleCommand).toAbsolutePath().toString();
 
    public static String runCommand(String command, Path workingDir)
@@ -21,23 +21,22 @@ public class GradleSubBuildTools
       try
       {
          String[] parts = command.split("\\s");
-         Process proc = new ProcessBuilder(parts)
-               .directory(workingDir.toFile())
-               .redirectOutput(ProcessBuilder.Redirect.PIPE)
-               .redirectError(ProcessBuilder.Redirect.PIPE)
-               .start();
+         Process processBuilder = new ProcessBuilder(parts).directory(workingDir.toFile())
+                                                           .redirectOutput(ProcessBuilder.Redirect.PIPE)
+                                                           .redirectError(ProcessBuilder.Redirect.PIPE)
+                                                           .start();
 
-         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-         TeeOutputStream teeOutputStream = new TeeOutputStream(System.out, baos);
-         TeeInputStream teeSysOut = new TeeInputStream(proc.getInputStream(), teeOutputStream);
-         TeeInputStream teeSysErr = new TeeInputStream(proc.getErrorStream(), teeOutputStream);
-         while (proc.isAlive())
+         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+         TeeOutputStream teeOutputStream = new TeeOutputStream(System.out, byteArrayOutputStream);
+         TeeInputStream teeSysOut = new TeeInputStream(processBuilder.getInputStream(), teeOutputStream);
+         TeeInputStream teeSysErr = new TeeInputStream(processBuilder.getErrorStream(), teeOutputStream);
+         while (processBuilder.isAlive())
          {
             readAllFromTee(teeSysOut, teeSysErr);
          }
          readAllFromTee(teeSysOut, teeSysErr);
 
-         String output = baos.toString(Charset.forName("UTF-8"));
+         String output = byteArrayOutputStream.toString(StandardCharsets.UTF_8);
          return output;
       }
       catch (IOException | InterruptedException e)
@@ -49,16 +48,21 @@ public class GradleSubBuildTools
 
    private static void readAllFromTee(TeeInputStream teeSysOut, TeeInputStream teeSysErr) throws IOException, InterruptedException
    {
-      while (teeSysOut.read() > -1 || teeSysErr.read() > -1);
+      while (teeSysOut.read() > -1 || teeSysErr.read() > -1)
+         ;
       Thread.sleep(200);
    }
 
    public static String runGradleTask(String command, String project)
    {
-      System.out.println("Running " + gradleExe + " in " + Paths.get(buildsDir + project).toAbsolutePath());
-      if (command == null || command.isEmpty())
-         return runCommand(gradleExe, Paths.get("builds/" + project).toAbsolutePath());
-      else
-         return runCommand(gradleExe + " " + command, Paths.get(buildsDir + project).toAbsolutePath());
+      String commandString = gradleExe;
+      if (command != null && !command.isEmpty())
+      {
+         commandString += " " + command;
+      }
+
+      System.out.println("Running " + commandString + " in " + Paths.get(buildsDir + project).toAbsolutePath());
+
+      return runCommand(gradleExe + " " + command, Paths.get(buildsDir + project).toAbsolutePath());
    }
 }
