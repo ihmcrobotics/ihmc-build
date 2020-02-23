@@ -14,7 +14,8 @@ public class GradleSubBuildTools
 {
    public static String buildsDir = "builds/";
    public static String gradleCommand = SystemUtils.IS_OS_WINDOWS ? "gradlew.bat" : "/usr/bin/gradle";
-   public static String gradleExe = Paths.get(buildsDir + gradleCommand).toAbsolutePath().toString();
+//   public static String gradleExe = Paths.get(buildsDir + gradleCommand).toAbsolutePath().toString();
+   public static String gradleExe = "/usr/bin/gradle";
 
    public static String runCommand(String command, Path workingDir)
    {
