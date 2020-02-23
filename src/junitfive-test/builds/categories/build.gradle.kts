@@ -15,9 +15,9 @@ ihmc {
    configurePublications()
 }
 
-categories.configure("all") {
-
-}
+//categories.configure("all") {
+//
+//}
 
 //ihmc.sourceSetProject("test").test {
 //
