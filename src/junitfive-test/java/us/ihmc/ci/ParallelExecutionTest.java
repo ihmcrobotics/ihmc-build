@@ -21,7 +21,7 @@ public class ParallelExecutionTest
       GradleSubBuildTools.runGradleTask("-v", projectName);
       String cleanOutput = GradleSubBuildTools.runGradleTask("clean", projectName);
       Assertions.assertTrue(cleanOutput.contains("BUILD SUCCESSFUL"));
-      String output = GradleSubBuildTools.runGradleTask("test", projectName);
+      String output = GradleSubBuildTools.runGradleTask("test -Pcategory=all", projectName);
       Assertions.assertTrue(output.contains("BUILD FAILED"));
 
       LogTools.info("Working dir: " + Paths.get(".").toAbsolutePath());
