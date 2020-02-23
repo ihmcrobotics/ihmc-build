@@ -15,9 +15,13 @@ ihmc {
    configurePublications()
 }
 
-ihmc.sourceSetProject("test").test {
+categories.configure("all") {
 
 }
+
+//ihmc.sourceSetProject("test").test {
+//
+//}
 
 mainDependencies {
    api("org.apache.commons:commons-lang3:3.9")
