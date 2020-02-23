@@ -21,7 +21,7 @@ public class ParallelExecutionTest
       GradleSubBuildTools.runGradleTask("-v", projectName);
       String cleanOutput = GradleSubBuildTools.runGradleTask("clean", projectName);
       Assertions.assertTrue(cleanOutput.contains("BUILD SUCCESSFUL"));
-      String output = GradleSubBuildTools.runGradleTask("test -Pcategory=all", projectName);
+      String output = GradleSubBuildTools.runGradleTask("test --info -Pcategory=all", projectName);
       Assertions.assertTrue(output.contains("BUILD FAILED"));
 
       LogTools.info("Working dir: " + Paths.get(".").toAbsolutePath());
@@ -44,7 +44,7 @@ public class ParallelExecutionTest
       GradleSubBuildTools.runGradleTask("-v", projectName);
       String cleanOutput = GradleSubBuildTools.runGradleTask("clean", projectName);
       Assertions.assertTrue(cleanOutput.contains("BUILD SUCCESSFUL"));
-      String output = GradleSubBuildTools.runGradleTask("test -PincludeTags=fast", projectName);
+      String output = GradleSubBuildTools.runGradleTask("test --info -PincludeTags=fast", projectName);
       Assertions.assertTrue(output.contains("BUILD SUCCESSFUL"));
 
       LogTools.info("Working dir: " + Paths.get(".").toAbsolutePath());
