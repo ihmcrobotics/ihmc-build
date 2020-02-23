@@ -19,6 +19,7 @@ public class CategoriesTest
    public void testAllTestsRun() throws UnsupportedEncodingException
    {
       String projectName = "categories";
+      GradleSubBuildTools.runGradleTask("-v", projectName);
       String cleanOutput = GradleSubBuildTools.runGradleTask("clean", projectName);
       Assertions.assertTrue(cleanOutput.contains("BUILD SUCCESSFUL"));
       String output = GradleSubBuildTools.runGradleTask("test", projectName);
@@ -39,6 +40,7 @@ public class CategoriesTest
    public void testFastTestsRun() throws UnsupportedEncodingException
    {
       String projectName = "categories";
+      GradleSubBuildTools.runGradleTask("-v", projectName);
       String cleanOutput = GradleSubBuildTools.runGradleTask("clean", projectName);
       Assertions.assertTrue(cleanOutput.contains("BUILD SUCCESSFUL"));
       String output = GradleSubBuildTools.runGradleTask("test -PincludeTags=fast", projectName);
