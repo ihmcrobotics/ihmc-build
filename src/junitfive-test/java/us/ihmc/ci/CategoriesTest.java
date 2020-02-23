@@ -31,7 +31,7 @@ public class CategoriesTest
       // Asserts 11 tests pass, 1 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>" + System.lineSeparator() +
                                                    "</td>" + System.lineSeparator() +
-                                                   "<td>11</td>" + System.lineSeparator() +
+                                                   "<td>9</td>" + System.lineSeparator() +
                                                    "<td>1</td>" + System.lineSeparator() +
                                                    "<td>0</td>"));
    }
@@ -52,7 +52,7 @@ public class CategoriesTest
       // Asserts 5 tests pass, 0 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>" + System.lineSeparator() +
                                                    "</td>" + System.lineSeparator() +
-                                                   "<td>5</td>" + System.lineSeparator() +
+                                                   "<td>6</td>" + System.lineSeparator() +
                                                    "<td>0</td>" + System.lineSeparator() +
                                                    "<td>0</td>"));
    }
