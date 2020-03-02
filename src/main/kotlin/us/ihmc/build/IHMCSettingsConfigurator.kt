@@ -22,7 +22,8 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       
       if (SemanticVersionNumber(settings.gradle.gradleVersion).compareTo(SemanticVersionNumber("5.3.1")) < 0)
       {
-         val message = "Gradle versions earlier than 5.3.1 are not supported. Please upgrade to the latest version."
+         val message = "Gradle version ${settings.gradle.gradleVersion} detected. Versions earlier than 5.3.1 are not supported. " +
+               "Please upgrade to the latest version."
          LogTools.error(message)
          throw GradleException(message)
       }
