@@ -20,7 +20,7 @@ dependencies {
    compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.2")
    compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3.1")
    compile("com.mashape.unirest:unirest-java:1.4.9")
-   compile("us.ihmc:ihmc-commons:0.29.0")
+   compile("us.ihmc:ihmc-commons:0.30.0")
    compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
 
    testCompile("org.junit.jupiter:junit-jupiter-api:5.5.1")
