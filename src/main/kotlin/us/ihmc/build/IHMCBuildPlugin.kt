@@ -85,6 +85,9 @@ class IHMCBuildPlugin : Plugin<Project>
          }
       }
 
+      // setup graph dependencies task
+      IHMCDependencyGraphviz(project)
+
       // composite tasks name composite* instead of *All because, while they would work for single multi project builds too,
       // the normal tasks also call the subproject ones
       IHMCBuildTools.defineDeepCompositeTask("compositeClean", "clean", project)
