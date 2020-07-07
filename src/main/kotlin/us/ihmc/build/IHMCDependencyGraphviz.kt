@@ -8,10 +8,9 @@ import guru.nidi.graphviz.toGraphviz
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.kotlin.dsl.get
+import us.ihmc.commons.Conversions
 import java.io.File
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -20,7 +19,6 @@ import kotlin.collections.HashMap
  */
 class IHMCDependencyGraphviz(val project: Project)
 {
-
    val previouslyExplored = sortedSetOf<String>()
 
    lateinit var graph: MutableGraph
@@ -42,11 +40,17 @@ class IHMCDependencyGraphviz(val project: Project)
             {
                val id = "${firstLevelModuleDependency.moduleGroup}:${firstLevelModuleDependency.moduleName}:${firstLevelModuleDependency.moduleVersion}"
 
+               if (projectName == id)
+               {
+                  continue;
+               }
+
                if (!nodeMap.containsKey(id))
                {
                   nodeMap[id] = Factory.mutNode(id)
                }
 
+               LogTools.info("Linking $projectName -> $id")
                nodeMap[projectName]!!.addLink(nodeMap[id])
 
                if (!previouslyExplored.contains(id))
@@ -62,9 +66,9 @@ class IHMCDependencyGraphviz(val project: Project)
             val calendar = Calendar.getInstance();
             val timestamp = dateFormat.format(calendar.getTime());
             val filePathName = System.getProperty("user.home") + "/.ihmc/logs/" + timestamp + "_" + "_DependencyGraph.png";
-//            val filePathName = System.getProperty("user.home") + "/" + LocalDateTime.now().format(dateFormatter) + "_DependencyGraph.png"
 
-            graph.toGraphviz().render(Format.PNG).toFile(File(filePathName))
+            LogTools.quiet("Rendering graphviz...")
+            graph.toGraphviz().totalMemory(Conversions.megabytesToBytes(2024)).render(Format.PNG).toFile(File(filePathName))
 
             LogTools.quiet("Dependency graph saved to " + filePathName)
          }
@@ -73,19 +77,21 @@ class IHMCDependencyGraphviz(val project: Project)
 
    private fun recursiveHandleDependency(firstLevelModuleDependency: ResolvedDependency, id: String)
    {
-//      LogTools.warn("nodeMap size: " + nodeMap.)
-//      LogTools.warn("nodeMap size: " + graph.tot)
-
-
       for (child in firstLevelModuleDependency.children)
       {
          val childId = "${child.moduleGroup}:${child.moduleName}:${child.moduleVersion}"
+
+         if (childId == id)
+         {
+            continue;
+         }
 
          if (!nodeMap.containsKey(childId))
          {
             nodeMap[childId] = Factory.mutNode(childId)
          }
 
+         LogTools.info("Linking $id -> $childId")
          nodeMap[id]!!.addLink(nodeMap[childId])
 
          if (!previouslyExplored.contains(childId))
