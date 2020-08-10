@@ -20,7 +20,6 @@ import org.gradle.kotlin.dsl.withType
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
-import us.ihmc.commons.thread.ThreadTools
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -147,7 +146,7 @@ open class IHMCBuildExtension(val project: Project)
       catch (e: UnirestException)
       {
          LogTools.info("Failed to retrieve integration number. Trying again... " + e.message)
-         ThreadTools.sleep(100)
+         Thread.sleep(100)
          try
          {
             Unirest.shutdown();

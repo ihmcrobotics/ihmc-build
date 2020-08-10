@@ -20,7 +20,6 @@ dependencies {
    api("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.2")
    api("gradle.plugin.com.dorongold.plugins:task-tree:1.3.1")
    api("com.mashape.unirest:unirest-java:1.4.9")
-   api("us.ihmc:ihmc-commons:0.30.0")
    api("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    api("guru.nidi:graphviz-kotlin:0.11.0")
 

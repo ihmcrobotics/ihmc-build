@@ -8,7 +8,6 @@ import guru.nidi.graphviz.toGraphviz
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.kotlin.dsl.get
-import us.ihmc.commons.Conversions
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -67,8 +66,15 @@ class IHMCDependencyGraphviz(val project: Project)
             val timestamp = dateFormat.format(calendar.getTime());
             val filePathName = System.getProperty("user.home") + "/.ihmc/logs/" + timestamp + "_" + "_DependencyGraph.png";
 
-            LogTools.quiet("Rendering graphviz...")
-            graph.toGraphviz().totalMemory(Conversions.megabytesToBytes(2024)).render(Format.PNG).toFile(File(filePathName))
+            var graphvizBytes = 200000000
+            val graphvizMegabytesProperty = project.findProperty("graphvizTotalMemoryMB")
+            if (graphvizMegabytesProperty != null)
+            {
+               graphvizBytes = Integer.parseInt(graphvizMegabytesProperty.toString()) * 1000000
+            }
+            LogTools.quiet("Rendering graphviz... (total memory ${graphvizBytes / 1e6} MB)")
+            LogTools.quiet("Note: If graphviz results in a memory error, try -PgraphvizTotalMemoryMB=1000 and/or org.gradle.jvmargs=-Xmx2g")
+            graph.toGraphviz().totalMemory(graphvizBytes).render(Format.PNG).toFile(File(filePathName))
 
             LogTools.quiet("Dependency graph saved to " + filePathName)
          }
