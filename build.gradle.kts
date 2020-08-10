@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.20.2"
+version = "0.21.0"
 
 repositories {
    jcenter()
@@ -17,15 +17,15 @@ repositories {
 }
 
 dependencies {
-   compile("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.2")
-   compile("gradle.plugin.com.dorongold.plugins:task-tree:1.3.1")
-   compile("com.mashape.unirest:unirest-java:1.4.9")
-   compile("us.ihmc:ihmc-commons:0.30.0")
-   compile("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
+   api("ca.cutterslade.gradle:gradle-dependency-analyze:1.2.2")
+   api("gradle.plugin.com.dorongold.plugins:task-tree:1.3.1")
+   api("com.mashape.unirest:unirest-java:1.4.9")
+   api("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
+   api("guru.nidi:graphviz-kotlin:0.11.0")
 
-   testCompile("org.junit.jupiter:junit-jupiter-api:5.5.1")
-   testCompile("org.junit.jupiter:junit-jupiter-engine:5.5.1")
-   testCompile("us.ihmc:encrypted-properties:0.1.0")
+   testApi("org.junit.jupiter:junit-jupiter-api:5.5.1")
+   testApi("org.junit.jupiter:junit-jupiter-engine:5.5.1")
+   testApi("us.ihmc:encrypted-properties:0.1.0")
 }
 
 tasks.withType<Test> {

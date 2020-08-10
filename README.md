@@ -379,6 +379,19 @@ Documentation on Confluence: https://confluence.ihmc.us/display/BUILD/New+Build+
 
 Presentation outlining the purpose of this project: https://docs.google.com/presentation/d/1xH8kKYqLaBkRXms_04nb_yyoV6MRchLO8EAtz9WqfZA/edit?usp=sharing
 
+#### Testing Without Publishing to the Gradle Plugins Site
+
+Use `gradle publishToMavenLocal`
+and the in the depending project, use in the `settings.gradle.kts`:
+```kotlin
+pluginManagement {
+   repositories {
+      mavenLocal()
+      gradlePluginPortal()
+   }
+}
+```
+
 ### Future plans
 
 Get Kotlin build scripts working in IntelliJ and Eclipse.
