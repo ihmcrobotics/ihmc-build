@@ -342,9 +342,8 @@ open class IHMCBuildExtension(val project: Project)
             {
                declareMavenLocal()
             }
-            else if ((IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshots")
-                      || IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshot"))
-                  && (artifactoryUsername != "unset_username"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshots")
+                  || IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshot"))
             {
                if (openSource)
                {
@@ -361,7 +360,7 @@ open class IHMCBuildExtension(val project: Project)
                {
                   declareBintray("maven-release")
                }
-               else if (artifactoryUsername != "unset_username")
+               else
                {
                   declareArtifactory("proprietary-releases")
                }
@@ -372,7 +371,7 @@ open class IHMCBuildExtension(val project: Project)
                {
                   declareBintray("maven-vendor")
                }
-               else if (artifactoryUsername != "unset_username")
+               else
                {
                   declareArtifactory("proprietary-releases")
                }
