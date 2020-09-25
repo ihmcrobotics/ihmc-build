@@ -395,13 +395,15 @@ class IHMCCIPlugin : Plugin<Project>
       project.logger.info("[ihmc-ci] category = $category")
       project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
       project.logger.info("[ihmc-ci] vintageSuite = $vintageSuite")
-      project.logger.info("[ihmc-ci] minHeapSizeGB = $minHeapSizeGBOverride")
-      project.logger.info("[ihmc-ci] maxHeapSizeGB = $maxHeapSizeGBOverride")
-      project.logger.info("[ihmc-ci] forkEvery = $forkEveryOverride")
-      project.logger.info("[ihmc-ci] maxParallelForks = $maxParallelForksOverride")
-      project.logger.info("[ihmc-ci] enableAssertions = $enableAssertionsOverride")
-      project.logger.info("[ihmc-ci] allocationRecording = $allocationRecordingOverride")
+      project.logger.info("[ihmc-ci] minHeapSizeGB = ${unsetPrintFilter(minHeapSizeGBOverride)}")
+      project.logger.info("[ihmc-ci] maxHeapSizeGB = ${unsetPrintFilter(maxHeapSizeGBOverride)}")
+      project.logger.info("[ihmc-ci] forkEvery = ${unsetPrintFilter(forkEveryOverride)}")
+      project.logger.info("[ihmc-ci] maxParallelForks = ${unsetPrintFilter(maxParallelForksOverride)}")
+      project.logger.info("[ihmc-ci] enableAssertions = ${unsetPrintFilter(enableAssertionsOverride)}")
+      project.logger.info("[ihmc-ci] allocationRecording = ${unsetPrintFilter(allocationRecordingOverride)}")
    }
+
+   private fun unsetPrintFilter(any: Any) = if (any is Unset) "Not set" else any
 
    fun testProjects(project: Project): List<Project>
    {
