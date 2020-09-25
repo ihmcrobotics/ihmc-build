@@ -56,7 +56,7 @@ class IHMCCIPlugin : Plugin<Project>
       for (testProject in testProjects(project))
       {
          LogTools.info("[ihmc-ci] Configuring ${testProject.name}")
-         addTestDependencies(testProject, "compile", "runtimeOnly")
+         testProject.afterEvaluate { addTestDependencies(testProject, "api", "runtimeOnly") }
          configureTestTask(testProject)
       }
 
@@ -65,7 +65,7 @@ class IHMCCIPlugin : Plugin<Project>
       if (!containsIHMCTestMultiProject(project))
       {
          LogTools.info("[ihmc-ci] No test multi-project found, using test source set")
-         addTestDependencies(project, "testCompile", "testRuntimeOnly")
+         project.afterEvaluate { addTestDependencies(project, "testImplementation", "testRuntimeOnly") }
          configureTestTask(project)
       }
 
@@ -132,22 +132,22 @@ class IHMCCIPlugin : Plugin<Project>
       project.tasks.register("generateTestSuites")
    }
 
-   fun addTestDependencies(project: Project, compileConfigName: String, runtimeConfigName: String)
+   fun addTestDependencies(project: Project, apiConfigName: String, runtimeOnlyConfigName: String)
    {
       if (vintageMode)
       {
-         project.dependencies.add(runtimeConfigName, "junit:junit:4.12")
+         project.dependencies.add(runtimeOnlyConfigName, "junit:junit:4.12")
       }
       else // add junit 5 dependencies
       {
-         project.dependencies.add(compileConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-         project.dependencies.add(compileConfigName, "org.junit.platform:junit-platform-commons:$PLATFORM_VERSION")
-         project.dependencies.add(compileConfigName, "org.junit.platform:junit-platform-launcher:$PLATFORM_VERSION")
-         project.dependencies.add(runtimeConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
+         project.dependencies.add(apiConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
+         project.dependencies.add(apiConfigName, "org.junit.platform:junit-platform-commons:$PLATFORM_VERSION")
+         project.dependencies.add(apiConfigName, "org.junit.platform:junit-platform-launcher:$PLATFORM_VERSION")
+         project.dependencies.add(runtimeOnlyConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
       }
 
       if (category == "allocation") // help out users trying to run allocation tests
-         project.dependencies.add(compileConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.2.0")
+         project.dependencies.add(apiConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.2.0")
    }
 
    fun configureTestTask(project: Project)
