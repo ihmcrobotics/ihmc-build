@@ -1,5 +1,5 @@
 plugins {
-   id("us.ihmc.ihmc-build") version "0.22.0"
+   id("us.ihmc.ihmc-build")
    id("us.ihmc.log-tools-plugin") version "0.5.0"
    id("us.ihmc.ihmc-ci") version "6.2"
    id("us.ihmc.ihmc-cd") version "1.8"
