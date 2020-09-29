@@ -238,7 +238,7 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
-         if (!openSource)
+         if (!openSource && (artifactoryUsername != "unset_username")) // support third parties not needing to declare Artifactory
          {
             repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
