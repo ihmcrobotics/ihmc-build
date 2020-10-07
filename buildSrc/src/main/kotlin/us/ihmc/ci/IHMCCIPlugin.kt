@@ -361,7 +361,7 @@ class IHMCCIPlugin : Plugin<Project>
       {
          for (testProject in testProjects(project))
          {
-            testProject.configurations.getByName("runtime").files.forEach {
+            testProject.configurations.getByName("runtimeClasspath").files.forEach {
                if (it.name.contains("java-allocation-instrumenter"))
                {
                   allocationJVMArg = "-javaagent:" + it.getAbsolutePath()
