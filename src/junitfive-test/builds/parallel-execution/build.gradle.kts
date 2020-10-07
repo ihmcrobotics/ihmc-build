@@ -1,8 +1,8 @@
 plugins {
    id("us.ihmc.ihmc-build")
-   id("us.ihmc.log-tools-plugin") version "0.6.3"
-   id("us.ihmc.ihmc-ci") version "7.7"
-   id("us.ihmc.ihmc-cd") version "1.23"
+   id("us.ihmc.log-tools-plugin") version "0.5.0"
+   id("us.ihmc.ihmc-ci") version "6.3"
+   id("us.ihmc.ihmc-cd") version "1.8"
 }
 
 ihmc {
@@ -15,17 +15,20 @@ ihmc {
    configurePublications()
 }
 
-ihmc.sourceSetProject("test").tasks.named("test", Test::class.java) {
-   setForkEvery(1)
+ihmc.sourceSetProject("test").test {
+
+   forkEvery = 1
    maxParallelForks = 20
 
-   systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
-   systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "dynamic"
-//   systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = "2"
+   systemProperties = [
+         'junit.jupiter.execution.parallel.enabled': 'true',
+         'junit.jupiter.execution.parallel.config.strategy': 'dynamic',
+//         'junit.jupiter.execution.parallel.config.fixed.parallelism': '2'
+   ]
 }
 
 mainDependencies {
-   api("org.apache.commons:commons-lang3:3.12.0")
+   api("org.apache.commons:commons-lang3:3.9")
 }
 
 testDependencies {

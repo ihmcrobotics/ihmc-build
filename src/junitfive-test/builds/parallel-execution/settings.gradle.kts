@@ -1,16 +1,10 @@
-pluginManagement {
-   plugins {
-      id("us.ihmc.ihmc-build") version "0.29.3"
-   }
-}
-
 buildscript {
    repositories {
       maven { url = uri("https://plugins.gradle.org/m2/") }
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.29.3")
+      classpath("us.ihmc:ihmc-build:0.22.0")
    }
 }
 
