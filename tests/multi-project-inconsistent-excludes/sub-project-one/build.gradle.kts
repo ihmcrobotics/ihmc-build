@@ -1,6 +1,5 @@
 plugins {
    id("us.ihmc.ihmc-build") version "0.22.0"
-   id("us.ihmc.ihmc-ci") version "6.3"
 }
 
 ihmc {
@@ -16,9 +15,9 @@ ihmc {
 println("hello")
 
 mainDependencies {
-   api("us.ihmc:sub-project-one-test:source")
+   api("us.ihmc:sub-project-two:$version")
 }
 
-oneTestDependencies {
-   ihmc.sourceSetProject("one-test").dependencies.api("us.ihmc:sub-project-one-test:source")
+testDependencies {
+
 }

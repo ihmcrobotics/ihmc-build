@@ -10,6 +10,7 @@ import us.ihmc.encryptedProperties.EncryptedPropertyManager
  */
 class ContinuousIntegrationTest
 {
+   @Disabled
    @Test
    fun testGenerateTestSuitesSucceeds()
    {

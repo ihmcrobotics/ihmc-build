@@ -1,5 +1,6 @@
 plugins {
    id("us.ihmc.ihmc-build") version "0.22.0"
+   id("us.ihmc.ihmc-ci") version "6.3"
 }
 
 ihmc {
@@ -14,13 +15,8 @@ ihmc {
 
 println("hello")
 
-dependencies {
-   compile("commons-io:commons-io:2.6")
-
-   testCompile("junit:junit:4.12")
-}
-
 mainDependencies {
+   api("commons-io:commons-io:2.6")
 }
 
 testDependencies {

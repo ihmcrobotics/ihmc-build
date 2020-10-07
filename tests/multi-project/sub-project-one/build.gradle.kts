@@ -1,5 +1,5 @@
 plugins {
-   id("us.ihmc.ihmc-build")
+   id("us.ihmc.ihmc-build") version "0.22.0"
 }
 
 ihmc {
@@ -12,7 +12,7 @@ ihmc {
    configurePublications()
 }
 
-println "hello"
+println("hello")
 
 mainDependencies {
 

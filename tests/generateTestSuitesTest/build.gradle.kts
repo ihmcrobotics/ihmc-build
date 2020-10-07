@@ -1,21 +1,9 @@
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.22.0"
-      classpath "us.ihmc:ihmc-ci-plugin:0.18.0"
-   }
-}
-apply plugin: "us.ihmc.ihmc-build"
-apply plugin: "us.ihmc.ihmc-ci-plugin"
-
-testSuites {
-   disableBambooConfigurationCheck = true
+plugins {
+   id("us.ihmc.ihmc-build") version "0.22.0"
+   id("us.ihmc.ihmc-ci") version "6.3"
 }
 
-println testSuites.convertJobNameToHyphenatedName("AtlasAFast")
+// TODO: Fix up to test CI stuff maybe
 
 artifactoryUsername = System.properties.getProperty("artifactory.username")
 artifactoryPassword = System.properties.getProperty("artifactory.password")
@@ -37,5 +25,4 @@ mainDependencies {
 }
 
 testDependencies {
-   api("us.ihmc:ihmc-ci-core-api:0.18.0")
 }

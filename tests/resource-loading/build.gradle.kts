@@ -14,5 +14,5 @@ ihmc {
 }
 
 ihmc.sourceSetProject("test").dependencies {
-   compile(ihmc.sourceSetProject("other-set"))
+   api(ihmc.sourceSetProject("other-set"))
 }

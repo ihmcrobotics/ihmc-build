@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test
 class EmptyBuildGradleTest
 {
    @Test
-   fun testEmptyBuildGradleGivesError()
+   fun testEmptyBuildDoesntGiveError()
    {
       val output = runGradleTask("", "emptyBuildGradleProject")
       
-      assertTrue(output.contains(Regex("Build file is empty")))
+      assertFalse(output.contains(Regex("Build file is empty")))
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
 }

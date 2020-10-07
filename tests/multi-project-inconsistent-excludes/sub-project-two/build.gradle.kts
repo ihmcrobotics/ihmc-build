@@ -1,5 +1,5 @@
 plugins {
-   id("us.ihmc.ihmc-build")
+   id("us.ihmc.ihmc-build") version "0.22.0"
 }
 
 ihmc {
@@ -15,7 +15,7 @@ ihmc {
 println "hello"
 
 mainDependencies {
-   compile group: "us.ihmc", name: "sub-project-two", version: version
+
 }
 
 testDependencies {
