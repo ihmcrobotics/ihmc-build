@@ -230,21 +230,20 @@ class IHMCCIPlugin : Plugin<Project>
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
       this.project.logger.info("[ihmc-ci] Passing to JVM: -Dresource.dir=" + resourcesDir)
       test.systemProperties["resource.dir"] = resourcesDir
-      val tmpArgs = test.allJvmArgs
+
       for (jvmArg in categoryConfig.jvmArguments)
       {
          if (jvmArg == ALLOCATION_AGENT_KEY)
          {
-            tmpArgs.add(findAllocationJVMArg())
+            test.jvmArgs(findAllocationJVMArg())
          }
          else
          {
-            tmpArgs.add(jvmArg)
+            test.jvmArgs(jvmArg)
          }
       }
       if (categoryConfig.enableAssertions)
       {
-         tmpArgs.add("-ea")
          this.project.logger.info("[ihmc-ci] Assertions enabled. Adding JVM arg: -ea")
          test.enableAssertions = true
       }
@@ -252,9 +251,8 @@ class IHMCCIPlugin : Plugin<Project>
       {
          this.project.logger.info("[ihmc-ci] Assertions disabled")
          test.enableAssertions = false
-         tmpArgs.remove("-ea")
       }
-      test.allJvmArgs = tmpArgs
+
       test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
 
