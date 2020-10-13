@@ -136,10 +136,12 @@ class IHMCCIPlugin : Plugin<Project>
    {
       if (vintageMode)
       {
+         LogTools.info("[ihmc-ci] Adding JUnit 4 dependency to $runtimeOnlyConfigName in ${project.name}")
          project.dependencies.add(runtimeOnlyConfigName, "junit:junit:4.12")
       }
       else // add junit 5 dependencies
       {
+         LogTools.info("[ihmc-ci] Adding JUnit 5 dependencies to $runtimeOnlyConfigName and $apiConfigName in ${project.name}")
          project.dependencies.add(apiConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
          project.dependencies.add(apiConfigName, "org.junit.platform:junit-platform-commons:$PLATFORM_VERSION")
          project.dependencies.add(apiConfigName, "org.junit.platform:junit-platform-launcher:$PLATFORM_VERSION")
@@ -147,7 +149,10 @@ class IHMCCIPlugin : Plugin<Project>
       }
 
       if (category == "allocation") // help out users trying to run allocation tests
+      {
+         LogTools.info("[ihmc-ci] Adding allocation intrumenter dependency to $apiConfigName in ${project.name}")
          project.dependencies.add(apiConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.2.0")
+      }
    }
 
    fun configureTestTask(project: Project)
