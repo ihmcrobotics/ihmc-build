@@ -1,6 +1,5 @@
 package us.ihmc.ci;
 
-import com.github.kittinunf.fuel.Fuel
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -10,9 +9,7 @@ import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.kotlin.dsl.withType
-import org.json.JSONObject
 import java.io.File
-import java.nio.charset.Charset
 
 lateinit var LogTools: Logger
 
@@ -36,9 +33,20 @@ class IHMCCIPlugin : Plugin<Project>
    var ciBackendHost: String = "unset"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
+   val testProjects = lazy {
+      val testProjects = arrayListOf<Project>()
+      for (allproject in project.allprojects)
+      {
+         if (allproject.name.endsWith("-test"))
+         {
+            testProjects += allproject
+         }
+      }
+      testProjects
+   }
    val testsToTagsMap = lazy {
       val map = hashMapOf<String, HashSet<String>>()
-      testProjects(project).forEach {
+      testProjects.value.forEach {
          TagParser.parseForTags(it, map)
       }
       map
@@ -53,10 +61,15 @@ class IHMCCIPlugin : Plugin<Project>
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
       project.extensions.add("junitVersion", JUnitExtension(JUNIT_VERSION, PLATFORM_VERSION))
 
-      for (testProject in testProjects(project))
+      project.tasks.create("addTestDependencies") {
+
+         val java = project.convention.getPlugin(JavaPluginConvention::class.java)
+      }
+
+      for (testProject in testProjects.value)
       {
          LogTools.info("[ihmc-ci] Configuring ${testProject.name}")
-         testProject.afterEvaluate { addTestDependencies(testProject, "api", "runtimeOnly") }
+         testProject.beforeEvaluate { addTestDependencies(testProject, "api", "runtimeOnly") }
          configureTestTask(testProject)
       }
 
@@ -70,66 +83,14 @@ class IHMCCIPlugin : Plugin<Project>
       }
 
       // register ciServerSync task
-      val ciServerSync: (Task) -> Unit = { task ->
-         // add JavaCompile for all test projects
-         testProjects(project).forEach { testProject ->
-            task.dependsOn(testProject.tasks.getByPath("compileJava"))
-         }
+      CIServerSyncTask.configureTask(testsToTagsMap,
+                                     testProjects,
+                                     ciBackendHost).invoke(project.getOrCreate("ciServerSync"))
+   }
 
-         task.doFirst {
-            if (project.properties["ciPlanKey"] == null)
-               throw GradleException("[ihmc-ci] ciServerSync: Please set ciPlanKey = PROJKEY-PLANKEY")
-
-            var ciPlanKey = (project.properties["ciPlanKey"]!! as String).trim()
-            project.logger.info("[ihmc-ci] ciPlanKey = $ciPlanKey")
-            val discoveredTags = hashSetOf<String>()
-            testsToTagsMap.value.forEach { test ->
-               if (test.value.isEmpty())
-               {
-                  discoveredTags.add("fast")
-               }
-               test.value.forEach { tagName ->
-                  discoveredTags.add(tagName)
-               }
-            }
-            project.logger.info("[ihmc-ci] Discovered tags: $discoveredTags")
-
-            val json = JSONObject()
-            json.put("projectName", project.name)
-            json.put("ciPlanKey", ciPlanKey)
-            json.put("testsToTags", testsToTagsMap.value)
-
-            val url = "http://$ciBackendHost/sync"
-            var fail = false
-            var message = ""
-            val request = Fuel.post(url, listOf(Pair("text", json.toString(2)))).timeout(30000)
-            val cancellableRequest = request.response { req, res, result ->
-               result.fold({ byteArray ->
-                              val responseData = res.data.toString(Charset.defaultCharset())
-                              val jsonObject = JSONObject(responseData)
-                              message = jsonObject["message"] as String
-                              fail = jsonObject["fail"] as Boolean
-                           },
-                           { error ->
-                              message = "Post request failed: $url\n$error"
-                              fail = true
-                           })
-            }
-            cancellableRequest.join() // the above call is async, so wait for it
-
-            if (fail) // do this after to avoid exceptions getting caught by Fuel
-            {
-               throw GradleException("[ihmc-ci] ciServerSync: $message")
-            }
-            else
-            {
-               LogTools.info("[ihmc-ci] ciServerSync: $message")
-            }
-         }
-      }
-      project.tasks.register("ciServerSync", ciServerSync)
-
-      project.tasks.register("generateTestSuites")
+   private fun Project.getOrCreate(taskName: String): Task
+   {
+      return tasks.findByName(taskName) ?: tasks.create(taskName)
    }
 
    fun addTestDependencies(project: Project, apiConfigName: String, runtimeOnlyConfigName: String)
@@ -262,11 +223,11 @@ class IHMCCIPlugin : Plugin<Project>
       test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
 
       test.testLogging.info.events = setOf(TestLogEvent.STARTED,
-                                      TestLogEvent.FAILED,
-                                      TestLogEvent.PASSED,
-                                      TestLogEvent.SKIPPED,
-                                      TestLogEvent.STANDARD_ERROR,
-                                      TestLogEvent.STANDARD_OUT)
+                                           TestLogEvent.FAILED,
+                                           TestLogEvent.PASSED,
+                                           TestLogEvent.SKIPPED,
+                                           TestLogEvent.STANDARD_ERROR,
+                                           TestLogEvent.STANDARD_OUT)
 
       this.project.logger.info("[ihmc-ci] test.forkEvery = ${test.forkEvery}")
       this.project.logger.info("[ihmc-ci] test.maxParallelForks = ${test.maxParallelForks}")
@@ -362,7 +323,7 @@ class IHMCCIPlugin : Plugin<Project>
    {
       if (allocationJVMArg == null) // search only once
       {
-         for (testProject in testProjects(project))
+         for (testProject in testProjects.value)
          {
             testProject.configurations.getByName("runtimeClasspath").files.forEach {
                if (it.name.contains("java-allocation-instrumenter"))
@@ -407,19 +368,6 @@ class IHMCCIPlugin : Plugin<Project>
    }
 
    private fun unsetPrintFilter(any: Any) = if (any is Unset) "Not set" else any
-
-   fun testProjects(project: Project): List<Project>
-   {
-      val testProjects = arrayListOf<Project>()
-      for (allproject in project.allprojects)
-      {
-         if (allproject.name.endsWith("-test"))
-         {
-            testProjects += allproject
-         }
-      }
-      return testProjects
-   }
 
    fun containsIHMCTestMultiProject(project: Project): Boolean
    {
