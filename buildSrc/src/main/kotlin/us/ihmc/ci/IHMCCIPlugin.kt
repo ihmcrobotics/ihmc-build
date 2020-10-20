@@ -91,7 +91,7 @@ class IHMCCIPlugin : Plugin<Project>
          {
             registeredCIServerSyncTask = true
             project.tasks.register("ciServerSync") {
-               LogTools.quiet("Configuring ciServerSync task")
+               LogTools.info("Configuring ciServerSync task")
                configureCIServerSyncTask(testsToTagsMap, testProjects, ciBackendHost)
             }
          }
