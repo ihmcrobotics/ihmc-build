@@ -1,7 +1,6 @@
 package us.ihmc.ci
 
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.discovery.ClasspathRootSelector
@@ -25,12 +24,12 @@ object TagParser
     */
    fun parseForTags(testProject: Project, testsToTagsMap: HashMap<String, HashSet<String>>)
    {
-      LogTools.info("[ihmc-ci] Discovering tests in $testProject")
+      LogTools.info("Discovering tests in $testProject")
 
       val contextClasspathUrls = arrayListOf<URL>()   // all of the tests and dependencies
       val selectorPaths = hashSetOf<Path>()           // just the test classes in this project
       assembleTestClasspath(testProject, contextClasspathUrls, selectorPaths)
-      LogTools.debug("[ihmc-ci] Classpath entries: " + contextClasspathUrls.toString())
+      LogTools.debug("Classpath entries: " + contextClasspathUrls.toString())
 
       val originalClassLoader = Thread.currentThread().contextClassLoader
       val customClassLoader = URLClassLoader.newInstance(contextClasspathUrls.toTypedArray(), originalClassLoader)
@@ -48,7 +47,7 @@ object TagParser
          debugClasspathSelectors(discoveryRequest)
          testPlan = launcher.discover(discoveryRequest)
          recursiveBuildMap(testPlan.roots, testPlan, testsToTagsMap)
-         LogTools.debug("[ihmc-ci] Contains tests: ${testPlan.containsTests()}")
+         LogTools.debug("Contains tests: ${testPlan.containsTests()}")
       }
       finally
       {
@@ -62,7 +61,7 @@ object TagParser
          if (testIdentifier.type == TestDescriptor.Type.TEST && testIdentifier.source.isPresent && testIdentifier.source.get() is MethodSource)
          {
             val methodSource = testIdentifier.source.get() as MethodSource
-            LogTools.debug("[ihmc-ci] Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} path: $methodSource")
+            LogTools.debug("Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} path: $methodSource")
             val fullyQualifiedTestName = methodSource.className + "." + methodSource.methodName
             if (!testsToTagsMap.containsKey(fullyQualifiedTestName))
             {
@@ -75,7 +74,7 @@ object TagParser
          }
          else
          {
-            LogTools.debug("[ihmc-ci] Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} type: ${testIdentifier.type}")
+            LogTools.debug("Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} type: ${testIdentifier.type}")
          }
 
          recursiveBuildMap(testPlan.getChildren(testIdentifier), testPlan, testsToTagsMap)
@@ -126,7 +125,7 @@ object TagParser
    private fun debugClasspathSelectors(discoveryRequest: LauncherDiscoveryRequest)
    {
       discoveryRequest.getSelectorsByType(ClasspathRootSelector::class.java).forEach {
-         LogTools.debug("[ihmc-ci] Selector: $it")
+         LogTools.debug("Selector: $it")
       }
    }
 
@@ -134,7 +133,7 @@ object TagParser
    {
       // make sure context class loader is working
       customClassLoader.urLs.forEach {
-         LogTools.debug("[ihmc-ci] " + it.toString())
+         LogTools.debug(it.toString())
       }
    }
 }
