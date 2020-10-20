@@ -4,14 +4,13 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.kotlin.dsl.withType
 import java.io.File
 
-lateinit var LogTools: Logger
+lateinit var LogTools: IHMCCILogTools
 
 class IHMCCIPlugin : Plugin<Project>
 {
@@ -38,6 +37,7 @@ class IHMCCIPlugin : Plugin<Project>
    val apiConfigurationName = "api"
    val runtimeConfigurationName = "runtimeOnly"
    val addedDependenciesMap = HashMap<String, Boolean>()
+   var registeredCIServerSyncTask = false
    val testProjects = lazy {
       val testProjects = arrayListOf<Project>()
       for (allproject in project.allprojects)
@@ -62,22 +62,18 @@ class IHMCCIPlugin : Plugin<Project>
    override fun apply(project: Project)
    {
       this.project = project
-      LogTools = project.logger
+      LogTools = IHMCCILogTools(project.logger)
 
       loadProperties()
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
       project.extensions.add("junit", junit)
       project.extensions.add("allocation", allocation)
 
-//      project.tasks.create("addTestDependencies") {
-//
-//         val java = project.convention.getPlugin(JavaPluginConvention::class.java)
-//      }
-
+      // These things must be configured later in the build lifecycle.
+      // Here, we are notified when any task is added to the build.
+      // This happens a lot, so must check if requirements are met
+      // and gate it with a boolean.
       project.tasks.whenTaskAdded {
-         LogTools.quiet("Task was added!")
-         println("Task added: #configurations: " + project.configurations.size)
-
          for (testProject in testProjects.value)
          {
             addDependencies(testProject, apiConfigurationName, runtimeConfigurationName)
@@ -86,17 +82,22 @@ class IHMCCIPlugin : Plugin<Project>
          {
             addDependencies(project, "testImplementation", "testRuntimeOnly")
          }
+
+         var allHaveCompileJava = true
+         testProjects.value.forEach { testProject ->
+            allHaveCompileJava = allHaveCompileJava && testProject.tasks.findByPath("compileJava") != null
+         }
+         if (!registeredCIServerSyncTask && allHaveCompileJava)
+         {
+            registeredCIServerSyncTask = true
+            project.tasks.register("ciServerSync") {
+               LogTools.quiet("Configuring ciServerSync task")
+               configureCIServerSyncTask(testsToTagsMap, testProjects, ciBackendHost)
+            }
+         }
       }
 
-      return;
-
-//      addTestDependencies()
       configureTestTask()
-
-      // register ciServerSync task
-      CIServerSyncTask.configureTask(testsToTagsMap,
-                                     testProjects,
-                                     ciBackendHost).invoke(project.getOrCreate("ciServerSync"))
    }
 
    private fun addDependencies(project: Project, apiConfigurationName: String, runtimeConfigurationName: String)
@@ -110,12 +111,12 @@ class IHMCCIPlugin : Plugin<Project>
          addedDependenciesMap["${project.name}:$runtimeConfigurationName"] = true
          if (vintageMode)
          {
-            LogTools.info("[ihmc-ci] Adding JUnit 4 dependency to $runtimeConfigurationName in ${project.name}")
+            LogTools.info("Adding JUnit 4 dependency to $runtimeConfigurationName in ${project.name}")
             project.dependencies.add(runtimeConfigurationName, junit.vintage())
          }
          else
          {
-            LogTools.info("[ihmc-ci] Adding JUnit 5 dependencies to $runtimeConfigurationName in ${project.name}")
+            LogTools.info("Adding JUnit 5 dependencies to $runtimeConfigurationName in ${project.name}")
             project.dependencies.add(runtimeConfigurationName, junit.jupiterEngine())
          }
       }
@@ -126,7 +127,7 @@ class IHMCCIPlugin : Plugin<Project>
          addedDependenciesMap["${project.name}:$apiConfigurationName"] = true
          if (!vintageMode) // add junit 5 dependencies
          {
-            LogTools.info("[ihmc-ci] Adding JUnit 5 dependencies to $apiConfigurationName in ${project.name}")
+            LogTools.info("Adding JUnit 5 dependencies to $apiConfigurationName in ${project.name}")
             project.dependencies.add(apiConfigurationName, junit.jupiterApi())
             project.dependencies.add(apiConfigurationName, junit.platformCommons())
             project.dependencies.add(apiConfigurationName, junit.platformLauncher())
@@ -135,7 +136,7 @@ class IHMCCIPlugin : Plugin<Project>
 
          if (category == "allocation") // help out users trying to run allocation tests
          {
-            LogTools.info("[ihmc-ci] Adding allocation intrumenter dependency to $apiConfigurationName in ${project.name}")
+            LogTools.info("Adding allocation intrumenter dependency to $apiConfigurationName in ${project.name}")
             project.dependencies.add(apiConfigurationName, allocation.instrumenter())
          }
       }
@@ -151,11 +152,6 @@ class IHMCCIPlugin : Plugin<Project>
          }
       }
       return false
-   }
-
-   private fun Project.getOrCreate(taskName: String): Task
-   {
-      return tasks.findByName(taskName) ?: tasks.create(taskName)
    }
 
    fun configureTestTask()
@@ -196,7 +192,7 @@ class IHMCCIPlugin : Plugin<Project>
          if (vintageSuite != null)
          {
             val includeString = "**/${vintageSuite}TestSuite.class"
-            this.project.logger.info("[ihmc-ci] Including JUnit 4 classes: $includeString")
+            LogTools.info("Including JUnit 4 classes: $includeString")
             test.include(includeString)
          }
       }
@@ -250,7 +246,7 @@ class IHMCCIPlugin : Plugin<Project>
 
       val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
-      this.project.logger.info("[ihmc-ci] Passing to JVM: -Dresource.dir=" + resourcesDir)
+      LogTools.info("Passing to JVM: -Dresource.dir=$resourcesDir")
       test.systemProperties["resource.dir"] = resourcesDir
 
       for (jvmArg in categoryConfig.jvmArguments)
@@ -266,12 +262,12 @@ class IHMCCIPlugin : Plugin<Project>
       }
       if (categoryConfig.enableAssertions)
       {
-         this.project.logger.info("[ihmc-ci] Assertions enabled. Adding JVM arg: -ea")
+         LogTools.info("Assertions enabled. Adding JVM arg: -ea")
          test.enableAssertions = true
       }
       else
       {
-         this.project.logger.info("[ihmc-ci] Assertions disabled")
+         LogTools.info("Assertions disabled")
          test.enableAssertions = false
       }
 
@@ -285,12 +281,12 @@ class IHMCCIPlugin : Plugin<Project>
                                            TestLogEvent.STANDARD_ERROR,
                                            TestLogEvent.STANDARD_OUT)
 
-      this.project.logger.info("[ihmc-ci] test.forkEvery = ${test.forkEvery}")
-      this.project.logger.info("[ihmc-ci] test.maxParallelForks = ${test.maxParallelForks}")
-      this.project.logger.info("[ihmc-ci] test.systemProperties = ${test.systemProperties}")
-      this.project.logger.info("[ihmc-ci] test.allJvmArgs = ${test.allJvmArgs}")
-      this.project.logger.info("[ihmc-ci] test.minHeapSize = ${test.minHeapSize}")
-      this.project.logger.info("[ihmc-ci] test.maxHeapSize = ${test.maxHeapSize}")
+      LogTools.info("test.forkEvery = ${test.forkEvery}")
+      LogTools.info("test.maxParallelForks = ${test.maxParallelForks}")
+      LogTools.info("test.systemProperties = ${test.systemProperties}")
+      LogTools.info("test.allJvmArgs = ${test.allJvmArgs}")
+      LogTools.info("test.minHeapSize = ${test.minHeapSize}")
+      LogTools.info("test.maxHeapSize = ${test.maxHeapSize}")
    }
 
    fun postProcessCategoryConfig(): IHMCCICategory
@@ -316,19 +312,19 @@ class IHMCCIPlugin : Plugin<Project>
       enableAssertionsOverride.run { if (this is Boolean) categoryConfig.enableAssertions = this }
       allocationRecordingOverride.run { if (this is Boolean && this) categoryConfig.jvmArguments += ALLOCATION_AGENT_KEY }
 
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxParallelForks = ${categoryConfig.maxParallelForks}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.excludeTags = ${categoryConfig.excludeTags}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.includeTags = ${categoryConfig.includeTags}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.jvmProperties = ${categoryConfig.jvmProperties}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.jvmArguments = ${categoryConfig.jvmArguments}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.enableAssertions = ${categoryConfig.enableAssertions}")
-      this.project.logger.info("[ihmc-ci] ${categoryConfig.name}.allocationRecording = ${categoryConfig.jvmArguments}")
+      LogTools.info("${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
+      LogTools.info("${categoryConfig.name}.maxParallelForks = ${categoryConfig.maxParallelForks}")
+      LogTools.info("${categoryConfig.name}.excludeTags = ${categoryConfig.excludeTags}")
+      LogTools.info("${categoryConfig.name}.includeTags = ${categoryConfig.includeTags}")
+      LogTools.info("${categoryConfig.name}.jvmProperties = ${categoryConfig.jvmProperties}")
+      LogTools.info("${categoryConfig.name}.jvmArguments = ${categoryConfig.jvmArguments}")
+      LogTools.info("${categoryConfig.name}.minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
+      LogTools.info("${categoryConfig.name}.maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
+      LogTools.info("${categoryConfig.name}.enableAssertions = ${categoryConfig.enableAssertions}")
+      LogTools.info("${categoryConfig.name}.allocationRecording = ${categoryConfig.jvmArguments}")
 
       // List tests to be run
-      LogTools.quiet("[ihmc-ci] Tests to be run:")
+      LogTools.quiet("Tests to be run:")
       testsToTagsMap.value.forEach { entry ->
          if ((category == "fast" && entry.value.isEmpty()) || entry.value.contains(category))
          {
@@ -348,7 +344,7 @@ class IHMCCIPlugin : Plugin<Project>
             {
                if (path.toPath().toAbsolutePath().toString().matches(Regex(".*/test-results/test/.*\\.xml")))
                {
-                  anyproject.logger.info("[ihmc-ci] Found test file: $path")
+                  LogTools.info("Found test file: $path")
                   testsFound = true
                   break
                }
@@ -363,7 +359,7 @@ class IHMCCIPlugin : Plugin<Project>
    {
       testProject.mkdir(testDir)
       val noTestsFoundFile = testDir.resolve("TEST-us.ihmc.NoTestsFoundTest.xml")
-      project.logger.info("[ihmc-ci] No tests found. Writing $noTestsFoundFile")
+      LogTools.info("No tests found. Writing $noTestsFoundFile")
       noTestsFoundFile.writeText(
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                   "<testsuite name=\"us.ihmc.NoTestsFoundTest\" tests=\"1\" skipped=\"0\" failures=\"0\" " +
@@ -385,7 +381,7 @@ class IHMCCIPlugin : Plugin<Project>
                if (it.name.contains("java-allocation-instrumenter"))
                {
                   allocationJVMArg = "-javaagent:" + it.getAbsolutePath()
-                  println("[ihmc-ci] Found allocation JVM arg: " + allocationJVMArg)
+                  LogTools.info("Found allocation JVM arg: $allocationJVMArg")
                }
             }
          }
@@ -411,16 +407,16 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["maxParallelForks"].run { if (this != null) maxParallelForksOverride = (this as String).toInt() }
       project.properties["enableAssertions"].run { if (this != null) enableAssertionsOverride = (this as String).toBoolean() }
       project.properties["allocationRecording"].run { if (this != null) allocationRecordingOverride = (this as String).toBoolean() }
-      project.logger.info("[ihmc-ci] cpuThreads = $cpuThreads")
-      project.logger.info("[ihmc-ci] category = $category")
-      project.logger.info("[ihmc-ci] vintageMode = $vintageMode")
-      project.logger.info("[ihmc-ci] vintageSuite = $vintageSuite")
-      project.logger.info("[ihmc-ci] minHeapSizeGB = ${unsetPrintFilter(minHeapSizeGBOverride)}")
-      project.logger.info("[ihmc-ci] maxHeapSizeGB = ${unsetPrintFilter(maxHeapSizeGBOverride)}")
-      project.logger.info("[ihmc-ci] forkEvery = ${unsetPrintFilter(forkEveryOverride)}")
-      project.logger.info("[ihmc-ci] maxParallelForks = ${unsetPrintFilter(maxParallelForksOverride)}")
-      project.logger.info("[ihmc-ci] enableAssertions = ${unsetPrintFilter(enableAssertionsOverride)}")
-      project.logger.info("[ihmc-ci] allocationRecording = ${unsetPrintFilter(allocationRecordingOverride)}")
+      LogTools.info("cpuThreads = $cpuThreads")
+      LogTools.info("category = $category")
+      LogTools.info("vintageMode = $vintageMode")
+      LogTools.info("vintageSuite = $vintageSuite")
+      LogTools.info("minHeapSizeGB = ${unsetPrintFilter(minHeapSizeGBOverride)}")
+      LogTools.info("maxHeapSizeGB = ${unsetPrintFilter(maxHeapSizeGBOverride)}")
+      LogTools.info("forkEvery = ${unsetPrintFilter(forkEveryOverride)}")
+      LogTools.info("maxParallelForks = ${unsetPrintFilter(maxParallelForksOverride)}")
+      LogTools.info("enableAssertions = ${unsetPrintFilter(enableAssertionsOverride)}")
+      LogTools.info("allocationRecording = ${unsetPrintFilter(allocationRecordingOverride)}")
    }
 
    private fun unsetPrintFilter(any: Any) = if (any is Unset) "Not set" else any
