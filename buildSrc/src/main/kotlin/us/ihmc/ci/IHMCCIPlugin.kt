@@ -17,6 +17,8 @@ class IHMCCIPlugin : Plugin<Project>
 {
    val JUNIT_VERSION = "5.5.1"
    val PLATFORM_VERSION = "1.5.1"
+   val ALLOCATION_INSTRUMENTER_VERSION = "3.2.0"
+   val VINTAGE_VERSION = "4.12"
 
    lateinit var project: Project
    var cpuThreads = 8
@@ -33,6 +35,9 @@ class IHMCCIPlugin : Plugin<Project>
    var ciBackendHost: String = "unset"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
+   val apiConfigurationName = "api"
+   val runtimeConfigurationName = "runtimeOnly"
+   val addedDependenciesMap = HashMap<String, Boolean>()
    val testProjects = lazy {
       val testProjects = arrayListOf<Project>()
       for (allproject in project.allprojects)
@@ -51,6 +56,8 @@ class IHMCCIPlugin : Plugin<Project>
       }
       map
    }
+   private val junit = JUnitExtension(JUNIT_VERSION, PLATFORM_VERSION, VINTAGE_VERSION)
+   private val allocation = AllocationInstrumenter(ALLOCATION_INSTRUMENTER_VERSION)
 
    override fun apply(project: Project)
    {
@@ -59,28 +66,32 @@ class IHMCCIPlugin : Plugin<Project>
 
       loadProperties()
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
-      project.extensions.add("junitVersion", JUnitExtension(JUNIT_VERSION, PLATFORM_VERSION))
+      project.extensions.add("junit", junit)
+      project.extensions.add("allocation", allocation)
 
-      project.tasks.create("addTestDependencies") {
+//      project.tasks.create("addTestDependencies") {
+//
+//         val java = project.convention.getPlugin(JavaPluginConvention::class.java)
+//      }
 
-         val java = project.convention.getPlugin(JavaPluginConvention::class.java)
+      project.tasks.whenTaskAdded {
+         LogTools.quiet("Task was added!")
+         println("Task added: #configurations: " + project.configurations.size)
+
+         for (testProject in testProjects.value)
+         {
+            addDependencies(testProject, apiConfigurationName, runtimeConfigurationName)
+         }
+         if (!containsIHMCTestMultiProject(project))
+         {
+            addDependencies(project, "testImplementation", "testRuntimeOnly")
+         }
       }
 
-      for (testProject in testProjects.value)
-      {
-         LogTools.info("[ihmc-ci] Configuring ${testProject.name}")
-         testProject.beforeEvaluate { addTestDependencies(testProject, "api", "runtimeOnly") }
-         configureTestTask(testProject)
-      }
+      return;
 
-      // special case when a project does not use ihmc-build or doesn't declare a multi-project ending with "-test"
-      // yes, some projects don't have any tests, but why would they use this plugin? so not checking for test code
-      if (!containsIHMCTestMultiProject(project))
-      {
-         LogTools.info("[ihmc-ci] No test multi-project found, using test source set")
-         project.afterEvaluate { addTestDependencies(project, "testImplementation", "testRuntimeOnly") }
-         configureTestTask(project)
-      }
+//      addTestDependencies()
+      configureTestTask()
 
       // register ciServerSync task
       CIServerSyncTask.configureTask(testsToTagsMap,
@@ -88,31 +99,76 @@ class IHMCCIPlugin : Plugin<Project>
                                      ciBackendHost).invoke(project.getOrCreate("ciServerSync"))
    }
 
+   private fun addDependencies(project: Project, apiConfigurationName: String, runtimeConfigurationName: String)
+   {
+      addedDependenciesMap.computeIfAbsent("${project.name}:$apiConfigurationName") { false }
+      addedDependenciesMap.computeIfAbsent("${project.name}:$runtimeConfigurationName") { false }
+
+      // add runtime dependencies
+      if (!addedDependenciesMap["${project.name}:$runtimeConfigurationName"]!! && configurationExists(project, runtimeConfigurationName))
+      {
+         addedDependenciesMap["${project.name}:$runtimeConfigurationName"] = true
+         if (vintageMode)
+         {
+            LogTools.info("[ihmc-ci] Adding JUnit 4 dependency to $runtimeConfigurationName in ${project.name}")
+            project.dependencies.add(runtimeConfigurationName, junit.vintage())
+         }
+         else
+         {
+            LogTools.info("[ihmc-ci] Adding JUnit 5 dependencies to $runtimeConfigurationName in ${project.name}")
+            project.dependencies.add(runtimeConfigurationName, junit.jupiterEngine())
+         }
+      }
+
+      // add api dependencies
+      if (!addedDependenciesMap["${project.name}:$apiConfigurationName"]!! && configurationExists(project, apiConfigurationName))
+      {
+         addedDependenciesMap["${project.name}:$apiConfigurationName"] = true
+         if (!vintageMode) // add junit 5 dependencies
+         {
+            LogTools.info("[ihmc-ci] Adding JUnit 5 dependencies to $apiConfigurationName in ${project.name}")
+            project.dependencies.add(apiConfigurationName, junit.jupiterApi())
+            project.dependencies.add(apiConfigurationName, junit.platformCommons())
+            project.dependencies.add(apiConfigurationName, junit.platformLauncher())
+
+         }
+
+         if (category == "allocation") // help out users trying to run allocation tests
+         {
+            LogTools.info("[ihmc-ci] Adding allocation intrumenter dependency to $apiConfigurationName in ${project.name}")
+            project.dependencies.add(apiConfigurationName, allocation.instrumenter())
+         }
+      }
+   }
+
+   private fun configurationExists(project: Project, name: String): Boolean
+   {
+      for (configuration in project.configurations)
+      {
+         if (configuration.name == name)
+         {
+            return true
+         }
+      }
+      return false
+   }
+
    private fun Project.getOrCreate(taskName: String): Task
    {
       return tasks.findByName(taskName) ?: tasks.create(taskName)
    }
 
-   fun addTestDependencies(project: Project, apiConfigName: String, runtimeOnlyConfigName: String)
+   fun configureTestTask()
    {
-      if (vintageMode)
+      for (testProject in testProjects.value)
       {
-         LogTools.info("[ihmc-ci] Adding JUnit 4 dependency to $runtimeOnlyConfigName in ${project.name}")
-         project.dependencies.add(runtimeOnlyConfigName, "junit:junit:4.12")
+         configureTestTask(testProject)
       }
-      else // add junit 5 dependencies
+      // special case when a project does not use ihmc-build or doesn't declare a multi-project ending with "-test"
+      // yes, some projects don't have any tests, but why would they use this plugin? so not checking for test code
+      if (!containsIHMCTestMultiProject(project))
       {
-         LogTools.info("[ihmc-ci] Adding JUnit 5 dependencies to $runtimeOnlyConfigName and $apiConfigName in ${project.name}")
-         project.dependencies.add(apiConfigName, "org.junit.jupiter:junit-jupiter-api:$JUNIT_VERSION")
-         project.dependencies.add(apiConfigName, "org.junit.platform:junit-platform-commons:$PLATFORM_VERSION")
-         project.dependencies.add(apiConfigName, "org.junit.platform:junit-platform-launcher:$PLATFORM_VERSION")
-         project.dependencies.add(runtimeOnlyConfigName, "org.junit.jupiter:junit-jupiter-engine:$JUNIT_VERSION")
-      }
-
-      if (category == "allocation") // help out users trying to run allocation tests
-      {
-         LogTools.info("[ihmc-ci] Adding allocation intrumenter dependency to $apiConfigName in ${project.name}")
-         project.dependencies.add(apiConfigName, "com.google.code.java-allocation-instrumenter:java-allocation-instrumenter:3.2.0")
+         configureTestTask(project)
       }
    }
 
