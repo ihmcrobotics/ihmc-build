@@ -19,7 +19,7 @@ ihmc {
 //
 //}
 
-//ihmc.sourceSetProject("test").test {
+//ihmc.sourceSetProject("test").tasks.named("test", Test::class.java) {
 //
 //}
 
