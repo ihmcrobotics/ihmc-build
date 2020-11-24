@@ -5,19 +5,19 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.gradle.kotlin.dsl.withType
 import java.io.File
 
 lateinit var LogTools: IHMCCILogTools
 
 class IHMCCIPlugin : Plugin<Project>
 {
-   val JUNIT_VERSION = "5.5.1"
-   val PLATFORM_VERSION = "1.5.1"
-   val ALLOCATION_INSTRUMENTER_VERSION = "3.2.0"
-   val VINTAGE_VERSION = "4.12"
+   val JUNIT_VERSION = "5.7.0"
+   val PLATFORM_VERSION = "1.7.0"
+   val ALLOCATION_INSTRUMENTER_VERSION = "3.3.0"
+   val VINTAGE_VERSION = "4.13.1"
 
    lateinit var project: Project
    var cpuThreads = 8
@@ -170,14 +170,14 @@ class IHMCCIPlugin : Plugin<Project>
 
    fun configureTestTask(project: Project)
    {
-      project.tasks.withType<Test>()
-      {
+      val addPhonyTestXmlTask = addPhonyTestXmlTask(project)
+      project.tasks.named("test", Test::class.java) {
          doFirst {
             // create a default category if not found
             val categoryConfig = postProcessCategoryConfig()
             applyCategoryConfigToGradleTest(this as Test, categoryConfig, project)
          }
-         finalizedBy(addPhonyTestXmlTask(project))
+         finalizedBy(addPhonyTestXmlTask)
       }
    }
 
