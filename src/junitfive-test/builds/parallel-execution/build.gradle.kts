@@ -15,16 +15,13 @@ ihmc {
    configurePublications()
 }
 
-ihmc.sourceSetProject("test").test {
-
-   forkEvery = 1
+ihmc.sourceSetProject("test").tasks.named("test", Test::class.java) {
+   setForkEvery(1)
    maxParallelForks = 20
 
-   systemProperties = [
-         'junit.jupiter.execution.parallel.enabled': 'true',
-         'junit.jupiter.execution.parallel.config.strategy': 'dynamic',
-//         'junit.jupiter.execution.parallel.config.fixed.parallelism': '2'
-   ]
+   systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+   systemProperties["junit.jupiter.execution.parallel.config.strategy"] = "dynamic"
+//   systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = "2"
 }
 
 mainDependencies {
