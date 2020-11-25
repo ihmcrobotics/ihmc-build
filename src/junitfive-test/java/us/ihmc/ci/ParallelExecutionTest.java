@@ -44,7 +44,7 @@ public class ParallelExecutionTest
       GradleSubBuildTools.runGradleTask("-v", projectName);
       String cleanOutput = GradleSubBuildTools.runGradleTask("clean", projectName);
       Assertions.assertTrue(cleanOutput.contains("BUILD SUCCESSFUL"));
-      String output = GradleSubBuildTools.runGradleTask("test --info -PincludeTags=fast", projectName);
+      String output = GradleSubBuildTools.runGradleTask("test --info -Pcategory=fast", projectName);
       Assertions.assertTrue(output.contains("BUILD SUCCESSFUL"));
 
       LogTools.info("Working dir: " + Paths.get(".").toAbsolutePath());
@@ -55,7 +55,7 @@ public class ParallelExecutionTest
       // Asserts 5 tests pass, 0 test fails, 0 tests ignored
       Assertions.assertTrue(results.contains("<a href=\"packages/us.ihmc.ci.html\">us.ihmc.ci</a>" + System.lineSeparator() +
                                                    "</td>" + System.lineSeparator() +
-                                                   "<td>2</td>" + System.lineSeparator() +
+                                                   "<td>4</td>" + System.lineSeparator() +
                                                    "<td>0</td>" + System.lineSeparator() +
                                                    "<td>0</td>"));
    }
