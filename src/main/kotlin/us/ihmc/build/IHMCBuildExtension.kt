@@ -1,9 +1,7 @@
 package us.ihmc.build
 
-import com.mashape.unirest.http.Unirest
-import com.mashape.unirest.http.exceptions.UnirestException
-import com.mashape.unirest.http.options.Options
 import groovy.util.Eval
+import kong.unirest.Unirest
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.*
 import org.gradle.api.artifacts.ConfigurationContainer
@@ -22,7 +20,6 @@ import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
 import java.io.File
 import java.io.FileInputStream
-import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Paths
 import java.util.*
@@ -139,25 +136,20 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun tryIntegrationNumberRequest(buildKey: String): String
    {
-      try
-      {
-         return Unirest.get(ciDatabaseUrlProperty).queryString("integrationNumber", buildKey).asString().body
-      }
-      catch (e: UnirestException)
-      {
-         LogTools.info("Failed to retrieve integration number. Trying again... " + e.message)
-         Thread.sleep(100)
-         try
-         {
-            Unirest.shutdown();
-            Options.refresh();
-         }
-         catch (ioException: IOException)
-         {
-            ioException.printStackTrace();
-         }
-         return "ERROR"
-      }
+      var result = "ERROR"
+      Unirest.get(ciDatabaseUrlProperty).queryString("integrationNumber", buildKey).asString()
+            .ifSuccess { response ->
+               result = response.body
+            }
+            .ifFailure { response ->
+               LogTools.error("Response status: ${response.status}")
+               response.parsingError.ifPresent { exception ->
+                  LogTools.error("Exception: $exception")
+                  LogTools.error("Exception: ${exception.originalBody}")
+               }
+               LogTools.info("Failed to retrieve integration number. Trying again...")
+            }
+      return result
    }
    
    fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String

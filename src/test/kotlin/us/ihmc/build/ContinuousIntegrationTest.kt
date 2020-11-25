@@ -3,7 +3,6 @@ package us.ihmc.build
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import us.ihmc.encryptedProperties.EncryptedPropertyManager
 
 /**
  * Must be run from ihmc-build directory!
@@ -34,9 +33,8 @@ class ContinuousIntegrationTest
       
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
 
-      val credentials = EncryptedPropertyManager.loadEncryptedCredentials()
-      val artifactoryUsername = credentials.get("artifactoryUsername")
-      val artifactoryPassword = credentials.get("artifactoryPassword")
+      val artifactoryUsername = ""
+      val artifactoryPassword = ""
 
       output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots " +
                                    "-PartifactoryUsername=$artifactoryUsername -PartifactoryPassword=$artifactoryPassword", "generateTestSuitesTest")
