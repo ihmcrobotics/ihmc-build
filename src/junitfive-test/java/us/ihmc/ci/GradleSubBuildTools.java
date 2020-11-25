@@ -3,7 +3,6 @@ package us.ihmc.ci;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,9 +12,7 @@ import java.nio.file.Paths;
 public class GradleSubBuildTools
 {
    public static String buildsDir = "builds/";
-   public static String gradleCommand = SystemUtils.IS_OS_WINDOWS ? "gradlew.bat" : "/usr/bin/gradle";
-//   public static String gradleExe = Paths.get(buildsDir + gradleCommand).toAbsolutePath().toString();
-   public static String gradleExe = "/usr/bin/gradle";
+   public static String gradleExe = "/usr/bin/gradle --stacktrace --info";
 
    public static String runCommand(String command, Path workingDir)
    {
