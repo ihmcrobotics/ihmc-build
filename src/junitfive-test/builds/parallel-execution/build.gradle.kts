@@ -25,7 +25,7 @@ ihmc.sourceSetProject("test").tasks.named("test", Test::class.java) {
 }
 
 mainDependencies {
-   api("org.apache.commons:commons-lang3:3.9")
+   api("org.apache.commons:commons-lang3:3.11")
 }
 
 testDependencies {
