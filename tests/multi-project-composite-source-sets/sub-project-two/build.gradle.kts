@@ -16,7 +16,7 @@ ihmc {
 println("hello")
 
 mainDependencies {
-   api("commons-io:commons-io:2.6")
+   api("commons-io:commons-io:2.8.0")
 }
 
 testDependencies {

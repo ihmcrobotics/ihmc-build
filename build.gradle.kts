@@ -23,8 +23,8 @@ dependencies {
    api("org.jfrog.artifactory.client:artifactory-java-client-services:2.5.1")
    api("guru.nidi:graphviz-kotlin:0.11.0")
 
-   testApi("org.junit.jupiter:junit-jupiter-api:5.5.1")
-   testApi("org.junit.jupiter:junit-jupiter-engine:5.5.1")
+   testApi("org.junit.jupiter:junit-jupiter-api:5.7.0")
+   testApi("org.junit.jupiter:junit-jupiter-engine:5.7.0")
    testApi("us.ihmc:encrypted-properties:0.1.0")
 }
 

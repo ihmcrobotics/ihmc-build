@@ -7,7 +7,7 @@ repositories {
 }
 
 dependencies {
-   api("commons-io:commons-io:2.6")
+   api("commons-io:commons-io:2.8.0")
 
-   testCompile("junit:junit:4.12")
+   testCompile("junit:junit:4.13.1")
 }
