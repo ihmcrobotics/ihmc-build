@@ -79,9 +79,9 @@ Use the `publishUrl` property to pass the URL and `publishUsername` and `publish
 
 `gradle publish -PpublishUrl=https://my.site/repo -PpublishUsername=username -PpublishPassword=password`
 
-You can also code this in the `build.gradle` to a keyword with the `addPublishUrl()` function:
+You can also code this in the `build.gradle.kts` to a keyword with the `addPublishUrl()` function:
 
-`build.gradle`:
+`build.gradle.kts`:
 ```gradle
 ihmc {
    ...
@@ -136,8 +136,8 @@ Create the following file structure:
 your-project
 ├─ src/main/java
 ├─ src/test/java
-├─ build.gradle
-├─ settings.gradle
+├─ build.gradle.kts
+├─ settings.gradle.kts
 ├─ gradle.properties
 └─ ...
 ```
@@ -150,12 +150,10 @@ compositeSearchHeight = 0
 excludeFromCompositeBuild = false
 ```
 
-#### Using Kotlin Script (recommended)
-
 Fill out `build.gradle.kts`:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.19.7"
+   id("us.ihmc.ihmc-build") version "0.23.0"
 }
 
 ihmc {
@@ -186,59 +184,11 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.19.7")
+      classpath("us.ihmc:ihmc-build:0.23.0")
    }
 }
 
 val ihmcSettingsConfigurator = us.ihmc.build.IHMCSettingsConfigurator(settings, logger, extra)
-ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
-ihmcSettingsConfigurator.configureExtraSourceSets()
-ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
-```
-
-#### Using Groovy
-
-Fill out `build.gradle`:
-```gradle
-plugins {
-   id("us.ihmc.ihmc-build") version "0.19.7"
-}
-
-ihmc {
-   group = "us.ihmc"
-   version = "0.1.0"
-   vcsUrl = "https://your.vcs/url"
-   openSource = false
-   maintainer = "Your Name"
-   
-   configureDependencyResolution()
-   configurePublications()
-}
-
-mainDependencies {
-   api("some:main-dependency:0.1")
-}
-
-testDependencies {
-}
-```
-
-Copy the following into `settings.gradle`:
-```gradle
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.19.7"
-   }
-}
-
-import us.ihmc.build.IHMCSettingsConfigurator
-
-/** Browse source at https://github.com/ihmcrobotics/ihmc-build */
-def ihmcSettingsConfigurator = new IHMCSettingsConfigurator(settings, logger, ext)
 ihmcSettingsConfigurator.checkRequiredPropertiesAreSet()
 ihmcSettingsConfigurator.configureExtraSourceSets()
 ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
@@ -257,30 +207,30 @@ Consider the following layout:
 repository-group
 ├─ single-project-one
 │  └─ src/main/java
-│  └─ build.gradle
+│  └─ build.gradle.kts
 │  └─ gradle.properties
-│  └─ settings.gradle
+│  └─ settings.gradle.kts
 ├─ single-project-two
 │  └─ src/main/java
-│  └─ build.gradle
+│  └─ build.gradle.kts
 │  └─ gradle.properties
-│  └─ settings.gradle
+│  └─ settings.gradle.kts
 ├─ multi-project-one
 │  └─ subproject-one
 │     └─ src/main/java
-│     └─ build.gradle
+│     └─ build.gradle.kts
 │     └─ gradle.properties
-│     └─ settings.gradle
+│     └─ settings.gradle.kts
 │  └─ subproject-two
 │     └─ src/main/java
-│     └─ build.gradle
+│     └─ build.gradle.kts
 │     └─ gradle.properties
-│     └─ settings.gradle
-│  └─ build.gradle
+│     └─ settings.gradle.kts
+│  └─ build.gradle.kts
 │  └─ gradle.properties
-│  └─ settings.gradle
-├─ build.gradle
-├─ settings.gradle
+│  └─ settings.gradle.kts
+├─ build.gradle.kts
+├─ settings.gradle.kts
 └─ gradle.properties
 ```
 
@@ -294,12 +244,10 @@ compositeSearchHeight = 0
 excludeFromCompositeBuild = false
 ```
 
-#### Using Kotlin Script (recommended)
-
 `build.gradle.kts` for project group:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.19.7"
+   id("us.ihmc.ihmc-build") version "0.23.0"
 }
 ```
 
@@ -311,39 +259,11 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.19.7")
+      classpath("us.ihmc:ihmc-build:0.23.0")
    }
 }
 
 val ihmcSettingsConfigurator = us.ihmc.build.IHMCSettingsConfigurator(settings, logger, extra)
-ihmcSettingsConfigurator.configureAsGroupOfProjects()
-ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
-```
-
-#### Using Groovy
-
-`build.gradle` for project group:
-```gradle
-plugins {
-   id("us.ihmc.ihmc-build") version "0.19.7"
-}
-```
-
-`settings.gradle` for project group:
-```gradle
-buildscript {
-   repositories {
-      maven { url "https://plugins.gradle.org/m2/" }
-      mavenLocal()
-   }
-   dependencies {
-      classpath "us.ihmc:ihmc-build:0.19.7"
-   }
-}
-
-import us.ihmc.build.IHMCSettingsConfigurator
-
-def ihmcSettingsConfigurator = new IHMCSettingsConfigurator(settings, logger, ext)
 ihmcSettingsConfigurator.configureAsGroupOfProjects()
 ihmcSettingsConfigurator.findAndIncludeCompositeBuilds()
 ```
@@ -358,7 +278,7 @@ build will not be included. See more at https://docs.gradle.org/current/userguid
 
 ##### Gradle file trio requirement
 
-The `ihmc-build` plugin requires all projects to have a `build.gradle`, `settings.gradle`, and `gradle.properties` file to qualify for build inclusion. This
+The `ihmc-build` plugin requires all projects to have a `build.gradle.kts`, `settings.gradle.kts`, and `gradle.properties` file to qualify for build inclusion. This
 another common reason that projects don't make it into the build.
 
 ### Learn more
