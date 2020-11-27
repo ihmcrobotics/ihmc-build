@@ -37,6 +37,7 @@ class IHMCCIPlugin : Plugin<Project>
    val runtimeConfigurationName = "runtimeOnly"
    val addedDependenciesMap = HashMap<String, Boolean>()
    var registeredCIServerSyncTask = false
+   var configuredTestTasks = HashMap<String, Boolean>()
    val testProjects = lazy {
       val testProjects = arrayListOf<Project>()
       for (allproject in project.allprojects)
@@ -76,10 +77,12 @@ class IHMCCIPlugin : Plugin<Project>
          for (testProject in testProjects.value)
          {
             addDependencies(testProject, apiConfigurationName, runtimeConfigurationName)
+            configureTestTask(testProject)
          }
          if (!containsIHMCTestMultiProject(project))
          {
             addDependencies(project, "testImplementation", "testRuntimeOnly")
+            configureTestTask(project)
          }
 
          var allHaveCompileJava = true
@@ -95,8 +98,6 @@ class IHMCCIPlugin : Plugin<Project>
             }
          }
       }
-
-      configureTestTask()
    }
 
    private fun addDependencies(project: Project, apiConfigurationName: String, runtimeConfigurationName: String)
@@ -153,30 +154,22 @@ class IHMCCIPlugin : Plugin<Project>
       return false
    }
 
-   fun configureTestTask()
-   {
-      for (testProject in testProjects.value)
-      {
-         configureTestTask(testProject)
-      }
-      // special case when a project does not use ihmc-build or doesn't declare a multi-project ending with "-test"
-      // yes, some projects don't have any tests, but why would they use this plugin? so not checking for test code
-      if (!containsIHMCTestMultiProject(project))
-      {
-         configureTestTask(project)
-      }
-   }
-
    fun configureTestTask(project: Project)
    {
-      val addPhonyTestXmlTask = addPhonyTestXmlTask(project)
-      project.tasks.named("test", Test::class.java) {
-         doFirst {
-            // create a default category if not found
-            val categoryConfig = postProcessCategoryConfig()
-            applyCategoryConfigToGradleTest(this as Test, categoryConfig, project)
+      configuredTestTasks.computeIfAbsent(project.name) { false }
+
+      if (!configuredTestTasks[project.name]!! && project.tasks.findByName("test") != null)
+      {
+         configuredTestTasks[project.name] = true
+         val addPhonyTestXmlTask = addPhonyTestXmlTask(project)
+         project.tasks.named("test", Test::class.java) {
+            doFirst {
+               // create a default category if not found
+               val categoryConfig = postProcessCategoryConfig()
+               applyCategoryConfigToGradleTest(this as Test, categoryConfig, project)
+            }
+            finalizedBy(addPhonyTestXmlTask)
          }
-         finalizedBy(addPhonyTestXmlTask)
       }
    }
 
