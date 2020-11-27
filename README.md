@@ -153,7 +153,7 @@ excludeFromCompositeBuild = false
 Fill out `build.gradle.kts`:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.23.0"
+   id("us.ihmc.ihmc-build")
 }
 
 ihmc {
@@ -178,6 +178,12 @@ testDependencies {
 
 Copy the following into `settings.gradle.kts`:
 ```gradle
+pluginManagement {
+   plugins {
+      id("us.ihmc.ihmc-build") version "0.23.0"
+   }
+}
+
 buildscript {
    repositories {
       maven { url = uri("https://plugins.gradle.org/m2/") }
@@ -247,12 +253,18 @@ excludeFromCompositeBuild = false
 `build.gradle.kts` for project group:
 ```gradle
 plugins {
-   id("us.ihmc.ihmc-build") version "0.23.0"
+   id("us.ihmc.ihmc-build")
 }
 ```
 
 `settings.gradle.kts` for project group:
 ```gradle
+pluginManagement {
+   plugins {
+      id("us.ihmc.ihmc-build") version "0.23.0"
+   }
+}
+
 buildscript {
    repositories {
       maven { url = uri("https://plugins.gradle.org/m2/") }
