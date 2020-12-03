@@ -1,10 +1,10 @@
 package us.ihmc.build
 
 import groovy.util.Eval
+import groovy.util.Node
 import kong.unirest.Unirest
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.*
-import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
@@ -24,6 +24,7 @@ import java.io.InputStream
 import java.nio.file.Paths
 import java.util.*
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.collections.HashSet
 
 open class IHMCBuildExtension(val project: Project)
 {
@@ -381,7 +382,7 @@ open class IHMCBuildExtension(val project: Project)
             
             val java = convention.getPlugin(JavaPluginConvention::class.java)
             
-            declarePublication(name, configurations, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
+            declarePublication(name, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
    }
@@ -1053,37 +1054,22 @@ open class IHMCBuildExtension(val project: Project)
       publishing.repositories.mavenLocal()
    }
    
-   private fun Project.declarePublication(artifactName: String, configurations: ConfigurationContainer, sourceSet: SourceSet)
+   private fun Project.declarePublication(artifactName: String, sourceSet: SourceSet)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
       publication.groupId = group as String
       publication.artifactId = artifactName
       publication.version = version as String
+
+      LogTools.info("Assembing publication for $name")
       
       publication.pom.withXml {
          val dependenciesNode = asNode().appendNode("dependencies")
 
-         for (configuration in configurations)
-         {
-            configuration.dependencies.forEach { dependency ->
-               if (dependency.name != "unspecified")
-               {
-                  val dependencyNode = dependenciesNode.appendNode("dependency")
-                  dependencyNode.appendNode("groupId", dependency.group)
-                  dependencyNode.appendNode("artifactId", dependency.name)
-                  dependencyNode.appendNode("version", dependency.version)
-                  if (configuration.name == "implementation")
-                  {
-                     dependencyNode.appendNode("scope", "runtime")
-                  }
-                  else
-                  {
-                     dependencyNode.appendNode("scope", "compile")
-                  }
-               }
-            }
-         }
+         val addedAlready = hashSetOf<String>()
+         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, "compileClasspath")
+         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, "runtimeClasspath")
 
          asNode().appendNode("description", titleCasedNameProperty)
          asNode().appendNode("name", name)
@@ -1102,5 +1088,55 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          archiveClassifier.set("sources")
       })
+   }
+
+   private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node, addedAlready: HashSet<String>, configurationName: String)
+   {
+      configurations.getByName(configurationName).resolvedConfiguration.run {
+         firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
+            LogTools.info("First level $configurationName dependency: $firstLevelModuleDependency name: ${firstLevelModuleDependency.name}")
+
+            val classifiers = arrayListOf<String>()
+            resolvedArtifacts.forEach { resolvedArtifact ->
+               if (resolvedArtifact.id.componentIdentifier.displayName.equals(firstLevelModuleDependency.name))
+               {
+                  val classifier = resolvedArtifact.classifier
+                  if (classifier != null && classifier.isNotEmpty())
+                  {
+                     LogTools.info("Classifier: $classifier")
+                     classifiers.add(classifier)
+                  }
+               }
+            }
+
+            if (classifiers.isEmpty())
+            {
+               classifiers.add("")
+            }
+
+            classifiers.forEach { classifier ->
+
+               val dependencyHash = "${firstLevelModuleDependency.moduleGroup}" +
+                     ":${firstLevelModuleDependency.moduleName}" +
+                     ":${firstLevelModuleDependency.moduleVersion}" +
+                     ":$classifier"
+
+               if (!addedAlready.contains(dependencyHash))
+               {
+                  addedAlready.add(dependencyHash)
+
+                  LogTools.quiet("Adding dependency to POM: $dependencyHash:${configurationName.removeSuffix("Classpath")}")
+
+                  val dependencyNode = dependenciesNode.appendNode("dependency")
+                  dependencyNode.appendNode("groupId", firstLevelModuleDependency.moduleGroup)
+                  dependencyNode.appendNode("artifactId", firstLevelModuleDependency.moduleName)
+                  dependencyNode.appendNode("version", firstLevelModuleDependency.moduleVersion)
+                  if (classifier.isNotEmpty())
+                     dependencyNode.appendNode("classifier", classifier)
+                  dependencyNode.appendNode("scope", configurationName.removeSuffix("Classpath"))
+               }
+            }
+         }
+      }
    }
 }
