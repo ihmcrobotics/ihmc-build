@@ -1071,11 +1071,15 @@ open class IHMCBuildExtension(val project: Project)
 
          val addedAlready = hashSetOf<String>()
          val exclusions = hashMapOf<String, ArrayList<ExcludeRule>>()
+         val implementationDependencies = hashSetOf<String>()
+         configurations.getByName("implementation").dependencies.forEach { dependency ->
+            implementationDependencies.add("${dependency.group}:${dependency.name}:${dependency.version}")
+         }
          findExclusions(exclusions, "api")
          findExclusions(exclusions, "implementation")
          findExclusions(exclusions, "runtimeOnly")
-         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, exclusions, "compileClasspath")
-         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, exclusions, "runtimeClasspath")
+         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, exclusions, implementationDependencies, "compileClasspath")
+         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, exclusions, implementationDependencies, "runtimeClasspath")
 
          asNode().appendNode("description", titleCasedNameProperty)
          asNode().appendNode("name", name)
@@ -1099,6 +1103,7 @@ open class IHMCBuildExtension(val project: Project)
    private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node,
                                                           addedAlready: HashSet<String>,
                                                           exclusions: HashMap<String, ArrayList<ExcludeRule>>,
+                                                          implementationDependencies: HashSet<String>,
                                                           configurationName: String)
    {
       configurations.getByName(configurationName).resolvedConfiguration.run {
@@ -1124,25 +1129,20 @@ open class IHMCBuildExtension(val project: Project)
             }
 
             classifiers.forEach { classifier ->
+               val dependencyGAVKey = firstLevelModuleDependency.moduleGroup +
+                                      ":${firstLevelModuleDependency.moduleName}" +
+                                      ":${firstLevelModuleDependency.moduleVersion}"
+               val dependencyGAVWithClassifierKey = "$dependencyGAVKey:$classifier"
 
-               val dependencyHash = "${firstLevelModuleDependency.moduleGroup}" +
-                     ":${firstLevelModuleDependency.moduleName}" +
-                     ":${firstLevelModuleDependency.moduleVersion}" +
-                     ":$classifier"
-
-               if (!addedAlready.contains(dependencyHash))
+               if (!addedAlready.contains(dependencyGAVWithClassifierKey))
                {
-                  addedAlready.add(dependencyHash)
-
-                  LogTools.quiet("Adding dependency to POM: $dependencyHash:${configurationName.removeSuffix("Classpath")}")
+                  addedAlready.add(dependencyGAVWithClassifierKey)
 
                   val dependencyNode = dependenciesNode.appendNode("dependency")
                   dependencyNode.appendNode("groupId", firstLevelModuleDependency.moduleGroup)
                   dependencyNode.appendNode("artifactId", firstLevelModuleDependency.moduleName)
                   dependencyNode.appendNode("version", firstLevelModuleDependency.moduleVersion)
-                  exclusions.computeIfPresent(firstLevelModuleDependency.moduleGroup +
-                                              ":${firstLevelModuleDependency.moduleName}" +
-                                              ":${firstLevelModuleDependency.moduleVersion}") { _, excludeRules ->
+                  exclusions.computeIfPresent(dependencyGAVKey) { _, excludeRules ->
                      val exclusionsNode = dependencyNode.appendNode("exclusions")
                      excludeRules.forEach { excludeRule ->
                         val exclusionNode = exclusionsNode.appendNode("exclusion")
@@ -1159,7 +1159,16 @@ open class IHMCBuildExtension(val project: Project)
                   }
                   if (classifier.isNotEmpty())
                      dependencyNode.appendNode("classifier", classifier)
-                  dependencyNode.appendNode("scope", configurationName.removeSuffix("Classpath"))
+                  var scope = configurationName.removeSuffix("Classpath")
+                  var implementationReportString = ""
+                  if (implementationDependencies.contains(dependencyGAVKey))
+                  {
+                     implementationReportString += " (implementation)"
+                     scope = "runtime"
+                  }
+                  dependencyNode.appendNode("scope", scope)
+
+                  LogTools.quiet("Adding dependency to POM: $dependencyGAVWithClassifierKey:$scope$implementationReportString")
                }
             }
          }
