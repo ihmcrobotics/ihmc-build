@@ -5,7 +5,9 @@ import groovy.util.Node
 import kong.unirest.Unirest
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.*
+import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.initialization.IncludedBuild
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -1068,8 +1070,12 @@ open class IHMCBuildExtension(val project: Project)
          val dependenciesNode = asNode().appendNode("dependencies")
 
          val addedAlready = hashSetOf<String>()
-         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, "compileClasspath")
-         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, "runtimeClasspath")
+         val exclusions = hashMapOf<String, ArrayList<ExcludeRule>>()
+         findExclusions(exclusions, "api")
+         findExclusions(exclusions, "implementation")
+         findExclusions(exclusions, "runtimeOnly")
+         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, exclusions, "compileClasspath")
+         addPOMDependenciesForConfiguration(dependenciesNode, addedAlready, exclusions, "runtimeClasspath")
 
          asNode().appendNode("description", titleCasedNameProperty)
          asNode().appendNode("name", name)
@@ -1090,7 +1096,10 @@ open class IHMCBuildExtension(val project: Project)
       })
    }
 
-   private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node, addedAlready: HashSet<String>, configurationName: String)
+   private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node,
+                                                          addedAlready: HashSet<String>,
+                                                          exclusions: HashMap<String, ArrayList<ExcludeRule>>,
+                                                          configurationName: String)
    {
       configurations.getByName(configurationName).resolvedConfiguration.run {
          firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
@@ -1131,10 +1140,41 @@ open class IHMCBuildExtension(val project: Project)
                   dependencyNode.appendNode("groupId", firstLevelModuleDependency.moduleGroup)
                   dependencyNode.appendNode("artifactId", firstLevelModuleDependency.moduleName)
                   dependencyNode.appendNode("version", firstLevelModuleDependency.moduleVersion)
+                  exclusions.computeIfPresent(firstLevelModuleDependency.moduleGroup +
+                                              ":${firstLevelModuleDependency.moduleName}" +
+                                              ":${firstLevelModuleDependency.moduleVersion}") { _, excludeRules ->
+                     val exclusionsNode = dependencyNode.appendNode("exclusions")
+                     excludeRules.forEach { excludeRule ->
+                        val exclusionNode = exclusionsNode.appendNode("exclusion")
+                        exclusionNode.appendNode("groupId", excludeRule.group)
+                        var excludeString = excludeRule.group
+                        if (excludeRule.module != null) // warning that it's always false but it's not
+                        {
+                           exclusionNode.appendNode("artifactId", excludeRule.module)
+                           excludeString += ":" + excludeRule.module
+                        }
+                        LogTools.quiet("Excluding transitive(s) in POM: $excludeString")
+                     }
+                     excludeRules
+                  }
                   if (classifier.isNotEmpty())
                      dependencyNode.appendNode("classifier", classifier)
                   dependencyNode.appendNode("scope", configurationName.removeSuffix("Classpath"))
                }
+            }
+         }
+      }
+   }
+
+   private fun Project.findExclusions(exclusions: HashMap<String, ArrayList<ExcludeRule>>, configurationName: String)
+   {
+      configurations.getByName(configurationName).dependencies.forEach { dependency ->
+         if (dependency is DefaultExternalModuleDependency)
+         {
+            dependency.excludeRules.forEach { excludeRule ->
+               val key = "${dependency.group}:${dependency.name}:${dependency.version}"
+               exclusions.computeIfAbsent(key) { arrayListOf() }
+               exclusions[key]!!.add(excludeRule)
             }
          }
       }
