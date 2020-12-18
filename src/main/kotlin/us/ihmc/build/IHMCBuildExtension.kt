@@ -223,6 +223,7 @@ open class IHMCBuildExtension(val project: Project)
          }
          repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         repository("https://jitpack.io")
       }
       else
       {

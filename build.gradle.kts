@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.23.4"
+version = "0.23.5"
 
 repositories {
    jcenter()
