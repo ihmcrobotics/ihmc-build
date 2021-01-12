@@ -1071,7 +1071,7 @@ open class IHMCBuildExtension(val project: Project)
          val dependenciesNode = asNode().appendNode("dependencies")
 
          val addedAlready = hashSetOf<String>()
-         val exclusions = hashMapOf<String, ArrayList<ExcludeRule>>()
+         val exclusions = hashMapOf<String, HashSet<ExcludeRule>>()
          val implementationDependencies = hashSetOf<String>()
          configurations.getByName("implementation").dependencies.forEach { dependency ->
             implementationDependencies.add("${dependency.group}:${dependency.name}:${dependency.version}")
@@ -1103,15 +1103,15 @@ open class IHMCBuildExtension(val project: Project)
 
    private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node,
                                                           addedAlready: HashSet<String>,
-                                                          exclusions: HashMap<String, ArrayList<ExcludeRule>>,
+                                                          exclusions: HashMap<String, HashSet<ExcludeRule>>,
                                                           implementationDependencies: HashSet<String>,
                                                           configurationName: String)
    {
       configurations.getByName(configurationName).resolvedConfiguration.run {
          firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
-            LogTools.info("First level $configurationName dependency: $firstLevelModuleDependency name: ${firstLevelModuleDependency.name}")
+            LogTools.info("First level dependency: configuration: $configurationName dependency: $firstLevelModuleDependency")
 
-            val classifiers = arrayListOf<String>()
+            val classifiers = hashSetOf<String>()
             resolvedArtifacts.forEach { resolvedArtifact ->
                if (resolvedArtifact.id.componentIdentifier.displayName.equals(firstLevelModuleDependency.name))
                {
@@ -1120,6 +1120,10 @@ open class IHMCBuildExtension(val project: Project)
                   {
                      LogTools.info("Classifier: $classifier")
                      classifiers.add(classifier)
+                  }
+                  else
+                  {
+                     classifiers.add("")
                   }
                }
             }
@@ -1176,14 +1180,14 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   private fun Project.findExclusions(exclusions: HashMap<String, ArrayList<ExcludeRule>>, configurationName: String)
+   private fun Project.findExclusions(exclusions: HashMap<String, HashSet<ExcludeRule>>, configurationName: String)
    {
       configurations.getByName(configurationName).dependencies.forEach { dependency ->
          if (dependency is DefaultExternalModuleDependency)
          {
             dependency.excludeRules.forEach { excludeRule ->
                val key = "${dependency.group}:${dependency.name}:${dependency.version}"
-               exclusions.computeIfAbsent(key) { arrayListOf() }
+               exclusions.computeIfAbsent(key) { hashSetOf() }
                exclusions[key]!!.add(excludeRule)
             }
          }
