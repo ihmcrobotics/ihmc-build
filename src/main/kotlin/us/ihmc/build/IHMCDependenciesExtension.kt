@@ -34,6 +34,11 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
 
    private val dynamicMethods = DynamicMethods()  // trick for Groovy
 
+   override fun create(dependencyNotation: Any): Dependency
+   {
+      return delegate.create(modifyDependency(dependencyNotation))
+   }
+
    override fun add(configurationName: String, dependencyNotation: Any): Dependency?  // trick for Kotlin
    {
       return filterAndAddDependency(configurationName, dependencyNotation)
