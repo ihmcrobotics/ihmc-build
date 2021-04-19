@@ -354,7 +354,7 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (openSource)
                {
-                  declareBintray("maven-release")
+                  declareMavenCentral("releases")
                }
                else
                {
@@ -365,7 +365,7 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (openSource)
                {
-                  declareBintray("maven-vendor")
+                  declareMavenCentral("releases")
                }
                else
                {
@@ -1048,6 +1048,17 @@ open class IHMCBuildExtension(val project: Project)
          url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
          credentials.username = bintrayUsername
          credentials.password = bintrayApiKey
+      }
+   }
+
+   fun Project.declareMavenCentral(repoName: String)
+   {
+      val publishing = extensions.getByType(PublishingExtension::class.java)
+      publishing.repositories.maven {
+         name = "Bintray" + IHMCBuildTools.kebabToPascalCase(repoName)
+         url = uri("https://s01.oss.sonatype.org/content/repositories/$repoName/")
+         credentials.username = publishUsername
+         credentials.password = publishPassword
       }
    }
    
