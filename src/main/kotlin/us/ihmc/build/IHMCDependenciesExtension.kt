@@ -1,9 +1,14 @@
 package us.ihmc.build
 
 import groovy.lang.Closure
+import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ExternalModuleDependency
+import org.gradle.api.artifacts.MinimalExternalModuleDependency
 import org.gradle.api.artifacts.dsl.DependencyHandler
+import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec
+import org.gradle.api.provider.Provider
 import org.gradle.internal.metaobject.DynamicInvokeResult
 import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
@@ -37,6 +42,20 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    override fun create(dependencyNotation: Any): Dependency
    {
       return delegate.create(modifyDependency(dependencyNotation))
+   }
+
+   override fun <T : Any?, U : ExternalModuleDependency?> addProvider(configurationName: String,
+                                                                      dependencyNotation: Provider<T>,
+                                                                      configuration: Action<in U>)
+   {
+      TODO("Not yet implemented")
+   }
+
+   override fun variantOf(dependencyProvider: Provider<MinimalExternalModuleDependency>,
+                          variantSpec: Action<in ExternalModuleDependencyVariantSpec>)
+   : Provider<MinimalExternalModuleDependency>
+   {
+      TODO("Not yet implemented")
    }
 
    override fun add(configurationName: String, dependencyNotation: Any): Dependency?  // trick for Kotlin
