@@ -40,8 +40,6 @@ open class IHMCBuildExtension(val project: Project)
    var companyName: String = "IHMC"
    var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
    
-   private val bintrayUsername: String
-   private val bintrayApiKey: String
    private lateinit var artifactoryUsername: String
    private lateinit var artifactoryPassword: String
    private val publishUsername: String
@@ -84,8 +82,6 @@ open class IHMCBuildExtension(val project: Project)
    
    init
    {
-      bintrayUsername = IHMCBuildTools.bintrayUsernameCompatibility(project.extra)
-      bintrayApiKey = IHMCBuildTools.bintrayApiKeyCompatibility(project.extra)
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
@@ -214,14 +210,12 @@ open class IHMCBuildExtension(val project: Project)
          repository("http://clojars.org/repo/")
          declareJCenter()
          repository("$artifactoryUrlProperty/artifactory/snapshots/")
-         repository("https://dl.bintray.com/ihmcrobotics/maven-release")
          if (!openSource)
          {
             repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
-         repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
       }
@@ -230,8 +224,6 @@ open class IHMCBuildExtension(val project: Project)
          declareMavenCentral()
          declareJCenter()
          repository("http://clojars.org/repo/")
-         repository("https://dl.bintray.com/ihmcrobotics/maven-release")
-         repository("https://dl.bintray.com/ihmcrobotics/maven-vendor")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
          if (!openSource && (artifactoryUsername != "unset_username")) // support third parties not needing to declare Artifactory
@@ -1039,23 +1031,12 @@ open class IHMCBuildExtension(val project: Project)
          credentials.password = artifactoryPassword
       }
    }
-   
-   fun Project.declareBintray(repoName: String)
-   {
-      val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven {
-         name = "Bintray" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("https://api.bintray.com/maven/ihmcrobotics/$repoName/" + rootProject.name)
-         credentials.username = bintrayUsername
-         credentials.password = bintrayApiKey
-      }
-   }
 
    fun Project.declareMavenCentral(repoName: String)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
-         name = "Bintray" + IHMCBuildTools.kebabToPascalCase(repoName)
+         name = "MavenCentral" + IHMCBuildTools.kebabToPascalCase(repoName)
          url = uri("https://s01.oss.sonatype.org/content/repositories/$repoName/")
          credentials.username = publishUsername
          credentials.password = publishPassword

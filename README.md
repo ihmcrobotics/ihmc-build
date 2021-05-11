@@ -60,11 +60,11 @@ To run multiple tasks over all builds you can separate them with commas. `taskNa
 
 ##### Publishing releases
 
-Set `bintrayUsername` and `bintrayApiKey` in `~/.gradle/gradle.properties` after generating an API key on Bintray.
+Set `publishUsername` and `publishPassword` in `~/.gradle/gradle.properties` to your Sonatype JIRA credentials.
 
 `gradle publish -PpublishUrl=ihmcRelease`
 
-The above command publishes `your-project-0.1.0.jar` to Bintray if the `openSource` option is set to "true" in the `ihmc` block. 
+The above command publishes `your-project-0.1.0.jar` to Maven Central if the `openSource` option is set to "true" in the `ihmc` block. 
 Otherwise, it will publish to Artifactory `proprietary-releases`.
 
 ##### Publishing locally

@@ -13,7 +13,6 @@ version = "0.24.0"
 repositories {
    jcenter()
    maven { url = uri("https://plugins.gradle.org/m2/") }  // needed for included plugins
-   maven { url = uri("https://dl.bintray.com/ihmcrobotics/maven-release") }
 }
 
 dependencies {

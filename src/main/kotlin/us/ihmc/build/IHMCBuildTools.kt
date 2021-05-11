@@ -115,42 +115,6 @@ object IHMCBuildTools
       return sanitized == keyword
    }
 
-   fun bintrayUsernameCompatibility(extra: ExtraPropertiesExtension): String
-   {
-      if (containsValidStringProperty("bintrayUsername", extra))
-      {
-         return propertyAsString("bintrayUsername", extra)
-      }
-      else if (containsValidStringProperty("bintray_user", extra))
-      {
-         LogTools.quiet("Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
-         return propertyAsString("bintray_user", extra)
-      }
-      else
-      {
-         LogTools.info("Please set bintrayUsername = <username> in ~/.gradle/gradle.properties.")
-         return "unset"
-      }
-   }
-
-   fun bintrayApiKeyCompatibility(extra: ExtraPropertiesExtension): String
-   {
-      if (containsValidStringProperty("bintrayApiKey", extra))
-      {
-         return propertyAsString("bintrayApiKey", extra)
-      }
-      else if (containsValidStringProperty("bintray_key", extra))
-      {
-         LogTools.quiet("Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
-         return propertyAsString("bintray_key", extra)
-      }
-      else
-      {
-         LogTools.info("Please set bintrayApiKey = <key> in ~/.gradle/gradle.properties.")
-         return "unset"
-      }
-   }
-
    fun compositeSearchHeightCompatibility(extra: ExtraPropertiesExtension): Int
    {
       if (containsValidStringProperty("compositeSearchHeight", extra))
