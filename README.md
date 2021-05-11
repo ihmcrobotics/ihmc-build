@@ -180,7 +180,7 @@ Copy the following into `settings.gradle.kts`:
 ```gradle
 pluginManagement {
    plugins {
-      id("us.ihmc.ihmc-build") version "0.23.0"
+      id("us.ihmc.ihmc-build") version "0.25.0"
    }
 }
 
@@ -190,7 +190,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.23.0")
+      classpath("us.ihmc:ihmc-build:0.25.0")
    }
 }
 
@@ -261,7 +261,7 @@ plugins {
 ```gradle
 pluginManagement {
    plugins {
-      id("us.ihmc.ihmc-build") version "0.23.0"
+      id("us.ihmc.ihmc-build") version "0.25.0"
    }
 }
 
@@ -271,7 +271,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.23.0")
+      classpath("us.ihmc:ihmc-build:0.25.0")
    }
 }
 
