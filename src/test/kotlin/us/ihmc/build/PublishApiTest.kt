@@ -93,10 +93,10 @@ class PublishApiTest
       assertTrue(logOutput.contains("BUILD FAILED"))
       
       // Totally custom URL
-      command = "publish -PpublishUrl=http://shotgun/repo -PpublishUsername=user564 -PpublishPassword=pass1 -PartifactoryUsername=foo -PpublishUsername=foo"
+      command = "publish -PpublishUrl=https://shotgun/repo -PpublishUsername=user564 -PpublishPassword=pass1 -PartifactoryUsername=foo -PpublishUsername=foo"
       logOutput = runGradleTask(command, "publishApiTest")
       assertTrue(logOutput.contains(
-            "Could not transfer artifact us.ihmc:your-project:jar:0.1.0 from/to remote (http://shotgun/repo): Could not write to resource 'us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
+            "Could not transfer artifact us.ihmc:your-project:jar:0.1.0 from/to remote (https://shotgun/repo): Could not write to resource 'us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
       assertTrue(logOutput.contains("BUILD FAILED"))
    }
 }

@@ -206,7 +206,7 @@ open class IHMCBuildExtension(val project: Project)
       if (snapshotModeProperty)
       {
          declareMavenCentral()
-         repository("http://clojars.org/repo/")
+         repository("https://clojars.org/repo/")
          declareJCenter()
          repository("$artifactoryUrlProperty/artifactory/snapshots/")
          if (!openSource)
@@ -222,7 +222,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          declareMavenCentral()
          declareJCenter()
-         repository("http://clojars.org/repo/")
+         repository("https://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
          if (!openSource && (artifactoryUsername != "unset_username")) // support third parties not needing to declare Artifactory
@@ -310,7 +310,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       if (openSource)
       {
-         licenseURL = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+         licenseURL = "https://www.apache.org/licenses/LICENSE-2.0.txt"
          licenseName = "Apache License, Version 2.0"
       }
       
