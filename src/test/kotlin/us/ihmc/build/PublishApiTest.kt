@@ -83,20 +83,18 @@ class PublishApiTest
       command = "publish -PpublishUrl=myVendor -PartifactoryUsername=foo -PpublishUsername=foo"
       logOutput = runGradleTask(command, "publishApiTest")
       assertTrue(logOutput.contains(
-            "Could not transfer artifact us.ihmc:your-project:jar:0.1.0 from/to remote (https://some.fake/my-open-vendor): Could not write to resource 'us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
+            "Could not write to resource 'https://some.fake/my-open-vendor/us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
       assertTrue(logOutput.contains("BUILD FAILED"))
       
       command = "publish -PpublishUrl=mySecureVendor -PartifactoryUsername=foo -PpublishUsername=foo"
       logOutput = runGradleTask(command, "publishApiTest")
-      assertTrue(logOutput.contains(
-            "Could not transfer artifact us.ihmc:your-project:jar:0.1.0 from/to remote (https://some.fake/my-secure-vendor): Could not write to resource 'us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
+      assertTrue(logOutput.contains("Could not write to resource 'https://some.fake/my-secure-vendor/us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
       assertTrue(logOutput.contains("BUILD FAILED"))
       
       // Totally custom URL
       command = "publish -PpublishUrl=https://shotgun/repo -PpublishUsername=user564 -PpublishPassword=pass1 -PartifactoryUsername=foo -PpublishUsername=foo"
       logOutput = runGradleTask(command, "publishApiTest")
-      assertTrue(logOutput.contains(
-            "Could not transfer artifact us.ihmc:your-project:jar:0.1.0 from/to remote (https://shotgun/repo): Could not write to resource 'us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
+      assertTrue(logOutput.contains("Could not write to resource 'https://shotgun/repo/us/ihmc/your-project/0.1.0/your-project-0.1.0.jar'"))
       assertTrue(logOutput.contains("BUILD FAILED"))
    }
 }
