@@ -12,7 +12,7 @@ ihmc {
    configurePublications()
 }
 
-println "hello"
+println("hello")
 
 mainDependencies {
 
