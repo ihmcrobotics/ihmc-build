@@ -13,7 +13,6 @@ import org.gradle.internal.metaobject.DynamicInvokeResult
 import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
 import org.gradle.kotlin.dsl.extra
-import org.gradle.util.CollectionUtils
 
 open class IHMCDependenciesExtension(private val mainProject: Project,
                                      private val sourceSetKebabCasedName: String,
@@ -47,6 +46,11 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    override fun <T : Any?, U : ExternalModuleDependency?> addProvider(configurationName: String,
                                                                       dependencyNotation: Provider<T>,
                                                                       configuration: Action<in U>)
+   {
+      TODO("Not yet implemented")
+   }
+
+   override fun <T : Any?> addProvider(p0: String, p1: Provider<T>): Unit
    {
       TODO("Not yet implemented")
    }
@@ -187,7 +191,7 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
             return DynamicInvokeResult.notFound()
          }
          val configuration = projectToConfigure.configurations.findByName(name) ?: return DynamicInvokeResult.notFound()
-         val normalizedArgs = CollectionUtils.flattenCollections(*arguments)
+         val normalizedArgs = listOf(*arguments)
          if (normalizedArgs.size == 2 && normalizedArgs[1] is Closure<*>)
          {
             return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0] as Any, normalizedArgs[1] as Closure<Any>))

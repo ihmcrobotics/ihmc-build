@@ -4,11 +4,11 @@ plugins {
    `kotlin-dsl`
    `java-gradle-plugin`
    `maven-publish`
-   id("com.gradle.plugin-publish") version "0.12.0"
+   id("com.gradle.plugin-publish") version "0.14.0"
 }
 
 group = "us.ihmc"
-version = "0.25.0"
+version = "0.26.0"
 
 repositories {
    jcenter()
@@ -16,16 +16,16 @@ repositories {
 }
 
 dependencies {
-   api("ca.cutterslade.gradle:gradle-dependency-analyze:1.4.2") {
+   api("ca.cutterslade.gradle:gradle-dependency-analyze:1.7.1") {
       exclude("junit", "junit")
    }
-   api("gradle.plugin.com.dorongold.plugins:task-tree:1.5")
-   api("com.konghq:unirest-java:3.11.05")
-   api("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.1")
-   api("guru.nidi:graphviz-kotlin:0.18.0")
+   api("com.dorongold.plugins:task-tree:2.1.0")
+   api("com.konghq:unirest-java:3.11.12")
+   api("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.2")
+   api("guru.nidi:graphviz-kotlin:0.18.1")
 
-   testApi("org.junit.jupiter:junit-jupiter-api:5.7.0")
-   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
+   testApi("org.junit.jupiter:junit-jupiter-api:5.7.2")
+   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
 }
 
 tasks.withType<Test> {
