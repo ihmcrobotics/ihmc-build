@@ -8,12 +8,13 @@ import org.gradle.api.*
 import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
-import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
+import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
 import org.jfrog.artifactory.client.Artifactory
@@ -372,7 +373,7 @@ open class IHMCBuildExtension(val project: Project)
                declareCustomPublishUrl("User", userPublishUrl)
             }
             
-            val java = extensions.getByType(JavaPluginExtension::class.java)
+            val java = convention.getPlugin(JavaPluginConvention::class.java)
             
             declarePublication(name, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
@@ -391,7 +392,7 @@ open class IHMCBuildExtension(val project: Project)
    
    fun setupJavaSourceSets()
    {
-      val java = project.extensions.getByType(JavaPluginExtension::class.java)
+      val java = project.convention.getPlugin(JavaPluginConvention::class.java)
       if (compatibilityVersionProperty != "CURRENT")
       {
          java.sourceCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
@@ -407,7 +408,7 @@ open class IHMCBuildExtension(val project: Project)
 
       for (subproject in project.subprojects)
       {
-         val javaSubproject = subproject.extensions.getByType(JavaPluginExtension::class.java)
+         val javaSubproject = subproject.convention.getPlugin(JavaPluginConvention::class.java)
          if (compatibilityVersionProperty != "CURRENT")
          {
             javaSubproject.sourceCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
@@ -475,7 +476,7 @@ open class IHMCBuildExtension(val project: Project)
    
    fun sourceSet(sourceSetName: String): SourceSet
    {
-      return sourceSetProject(sourceSetName).extensions.getByType(JavaPluginExtension::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+      return sourceSetProject(sourceSetName).convention.getPlugin(JavaPluginConvention::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
    }
    
    fun sourceSetProject(sourceSetName: String): Project
