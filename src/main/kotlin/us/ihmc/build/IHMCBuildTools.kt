@@ -294,7 +294,7 @@ object IHMCBuildTools
 
          val dependencyBlockString = "   " + fileAsString.substring(end, end + indexAfterEndBracket - 1).trim()
 
-         LogTools.debug("Matched: $dependencyBlockString ")
+         LogTools.debug("Matched: $dependencyBlockString")
          dependencySet.addAll(extractDependencyArtifactNames(dependencyBlockString))
       }
 
@@ -305,7 +305,7 @@ object IHMCBuildTools
    {
       val artifactNames = TreeSet<String>()
 
-      val pattern = Regex("(compile|implementation|api|runtime)[ \\t\\x0B]*\\([ \\t\\x0B]*\\\"[\\s\\-\\w\\.]+:[\\s\\:\\-\\w\\.]+\\\"").toPattern()
+      val pattern = Regex("(compile|implementation|api|runtime)[ \\t\\x0B]*\\([ \\t\\x0B]*\\\"[\\s\\-\\w\\.]+:[\\$\\s\\:\\-\\w\\.]+\\\"").toPattern()
       val matcher = pattern.matcher(dependencyBlockString);
       while (matcher.find())
       {
@@ -313,6 +313,7 @@ object IHMCBuildTools
          val artifactName = match.split(":")[1]
 
          artifactNames.add(artifactName)
+         LogTools.debug("Added artifact name: $artifactName")
       }
 
       return artifactNames

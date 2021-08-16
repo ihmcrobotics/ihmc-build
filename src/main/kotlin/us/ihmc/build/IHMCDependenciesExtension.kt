@@ -85,7 +85,7 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
 
       LogTools.debug("Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
       
-      if (configurationName != "compile")
+      if (configurationName != "api")
       {
          LogTools.debug(" Unusual dependency on configuration: " + configurationName + ": " + dependencyNotation)
       }
