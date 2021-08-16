@@ -48,7 +48,7 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
    
    fun findAndIncludeCompositeBuilds()
    {
-      if (settings.startParameter.isSearchUpwards)
+      if (settings.gradle.parent == null)
       {
          val compositeBuildAssembler = IHMCCompositeBuildAssembler(this)
          for (buildToInclude in compositeBuildAssembler.findCompositeBuilds())
