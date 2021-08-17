@@ -14,7 +14,6 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
-import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
 import org.jfrog.artifactory.client.Artifactory
@@ -239,10 +238,11 @@ open class IHMCBuildExtension(val project: Project)
       try // always declare dependency on "main" from "test"
       {
          val testProject = project.project(":$kebabCasedNameProperty-test")
-         testProject.dependencies.add("runtimeClasspath", project)
+         testProject.dependencies.add("api", project)
       }
       catch (e: UnknownProjectException)
       {
+
       }
    }
    
