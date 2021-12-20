@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.26.4"
+version = "0.26.5"
 
 repositories {
    jcenter()
@@ -16,16 +16,16 @@ repositories {
 }
 
 dependencies {
-   api("ca.cutterslade.gradle:gradle-dependency-analyze:1.7.1") {
+   api("ca.cutterslade.gradle:gradle-dependency-analyze:1.8.3") {
       exclude("junit", "junit")
    }
    api("com.dorongold.plugins:task-tree:2.1.0")
-   api("com.konghq:unirest-java:3.11.12")
+   api("com.konghq:unirest-java:3.13.4")
    api("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.2")
    api("guru.nidi:graphviz-kotlin:0.18.1")
 
-   testApi("org.junit.jupiter:junit-jupiter-api:5.7.2")
-   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
+   testApi("org.junit.jupiter:junit-jupiter-api:5.8.2")
+   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
 }
 
 tasks.withType<Test> {

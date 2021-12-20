@@ -43,6 +43,11 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
       return delegate.create(modifyDependency(dependencyNotation))
    }
 
+   override fun enforcedPlatform(dependencyProvider: Provider<MinimalExternalModuleDependency>): Provider<MinimalExternalModuleDependency>
+   {
+      TODO("Not yet implemented")
+   }
+
    override fun <T : Any?, U : ExternalModuleDependency?> addProvider(configurationName: String,
                                                                       dependencyNotation: Provider<T>,
                                                                       configuration: Action<in U>)
