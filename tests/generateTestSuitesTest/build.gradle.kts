@@ -21,7 +21,7 @@ ihmc {
 }
 
 mainDependencies {
-   api("org.apache.commons:commons-lang3:3.11")
+   api("org.apache.commons:commons-lang3:3.12.0")
 }
 
 testDependencies {
