@@ -43,6 +43,7 @@ fun Task.configureCIServerSyncTask(testsToTagsMap: Lazy<HashMap<String, HashSet<
       var message = ""
       val (request, response, result) = Fuel.post(url, listOf(Pair("text", json.toString(2))))
             .timeout(30000)
+            .timeoutRead(30000)
             .responseString()
       when (result)
       {
