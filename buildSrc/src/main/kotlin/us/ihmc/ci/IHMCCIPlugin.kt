@@ -13,10 +13,10 @@ lateinit var LogTools: IHMCCILogTools
 
 class IHMCCIPlugin : Plugin<Project>
 {
-   val JUNIT_VERSION = "5.7.0"
-   val PLATFORM_VERSION = "1.7.0"
+   val JUNIT_VERSION = "5.8.2"
+   val PLATFORM_VERSION = "1.8.2"
    val ALLOCATION_INSTRUMENTER_VERSION = "3.3.0"
-   val VINTAGE_VERSION = "4.13.1"
+   val VINTAGE_VERSION = "4.13.2"
 
    lateinit var project: Project
    var cpuThreads = 8
