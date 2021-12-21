@@ -9,5 +9,5 @@ repositories {
 dependencies {
    api("commons-io:commons-io:2.11.0")
 
-   testCompile("junit:junit:4.13.1")
+   testCompile("junit:junit:4.13.2")
 }
