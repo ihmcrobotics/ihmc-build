@@ -88,6 +88,8 @@ open class IHMCBuildExtension(val project: Project)
    {
       artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
       artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
+      nexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
+      nexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
       publishPassword = setupPropertyWithDefault("publishPassword", "")
    
