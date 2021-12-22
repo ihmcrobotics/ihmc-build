@@ -356,7 +356,7 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (openSource)
                {
-                  declareNexus("snapshots")
+                  declareNexus("open-snapshots")
                }
                else
                {
