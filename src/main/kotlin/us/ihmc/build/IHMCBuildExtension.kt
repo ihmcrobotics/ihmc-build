@@ -694,11 +694,11 @@ open class IHMCBuildExtension(val project: Project)
    {
       if (openSource)
       {
-         return listOf("snapshots")
+         return listOf("open-snapshots")
       }
       else
       {
-         return listOf("snapshots", "proprietary-snapshots")
+         return listOf("open-snapshots", "proprietary-snapshots")
       }
    }
    
