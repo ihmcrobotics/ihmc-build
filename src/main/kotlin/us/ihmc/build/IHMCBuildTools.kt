@@ -164,6 +164,21 @@ object IHMCBuildTools
       }
    }
 
+   fun nexusUrlCompatibility(extra: ExtraPropertiesExtension): String
+   {
+      if (containsValidStringProperty("nexusUrl", extra))
+      {
+         return (extra.get("nexusUrl") as String).trim()
+      }
+      else
+      {
+         val defaultValue = "https://nexus.ihmc.us"
+         LogTools.info("No value found for nexusUrl. Using default value: $defaultValue")
+         extra.set("nexusUrl", defaultValue)
+         return defaultValue
+      }
+   }
+
    fun compatibilityVersionCompatibility(extra: ExtraPropertiesExtension): String
    {
       if (containsValidStringProperty("compatibilityVersion", extra))

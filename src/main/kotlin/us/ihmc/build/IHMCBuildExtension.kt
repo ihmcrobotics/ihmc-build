@@ -3,6 +3,7 @@ package us.ihmc.build
 import groovy.util.Eval
 import groovy.util.Node
 import kong.unirest.Unirest
+import kong.unirest.json.JSONObject
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.*
 import org.gradle.api.artifacts.ExcludeRule
@@ -19,6 +20,7 @@ import org.gradle.kotlin.dsl.withType
 import org.jfrog.artifactory.client.Artifactory
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder
 import org.jfrog.artifactory.client.model.RepoPath
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -41,6 +43,8 @@ open class IHMCBuildExtension(val project: Project)
    
    private lateinit var artifactoryUsername: String
    private lateinit var artifactoryPassword: String
+   private lateinit var nexusUsername: String
+   private lateinit var nexusPassword: String
    private val publishUsername: String
    private val publishPassword: String
 
@@ -49,7 +53,8 @@ open class IHMCBuildExtension(val project: Project)
    private val snapshotModeProperty: Boolean
    private val publishUrlProperty: String
    private val ciDatabaseUrlProperty: String
-   private val artifactoryUrlProperty: String
+   private val artifactoryUrlProperty = IHMCBuildTools.artifactoryUrlCompatibility(project.extra)
+   private val nexusUrlProperty = IHMCBuildTools.nexusUrlCompatibility(project.extra)
    private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
    
@@ -65,7 +70,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private val artifactory: Artifactory by lazy {
       val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
-      builder.url = "https://artifactory.ihmc.us/artifactory"
+      builder.url = "$artifactoryUrlProperty/artifactory"
       if (!openSource)
       {
          builder.username = artifactoryUsername
@@ -89,7 +94,6 @@ open class IHMCBuildExtension(val project: Project)
       snapshotModeProperty = IHMCBuildTools.snapshotModeCompatibility(project.extra)
       publishUrlProperty = IHMCBuildTools.publishUrlCompatibility(project.extra)
       ciDatabaseUrlProperty = IHMCBuildTools.ciDatabaseUrlCompatibility(project.extra)
-      artifactoryUrlProperty = IHMCBuildTools.artifactoryUrlCompatibility(project.extra)
       compatibilityVersionProperty = IHMCBuildTools.compatibilityVersionCompatibility(project.extra)
 
       titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
@@ -165,6 +169,13 @@ open class IHMCBuildExtension(val project: Project)
                LogTools.warn("Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
             }
          }
+         if (propertyName == "nexusUsername" || propertyName == "nexusPassword")
+         {
+            if (!openSource && isBambooBuild)
+            {
+               LogTools.warn("Please set nexusUsername and nexusPassword in /path/to/user/.gradle/gradle.properties.")
+            }
+         }
 
          LogTools.info("No value found for $propertyName. Using default value: $defaultValue")
          project.extra.set(propertyName, defaultValue)
@@ -208,9 +219,13 @@ open class IHMCBuildExtension(val project: Project)
          declareMavenCentral()
          repository("https://clojars.org/repo/")
          declareJCenter()
+         repository("$nexusUrlProperty/repository/open-snapshots/")
          repository("$artifactoryUrlProperty/artifactory/snapshots/")
          if (!openSource)
          {
+            repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
+            repository("$nexusUrlProperty/repository/proprietary-snapshots/", nexusUsername, nexusPassword)
+            repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
             repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
@@ -225,6 +240,11 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
+         if (!openSource && (nexusUsername != "unset_username")) // support third parties not needing to declare Nexus
+         {
+            repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
+            repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
+         }
          if (!openSource && (artifactoryUsername != "unset_username")) // support third parties not needing to declare Artifactory
          {
             repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
@@ -245,7 +265,8 @@ open class IHMCBuildExtension(val project: Project)
 
       }
    }
-   
+
+   @Deprecated("JFrog announced JCenter's <a href=\"https://blog.gradle.org/jcenter-shutdown\">sunset</a> in February 2021. Use {@link #mavenCentral()} instead.")
    fun declareJCenter()
    {
       for (allproject in project.allprojects)
@@ -333,11 +354,11 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (openSource)
                {
-                  declareArtifactory("snapshots")
+                  declareNexus("snapshots")
                }
                else
                {
-                  declareArtifactory("proprietary-snapshots")
+                  declareNexus("proprietary-snapshots")
                }
             }
             else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcrelease"))
@@ -348,7 +369,7 @@ open class IHMCBuildExtension(val project: Project)
                }
                else
                {
-                  declareArtifactory("proprietary-releases")
+                  declareNexus("proprietary-releases")
                }
             }
             else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
@@ -359,7 +380,7 @@ open class IHMCBuildExtension(val project: Project)
                }
                else
                {
-                  declareArtifactory("proprietary-releases")
+                  declareNexus("proprietary-releases")
                }
             }
             else if (customPublishUrls.contains(publishUrlProperty)) // addPublishUrl was called
@@ -699,12 +720,9 @@ open class IHMCBuildExtension(val project: Project)
          {
             for (repository in getSnapshotRepositoryList())
             {
-               for (repoPath in searchArtifactory(repository, groupId, artifactId))
+               for (asset in searchNexus(repository, groupId, artifactId, ".*\\d\\.jar$"))
                {
-                  if (repoPath.itemPath.matches(Regex(".*\\d\\.jar$")))
-                  {
-                     repositoryVersions["$groupId:$artifactId"]!!.add(itemPathToVersion(repoPath.itemPath, artifactId))
-                  }
+                  repositoryVersions["$groupId:$artifactId"]!!.add(itemPathToVersion(asset.getString("path"), artifactId))
                }
             }
          }
@@ -712,7 +730,7 @@ open class IHMCBuildExtension(val project: Project)
       
       return repositoryVersions["$groupId:$artifactId"]!!
    }
-   
+
    private fun anyVersionExists(groupId: String, artifactId: String): Boolean
    {
       return !searchRepositories(groupId, artifactId).isEmpty()
@@ -729,7 +747,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          for (repository in getSnapshotRepositoryList())
          {
-            if (searchArtifactory(repository, groupId, artifactId, version).isNotEmpty())
+            if (searchNexus(repository, groupId, artifactId, version, ".*").isNotEmpty())
             {
                if (repositoryVersions.containsKey("$groupId:$artifactId"))
                {
@@ -752,10 +770,31 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         return loadPOMDependenciesArtifactory(groupId, artifactId, versionToCheck)
+         return loadPOMDependenciesNexus(groupId, artifactId, versionToCheck)
       }
    }
-   
+
+   private fun loadPOMDependenciesNexus(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
+   {
+      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
+      {
+         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
+
+         for (repository in getSnapshotRepositoryList())
+         {
+            for (asset in searchNexus(repository, groupId, artifactId, versionToCheck, ".*\\d\\.pom$"))
+            {
+               LogTools.info("Hitting Nexus for POM: " + asset.getString("path"))
+               val bytes = downloadItemFromNexus(asset.getString("downloadUrl"))
+
+               parsePOMInputStream(ByteArrayInputStream(bytes), groupId, artifactId, versionToCheck)
+            }
+         }
+      }
+
+      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
+   }
+
    private fun loadPOMDependenciesArtifactory(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
    {
       if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
@@ -778,6 +817,76 @@ open class IHMCBuildExtension(val project: Project)
       }
       
       return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
+   }
+
+   private fun searchNexus(repository: String, groupId: String, artifactId: String, version: String, matchPattern: String): List<JSONObject>
+   {
+      return searchNexus("repository=$repository&maven.groupId=$groupId&maven.artifactId=$artifactId&maven.baseVersion=$version", matchPattern);
+   }
+
+   private fun searchNexus(repository: String, groupId: String, artifactId: String, matchPattern: String): List<JSONObject>
+   {
+      return searchNexus("repository=$repository&maven.groupId=$groupId&maven.artifactId=$artifactId", matchPattern);
+   }
+
+   private fun searchNexus(parameters: String, matchPattern: String): List<JSONObject>
+   {
+      var continuationToken = "first_page"
+      val requestUrl = "$nexusUrlProperty/service/rest/v1/search?$parameters"
+      val matches = arrayListOf<JSONObject>()
+      while (continuationToken != "no_more_pages")
+      {
+          Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl?continuationToken=$continuationToken")
+                 .basicAuth(nexusUsername, nexusPassword)
+                 .asJson()
+                 .ifSuccess { response ->
+                     val bodyObject: JSONObject = response.body.`object`
+                     if (bodyObject.isNull("continuationToken"))
+                         continuationToken = "no_more_pages"
+                     else
+                         continuationToken = bodyObject.getString("continuationToken")
+                     val items = bodyObject.getJSONArray("items")
+                     for (item in items)
+                     {
+                        val assets = (item as JSONObject).getJSONArray("assets")
+                        for (asset in assets)
+                        {
+                           val assetObject = asset as JSONObject
+                           val path = assetObject.getString("path")
+                           if (path.matches(Regex(matchPattern)))
+                           {
+                              matches.add(assetObject)
+                           }
+                        }
+                     }
+                 }
+                 .ifFailure { response ->
+                    throw nexusException(requestUrl)
+                 }
+      }
+      return matches
+   }
+
+   private fun downloadItemFromNexus(downloadUrl: String): ByteArray?
+   {
+      var bytes: ByteArray? = null
+      Unirest.get(downloadUrl)
+             .basicAuth(nexusUsername, nexusPassword)
+             .asBytes()
+             .ifSuccess { response ->
+                bytes = response.body
+             }
+             .ifFailure { response ->
+                throw nexusException(downloadUrl)
+             }
+      return bytes
+   }
+
+   private fun nexusException(path: String): GradleException
+   {
+      return GradleException("Problem authenticating or retrieving item from Nexus: $path. " +
+              "Try logging into $nexusUrlProperty with the credentials used " +
+              "(nexusUsername and nexusPassword properties) and see if the item is there.")
    }
 
    private fun searchArtifactory(repository: String, groupId: String, artifactId: String): List<RepoPath>
@@ -819,10 +928,10 @@ open class IHMCBuildExtension(val project: Project)
    private fun artifactoryException(path: String): GradleException
    {
       return GradleException("Problem authenticating or retrieving item from Artifactory: $path. " +
-                             "Try logging into artifactory.ihmc.us with the credentials used " +
+                             "Try logging into $artifactoryUrlProperty with the credentials used " +
                              "(artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
    }
-   
+
    private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
    {
       try
@@ -962,11 +1071,11 @@ open class IHMCBuildExtension(val project: Project)
       {
          if (repositoryVersion.matches(Regex("$versionMatcher-\\d+")))
          {
-            val buildNumberFromArtifactory: Int = Integer.parseInt(repositoryVersion.split("-").last())
-            if (buildNumberFromArtifactory > highestBuildNumber)
+            val buildNumberFromRepositoryManager: Int = Integer.parseInt(repositoryVersion.split("-").last())
+            if (buildNumberFromRepositoryManager > highestBuildNumber)
             {
                matchedVersion = repositoryVersion
-               highestBuildNumber = buildNumberFromArtifactory
+               highestBuildNumber = buildNumberFromRepositoryManager
             }
          }
       }
@@ -1018,13 +1127,23 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
+
+   fun Project.declareNexus(repoName: String) {
+      val publishing = extensions.getByType(PublishingExtension::class.java)
+      publishing.repositories.maven {
+         name = "Nexus" + IHMCBuildTools.kebabToPascalCase(repoName)
+         url = uri("https://nexus.ihmc.us/repository/$repoName")
+         credentials.username = nexusUsername
+         credentials.password = nexusPassword
+      }
+   }
    
    fun Project.declareArtifactory(repoName: String)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
          name = "Artifactory" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("https://artifactory.ihmc.us/artifactory/$repoName")
+         url = uri("$artifactoryUrlProperty/artifactory/$repoName")
          credentials.username = artifactoryUsername
          credentials.password = artifactoryPassword
       }
