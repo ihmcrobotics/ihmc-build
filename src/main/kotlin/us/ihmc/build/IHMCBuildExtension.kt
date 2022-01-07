@@ -122,6 +122,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
       branchName = bambooBranchNameProperty.replace("/", "-")
+      Unirest.config().connectTimeout(30000)
    }
    
    private fun requestIntegrationNumberFromCIDatabase(buildKey: String): String
@@ -838,7 +839,6 @@ open class IHMCBuildExtension(val project: Project)
       val matches = arrayListOf<JSONObject>()
       while (continuationToken != "no_more_pages")
       {
-          Unirest.config().connectTimeout(30000)
           Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl?continuationToken=$continuationToken")
                  .basicAuth(nexusUsername, nexusPassword)
                  .asJson()
