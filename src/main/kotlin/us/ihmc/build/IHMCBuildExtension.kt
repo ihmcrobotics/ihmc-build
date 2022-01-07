@@ -838,6 +838,7 @@ open class IHMCBuildExtension(val project: Project)
       val matches = arrayListOf<JSONObject>()
       while (continuationToken != "no_more_pages")
       {
+          Unirest.config().connectTimeout(30000)
           Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl?continuationToken=$continuationToken")
                  .basicAuth(nexusUsername, nexusPassword)
                  .asJson()
