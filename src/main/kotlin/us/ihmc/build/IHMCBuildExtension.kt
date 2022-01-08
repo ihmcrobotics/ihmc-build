@@ -122,6 +122,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
       branchName = bambooBranchNameProperty.replace("/", "-")
+      Unirest.config().reset()
       Unirest.config().connectTimeout(30000)
    }
    
