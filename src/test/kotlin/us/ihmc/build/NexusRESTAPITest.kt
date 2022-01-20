@@ -16,7 +16,7 @@ fun main()
     val documentBuilderFactory = DocumentBuilderFactory.newInstance()
     while (continuationToken != "no_more_pages")
     {
-        Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl?continuationToken=$continuationToken")
+        Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl&continuationToken=$continuationToken")
                 .basicAuth(nexusUsername, nexusPassword)
                 .asJson()
                 .ifSuccess { response ->

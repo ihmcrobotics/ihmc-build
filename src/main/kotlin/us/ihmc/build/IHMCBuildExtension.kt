@@ -687,6 +687,14 @@ open class IHMCBuildExtension(val project: Project)
 
       if (externalDependencyVersion.contains("NOT-FOUND"))
       {
+         LogTools.info("Found the following artifacts while browsing:")
+         for ((groupArtifact, versions) in repositoryVersions.entries)
+         {
+            for (artifactVersion in versions)
+            {
+               LogTools.info("$groupArtifact:$artifactVersion")
+            }
+         }
          throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
       }
       return externalDependencyVersion
@@ -840,7 +848,7 @@ open class IHMCBuildExtension(val project: Project)
       val matches = arrayListOf<JSONObject>()
       while (continuationToken != "no_more_pages")
       {
-          Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl?continuationToken=$continuationToken")
+          Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl&continuationToken=$continuationToken")
                  .basicAuth(nexusUsername, nexusPassword)
                  .asJson()
                  .ifSuccess { response ->
