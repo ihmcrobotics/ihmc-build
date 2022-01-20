@@ -17,9 +17,6 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
-import org.jfrog.artifactory.client.Artifactory
-import org.jfrog.artifactory.client.ArtifactoryClientBuilder
-import org.jfrog.artifactory.client.model.RepoPath
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -41,8 +38,6 @@ open class IHMCBuildExtension(val project: Project)
    var companyName: String = "IHMC"
    var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
    
-   private lateinit var artifactoryUsername: String
-   private lateinit var artifactoryPassword: String
    private lateinit var nexusUsername: String
    private lateinit var nexusPassword: String
    private val publishUsername: String
@@ -53,7 +48,6 @@ open class IHMCBuildExtension(val project: Project)
    private val snapshotModeProperty: Boolean
    private val publishUrlProperty: String
    private val ciDatabaseUrlProperty: String
-   private val artifactoryUrlProperty = IHMCBuildTools.artifactoryUrlCompatibility(project.extra)
    private val nexusUrlProperty = IHMCBuildTools.nexusUrlCompatibility(project.extra)
    private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
@@ -68,16 +62,6 @@ open class IHMCBuildExtension(val project: Project)
    
    private val includedBuildMap = hashMapOf<String, Boolean>()
    
-   private val artifactory: Artifactory by lazy {
-      val builder: ArtifactoryClientBuilder = ArtifactoryClientBuilder.create()
-      builder.url = "$artifactoryUrlProperty/artifactory"
-      if (!openSource)
-      {
-         builder.username = artifactoryUsername
-         builder.password = artifactoryPassword
-      }
-      builder.build()
-   }
    private val repositoryVersions = hashMapOf<String, TreeSet<String>>()
    private val pomDependencies = hashMapOf<String, ArrayList<ArrayList<String>>>()
    private val documentBuilderFactory by lazy {
@@ -86,8 +70,6 @@ open class IHMCBuildExtension(val project: Project)
    
    init
    {
-      artifactoryUsername = setupPropertyWithDefault("artifactoryUsername", "unset_username")
-      artifactoryPassword = setupPropertyWithDefault("artifactoryPassword", "unset_password")
       nexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
       nexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
@@ -166,13 +148,6 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         if (propertyName == "artifactoryUsername" || propertyName == "artifactoryPassword")
-         {
-            if (!openSource && isBambooBuild)
-            {
-               LogTools.warn("Please set artifactoryUsername and artifactoryPassword in /path/to/user/.gradle/gradle.properties.")
-            }
-         }
          if (propertyName == "nexusUsername" || propertyName == "nexusPassword")
          {
             if (!openSource && isBambooBuild)
@@ -224,15 +199,11 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://clojars.org/repo/")
          declareJCenter()
          repository("$nexusUrlProperty/repository/open-snapshots/")
-         repository("$artifactoryUrlProperty/artifactory/snapshots/")
          if (!openSource)
          {
             repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
             repository("$nexusUrlProperty/repository/proprietary-snapshots/", nexusUsername, nexusPassword)
             repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
-            repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
-            repository("$artifactoryUrlProperty/artifactory/proprietary-snapshots/", artifactoryUsername, artifactoryPassword)
-            repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
@@ -248,11 +219,6 @@ open class IHMCBuildExtension(val project: Project)
          {
             repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
             repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
-         }
-         if (!openSource && (artifactoryUsername != "unset_username")) // support third parties not needing to declare Artifactory
-         {
-            repository("$artifactoryUrlProperty/artifactory/proprietary-releases/", artifactoryUsername, artifactoryPassword)
-            repository("$artifactoryUrlProperty/artifactory/proprietary-vendor/", artifactoryUsername, artifactoryPassword)
          }
          declareMavenLocal()
       }
@@ -765,7 +731,7 @@ open class IHMCBuildExtension(val project: Project)
                {
                   repositoryVersions["$groupId:$artifactId"]!!.add(version)
                }
-               LogTools.info("Found version circumventing Artifactory bug: $groupId:$artifactId:$version")
+               LogTools.info("Found version circumventing pagination bug: $groupId:$artifactId:$version") // TODO: Review if this is still necessary
                return true
             }
          }
@@ -804,30 +770,6 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
 
-      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
-   }
-
-   private fun loadPOMDependenciesArtifactory(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
-      {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
-         
-         for (repository in getSnapshotRepositoryList())
-         {
-            for (repoPath in searchArtifactory(repository, groupId, artifactId, versionToCheck))
-            {
-               if (repoPath.itemPath.matches(Regex(".*\\d\\.pom$")))
-               {
-                  LogTools.info("Hitting Artifactory for POM: " + repoPath.itemPath)
-                  val inputStream = downloadItemFromArtifactory(repository, repoPath)
-                  
-                  parsePOMInputStream(inputStream, groupId, artifactId, versionToCheck)
-               }
-            }
-         }
-      }
-      
       return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
    }
 
@@ -899,49 +841,6 @@ open class IHMCBuildExtension(val project: Project)
       return GradleException("Problem authenticating or retrieving item from Nexus: $path. " +
               "Try logging into $nexusUrlProperty with the credentials used " +
               "(nexusUsername and nexusPassword properties) and see if the item is there.")
-   }
-
-   private fun searchArtifactory(repository: String, groupId: String, artifactId: String): List<RepoPath>
-   {
-      try
-      {
-         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).doSearch()
-      }
-      catch (e: IllegalArgumentException)
-      {
-         throw artifactoryException("$repository/$groupId/$artifactId/$version")
-      }
-   }
-   
-   private fun searchArtifactory(repository: String, groupId: String, artifactId: String, version: String): List<RepoPath>
-   {
-      try
-      {
-         return artifactory.searches().artifactsByGavc().repositories(repository).groupId(groupId).artifactId(artifactId).version(version).doSearch()
-      }
-      catch (e: IllegalArgumentException)
-      {
-         throw artifactoryException("$repository/$groupId/$artifactId/$version")
-      }
-   }
-   
-   private fun downloadItemFromArtifactory(repository: String, repoPath: RepoPath): InputStream
-   {
-      try
-      {
-         return artifactory.repository(repository).download(repoPath.itemPath).doDownload()
-      }
-      catch (e: IllegalArgumentException)
-      {
-         throw artifactoryException("$repository/$repoPath")
-      }
-   }
-   
-   private fun artifactoryException(path: String): GradleException
-   {
-      return GradleException("Problem authenticating or retrieving item from Artifactory: $path. " +
-                             "Try logging into $artifactoryUrlProperty with the credentials used " +
-                             "(artifactoryUsername and artifactoryPassword properties) and see if the item is there.")
    }
 
    private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
@@ -1147,17 +1046,6 @@ open class IHMCBuildExtension(val project: Project)
          url = uri("https://nexus.ihmc.us/repository/$repoName")
          credentials.username = nexusUsername
          credentials.password = nexusPassword
-      }
-   }
-   
-   fun Project.declareArtifactory(repoName: String)
-   {
-      val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven {
-         name = "Artifactory" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("$artifactoryUrlProperty/artifactory/$repoName")
-         credentials.username = artifactoryUsername
-         credentials.password = artifactoryPassword
       }
    }
 

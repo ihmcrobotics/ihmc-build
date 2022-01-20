@@ -33,14 +33,12 @@ class ContinuousIntegrationTest
       
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
 
-      val artifactoryUsername = ""
-      val artifactoryPassword = ""
+      val nexusUsername = ""
+      val nexusPassword = ""
 
       output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots " +
-                                   "-PartifactoryUsername=$artifactoryUsername -PartifactoryPassword=$artifactoryPassword", "generateTestSuitesTest")
-      
-//      assertTrue(output.contains(Regex("Could not write to resource 'https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project/SNAPSHOT-0/your-project-SNAPSHOT-0.jar")))
-//      assertTrue(output.contains(Regex("Could not write to resource 'https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project-test/SNAPSHOT-0/your-project-test-SNAPSHOT-0.jar")))
+                                   "-PnexusUsername=$nexusUsername -PnexusPassword=$nexusPassword", "generateTestSuitesTest")
+
       assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
 
@@ -55,14 +53,12 @@ class ContinuousIntegrationTest
 //      assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
 //
 //      val credentials = EncryptedPropertyManager.loadEncryptedCredentials()
-//      val artifactoryUsername = credentials.get("artifactoryUsername")
-//      val artifactoryPassword = credentials.get("artifactoryPassword")
+//      val nexusUsername = credentials.get("nexusUsername")
+//      val nexusPassword = credentials.get("nexusPassword")
 //
 //      output = runGradleTask("publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots " +
-//                                   "-PartifactoryUsername=$artifactoryUsername -PartifactoryPassword=$artifactoryPassword", "generateTestSuitesTest")
+//                                   "-PnexusUsername=$nexusUsername -PnexusPassword=$nexusPassword", "generateTestSuitesTest")
 
-//      assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project/SNAPSHOT-0/your-project-SNAPSHOT-0.jar")))
-//      assertTrue(output.contains(Regex("Upload https://artifactory.ihmc.us/artifactory/snapshots/us/ihmc/your-project-test/SNAPSHOT-0/your-project-test-SNAPSHOT-0.jar")))
 //      assertTrue(output.contains(Regex("BUILD SUCCESSFUL")))
    }
 }

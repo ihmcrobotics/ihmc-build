@@ -5,8 +5,8 @@ plugins {
 
 // TODO: Fix up to test CI stuff maybe
 
-artifactoryUsername = System.properties.getProperty("artifactory.username")
-artifactoryPassword = System.properties.getProperty("artifactory.password")
+nexusUsername = System.properties.getProperty("nexus.username")
+nexusPassword = System.properties.getProperty("nexus.password")
 
 ihmc {
    group = "us.ihmc"

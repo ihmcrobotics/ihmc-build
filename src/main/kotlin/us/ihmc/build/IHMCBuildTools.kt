@@ -149,21 +149,6 @@ object IHMCBuildTools
       }
    }
 
-   fun artifactoryUrlCompatibility(extra: ExtraPropertiesExtension): String
-   {
-      if (containsValidStringProperty("artifactoryUrl", extra))
-      {
-         return (extra.get("artifactoryUrl") as String).trim()
-      }
-      else
-      {
-         val defaultValue = "https://artifactory.ihmc.us"
-         LogTools.info("No value found for artifactoryUrl. Using default value: $defaultValue")
-         extra.set("artifactoryUrl", defaultValue)
-         return defaultValue
-      }
-   }
-
    fun nexusUrlCompatibility(extra: ExtraPropertiesExtension): String
    {
       if (containsValidStringProperty("nexusUrl", extra))

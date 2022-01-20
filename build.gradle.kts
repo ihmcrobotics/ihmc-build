@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "0.27.6"
+version = "0.28.0"
 
 repositories {
    maven { url = uri("https://plugins.gradle.org/m2/") }  // needed for included plugins
@@ -20,7 +20,6 @@ dependencies {
    }
    api("com.dorongold.plugins:task-tree:2.1.0")
    api("com.konghq:unirest-java:3.13.4")
-   api("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.2")
    api("guru.nidi:graphviz-kotlin:0.18.1")
 
    testApi("org.junit.jupiter:junit-jupiter-api:5.8.2")
