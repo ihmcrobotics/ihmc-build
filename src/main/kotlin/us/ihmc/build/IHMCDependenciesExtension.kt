@@ -9,6 +9,7 @@ import org.gradle.api.artifacts.MinimalExternalModuleDependency
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderConvertible
 import org.gradle.internal.metaobject.DynamicInvokeResult
 import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
@@ -56,6 +57,18 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    }
 
    override fun <T : Any?> addProvider(p0: String, p1: Provider<T>): Unit
+   {
+      TODO("Not yet implemented")
+   }
+
+   override fun <T : Any?, U : ExternalModuleDependency?> addProviderConvertible(configurationName: String,
+                                                                                 dependencyNotation: ProviderConvertible<T>,
+                                                                                 configuration: Action<in U>)
+   {
+      TODO("Not yet implemented")
+   }
+
+   override fun <T : Any?> addProviderConvertible(configurationName: String, dependencyNotation: ProviderConvertible<T>)
    {
       TODO("Not yet implemented")
    }
