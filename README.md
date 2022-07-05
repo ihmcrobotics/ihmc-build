@@ -58,6 +58,13 @@ To run multiple tasks over all builds you can separate them with commas. `taskNa
 
 `gradle compositeTask -PtaskNames=task1,task2,task3`
 
+##### Running a task on only a extra source set
+
+You can run a task on an extra source set, like the `test` source set. In `ihmc-build` extra source sets are included as "multi projects". 
+So you can use the `:` character to sepcify the extra source set project and the task to run, like:
+
+`gradle ihmc-java-toolkit-test:publish -PsomeProperty=someValue`
+
 ##### Publishing releases
 
 Set `publishUsername` and `publishPassword` in `~/.gradle/gradle.properties` to your Sonatype JIRA credentials.
