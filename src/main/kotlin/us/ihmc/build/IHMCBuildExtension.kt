@@ -595,7 +595,16 @@ open class IHMCBuildExtension(val project: Project)
       // NOTE: This code path will probably hardly be used soon
       else if (snapshotModeProperty && declaredVersion.startsWith("SNAPSHOT"))
       {
-         externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
+         if (artifactIsIncludedBuild(artifactId))
+         {
+            // In this case, we are actually building this from source currently and so
+            // we should be using the publish version, usually SNAPSHOT-<integration number>
+            externalDependencyVersion = publishVersion
+         }
+         else
+         {
+            externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
+         }
       }
       else // Pass directly to gradle as declared
       {
