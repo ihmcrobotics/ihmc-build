@@ -520,16 +520,27 @@ open class IHMCBuildExtension(val project: Project)
       return IHMCBuildTools.isBuildRoot(project)
    }
 
-   fun getIncludedBuilds(): Collection<IncludedBuild>
+   fun getIncludedBuilds(): Collection<IHMCIncludedBuild>
    {
+      val includedBuilds = ArrayList<IHMCIncludedBuild>()
       if (IHMCBuildTools.isBuildRoot(project))
       {
-         return project.gradle.includedBuilds
+         for (includedBuild in project.gradle.includedBuilds)
+         {
+            includedBuilds.add(IHMCIncludedBuild(includedBuild.name, includedBuild.projectDir))
+         }
       }
       else
       {
-         return project.gradle.parent!!.includedBuilds
+         val parent = project.gradle.parent!!
+         for (includedBuild in parent.includedBuilds)
+         {
+            includedBuilds.add(IHMCIncludedBuild(includedBuild.name, includedBuild.projectDir))
+         }
+         // This was a bug for a while where we didn't include the parent as an included build, which it is.
+         includedBuilds.add(IHMCIncludedBuild(parent.rootProject.name, parent.rootProject.projectDir))
       }
+      return includedBuilds
    }
    
    fun artifactIsIncludedBuild(artifactId: String): Boolean
