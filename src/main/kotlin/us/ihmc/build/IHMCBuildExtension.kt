@@ -7,7 +7,6 @@ import kong.unirest.json.JSONObject
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.*
 import org.gradle.api.artifacts.ExcludeRule
-import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
@@ -197,7 +196,6 @@ open class IHMCBuildExtension(val project: Project)
       {
          declareMavenCentral()
          repository("https://clojars.org/repo/")
-         declareJCenter()
          repository("$nexusUrlProperty/repository/open-snapshots/")
          if (!openSource)
          {
@@ -207,11 +205,11 @@ open class IHMCBuildExtension(val project: Project)
          }
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
+         repository("https://oss.sonatype.org/content/repositories/snapshots")
       }
       else
       {
          declareMavenCentral()
-         declareJCenter()
          repository("https://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
@@ -220,6 +218,7 @@ open class IHMCBuildExtension(val project: Project)
             repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
             repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
          }
+         repository("https://oss.sonatype.org/content/repositories/snapshots")
          declareMavenLocal()
       }
       
@@ -233,15 +232,6 @@ open class IHMCBuildExtension(val project: Project)
       catch (e: UnknownProjectException)
       {
 
-      }
-   }
-
-   @Deprecated("JFrog announced JCenter's <a href=\"https://blog.gradle.org/jcenter-shutdown\">sunset</a> in February 2021. Use {@link #mavenCentral()} instead.")
-   fun declareJCenter()
-   {
-      for (allproject in project.allprojects)
-      {
-         allproject.repositories.jcenter()
       }
    }
    
