@@ -207,6 +207,8 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://jitpack.io")
          repository("https://oss.sonatype.org/content/repositories/snapshots")
+         // https://central.sonatype.org/news/20210223_new-users-on-s01/
+         repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
       }
       else
       {
@@ -221,6 +223,8 @@ open class IHMCBuildExtension(val project: Project)
             repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
          }
          repository("https://oss.sonatype.org/content/repositories/snapshots")
+         // https://central.sonatype.org/news/20210223_new-users-on-s01/
+         repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
          declareMavenLocal()
       }
       
