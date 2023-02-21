@@ -79,6 +79,13 @@ class IHMCBuildPlugin : Plugin<Project>
             dependsOn(allproject.tasks.getByPath("cleanEclipseBuild"))
          }
 
+         // create a task to clean all build files
+         allproject.tasks.create("cleanAllBuilds")
+         {
+            dependsOn(allproject.tasks.getByPath("clean"))
+            dependsOn(allproject.tasks.getByPath("cleanIDEBuilds"))
+         }
+
          // create a task to clean buildship files
          allproject.tasks.create("cleanBuildship", Delete::class.java)
          {
