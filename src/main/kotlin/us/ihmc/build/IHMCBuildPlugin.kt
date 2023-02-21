@@ -64,10 +64,19 @@ class IHMCBuildPlugin : Plugin<Project>
       // setup task to clean buildship files
       for (allproject in project.allprojects)
       {
-         // enhance clean task to include IDE outputs to not only clean "build", but out and bin too
-         allproject.tasks.withType<Delete>().getByName("clean") {
+         allproject.tasks.tasks.create("cleanIdeaBuild") {
             delete(allproject.projectDir.resolve("out")) // IntelliJ default output dir
+         }
+
+         allproject.tasks.tasks.create("cleanEclipseBuild") {
             delete(allproject.projectDir.resolve("bin")) // Eclipse default output dir
+         }
+
+         // create a task to clean all IDE build files
+         allproject.tasks.create("cleanIDEBuilds")
+         {
+            dependsOn(allproject.tasks.getByPath("cleanIdeaBuild"))
+            dependsOn(allproject.tasks.getByPath("cleanEclipseBuild"))
          }
 
          // create a task to clean buildship files
@@ -77,7 +86,7 @@ class IHMCBuildPlugin : Plugin<Project>
          }
 
          // create a task to clean all IDE files and configuration (dangerous!)
-         allproject.tasks.create("cleanIDE")
+         allproject.tasks.create("cleanIDEConfigurations")
          {
             dependsOn(allproject.tasks.getByPath("cleanIdea"))
             dependsOn(allproject.tasks.getByPath("cleanEclipse"))
@@ -91,7 +100,8 @@ class IHMCBuildPlugin : Plugin<Project>
       // composite tasks name composite* instead of *All because, while they would work for single multi project builds too,
       // the normal tasks also call the subproject ones
       IHMCBuildTools.defineDeepCompositeTask("compositeClean", "clean", project)
-      IHMCBuildTools.defineDeepCompositeTask("compositeCleanIDE", "cleanIDE", project)
+      IHMCBuildTools.defineDeepCompositeTask("compositeCleanIDEBuilds", "cleanIDEBuilds", project)
+      IHMCBuildTools.defineDeepCompositeTask("compositeCleanIDEConfigurations", "cleanIDEConfigurations", project)
       IHMCBuildTools.defineDeepCompositeTask("compositeCompileJava", "compileJava", project)
       IHMCBuildTools.defineDeepCompositeTask("compositeJar", "jar", project)
       IHMCBuildTools.defineDeepCompositeTask("compositePublish", "publish", project)
