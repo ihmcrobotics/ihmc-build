@@ -9,7 +9,7 @@ import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.publish.ivy.plugins.IvyPublishPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.Delete
-import org.gradle.kotlin.dsl.withType
+import org.gradle.kotlin.dsl.create
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -64,11 +64,11 @@ class IHMCBuildPlugin : Plugin<Project>
       // setup task to clean buildship files
       for (allproject in project.allprojects)
       {
-         allproject.tasks.tasks.create("cleanIdeaBuild") {
+         allproject.tasks.create<Delete>("cleanIdeaBuild") {
             delete(allproject.projectDir.resolve("out")) // IntelliJ default output dir
          }
 
-         allproject.tasks.tasks.create("cleanEclipseBuild") {
+         allproject.tasks.create<Delete>("cleanEclipseBuild") {
             delete(allproject.projectDir.resolve("bin")) // Eclipse default output dir
          }
 
