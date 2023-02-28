@@ -18,6 +18,7 @@ class IHMCCICategory(val name: String)
    var minHeapSizeGB = 1
    var maxHeapSizeGB = 4
    var enableAssertions = true
+   var defaultTimeout = 1200 // 20 minutes
    var doFirst: () -> Unit = {}  // run user code when this category is selected
 }
 
