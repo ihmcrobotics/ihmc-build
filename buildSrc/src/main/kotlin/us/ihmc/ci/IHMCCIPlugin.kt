@@ -408,6 +408,7 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["maxParallelForks"].run { if (this != null) maxParallelForksOverride = (this as String).toInt() }
       project.properties["enableAssertions"].run { if (this != null) enableAssertionsOverride = (this as String).toBoolean() }
       project.properties["defaultTimeout"].run { if (this != null) defaultTimeoutOverride = (this as String).toInt() }
+      project.properties["testTaskTimeout"].run { if (this != null) testTaskTimeoutOverride = (this as String).toInt() }
       project.properties["allocationRecording"].run { if (this != null) allocationRecordingOverride = (this as String).toBoolean() }
       LogTools.info("cpuThreads = $cpuThreads")
       LogTools.info("category = $category")
@@ -419,6 +420,7 @@ class IHMCCIPlugin : Plugin<Project>
       LogTools.info("maxParallelForks = ${unsetPrintFilter(maxParallelForksOverride)}")
       LogTools.info("enableAssertions = ${unsetPrintFilter(enableAssertionsOverride)}")
       LogTools.info("defaultTimeout = ${unsetPrintFilter(defaultTimeoutOverride)}")
+      LogTools.info("testTaskTimeout = ${unsetPrintFilter(testTaskTimeoutOverride)}")
       LogTools.info("allocationRecording = ${unsetPrintFilter(allocationRecordingOverride)}")
    }
 
