@@ -13,8 +13,8 @@ lateinit var LogTools: IHMCCILogTools
 
 class IHMCCIPlugin : Plugin<Project>
 {
-   val JUNIT_VERSION = "5.8.2"
-   val PLATFORM_VERSION = "1.8.2"
+   val JUNIT_VERSION = "5.9.2"
+   val PLATFORM_VERSION = "1.9.2"
    val ALLOCATION_INSTRUMENTER_VERSION = "3.3.0"
    val VINTAGE_VERSION = "4.13.2"
 
@@ -27,6 +27,7 @@ class IHMCCIPlugin : Plugin<Project>
    var forkEveryOverride: Any = Unset
    var maxParallelForksOverride: Any = Unset
    var enableAssertionsOverride: Any = Unset
+   var defaultTimeoutOverride: Any = Unset
    var allocationRecordingOverride: Any = Unset
    var vintageMode: Boolean = false
    var vintageSuite: String? = null
@@ -228,6 +229,7 @@ class IHMCCIPlugin : Plugin<Project>
       {
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
+      test.systemProperties["junit.jupiter.execution.timeout.default"] = categoryConfig.defaultTimeout
 
       if (categoryConfig.junit5ParallelEnabled)
       {
@@ -302,6 +304,7 @@ class IHMCCIPlugin : Plugin<Project>
       forkEveryOverride.run { if (this is Int) categoryConfig.forkEvery = this }
       maxParallelForksOverride.run { if (this is Int) categoryConfig.maxParallelForks = this }
       enableAssertionsOverride.run { if (this is Boolean) categoryConfig.enableAssertions = this }
+      defaultTimeoutOverride.run { if (this is Int) categoryConfig.defaultTimeout = this }
       allocationRecordingOverride.run { if (this is Boolean && this) categoryConfig.jvmArguments += ALLOCATION_AGENT_KEY }
 
       LogTools.info("${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
@@ -313,6 +316,7 @@ class IHMCCIPlugin : Plugin<Project>
       LogTools.info("${categoryConfig.name}.minHeapSizeGB = ${categoryConfig.minHeapSizeGB}")
       LogTools.info("${categoryConfig.name}.maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
       LogTools.info("${categoryConfig.name}.enableAssertions = ${categoryConfig.enableAssertions}")
+      LogTools.info("${categoryConfig.name}.defaultTimeout = ${categoryConfig.defaultTimeout}")
       LogTools.info("${categoryConfig.name}.allocationRecording = ${categoryConfig.jvmArguments}")
 
       // List tests to be run
@@ -398,6 +402,7 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["forkEvery"].run { if (this != null) forkEveryOverride = (this as String).toInt() }
       project.properties["maxParallelForks"].run { if (this != null) maxParallelForksOverride = (this as String).toInt() }
       project.properties["enableAssertions"].run { if (this != null) enableAssertionsOverride = (this as String).toBoolean() }
+      project.properties["defaultTimeout"].run { if (this != null) defaultTimeoutOverride = (this as String).toInt() }
       project.properties["allocationRecording"].run { if (this != null) allocationRecordingOverride = (this as String).toBoolean() }
       LogTools.info("cpuThreads = $cpuThreads")
       LogTools.info("category = $category")
@@ -408,6 +413,7 @@ class IHMCCIPlugin : Plugin<Project>
       LogTools.info("forkEvery = ${unsetPrintFilter(forkEveryOverride)}")
       LogTools.info("maxParallelForks = ${unsetPrintFilter(maxParallelForksOverride)}")
       LogTools.info("enableAssertions = ${unsetPrintFilter(enableAssertionsOverride)}")
+      LogTools.info("defaultTimeout = ${unsetPrintFilter(defaultTimeoutOverride)}")
       LogTools.info("allocationRecording = ${unsetPrintFilter(allocationRecordingOverride)}")
    }
 
