@@ -8,6 +8,7 @@ import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import java.io.File
+import java.time.Duration
 
 lateinit var LogTools: IHMCCILogTools
 
@@ -28,6 +29,7 @@ class IHMCCIPlugin : Plugin<Project>
    var maxParallelForksOverride: Any = Unset
    var enableAssertionsOverride: Any = Unset
    var defaultTimeoutOverride: Any = Unset
+   var testTaskTimeoutOverride: Any = Unset
    var allocationRecordingOverride: Any = Unset
    var vintageMode: Boolean = false
    var vintageSuite: String? = null
@@ -230,6 +232,7 @@ class IHMCCIPlugin : Plugin<Project>
          test.systemProperties[jvmProp.key] = jvmProp.value
       }
       test.systemProperties["junit.jupiter.execution.timeout.default"] = categoryConfig.defaultTimeout
+      test.timeout.set(Duration.ofSeconds(categoryConfig.testTaskTimeout.toLong()))
 
       if (categoryConfig.junit5ParallelEnabled)
       {
@@ -305,6 +308,7 @@ class IHMCCIPlugin : Plugin<Project>
       maxParallelForksOverride.run { if (this is Int) categoryConfig.maxParallelForks = this }
       enableAssertionsOverride.run { if (this is Boolean) categoryConfig.enableAssertions = this }
       defaultTimeoutOverride.run { if (this is Int) categoryConfig.defaultTimeout = this }
+      testTaskTimeoutOverride.run { if (this is Int) categoryConfig.testTaskTimeout = this }
       allocationRecordingOverride.run { if (this is Boolean && this) categoryConfig.jvmArguments += ALLOCATION_AGENT_KEY }
 
       LogTools.info("${categoryConfig.name}.forkEvery = ${categoryConfig.forkEvery}")
@@ -317,6 +321,7 @@ class IHMCCIPlugin : Plugin<Project>
       LogTools.info("${categoryConfig.name}.maxHeapSizeGB = ${categoryConfig.maxHeapSizeGB}")
       LogTools.info("${categoryConfig.name}.enableAssertions = ${categoryConfig.enableAssertions}")
       LogTools.info("${categoryConfig.name}.defaultTimeout = ${categoryConfig.defaultTimeout}")
+      LogTools.info("${categoryConfig.name}.testTaskTimeout = ${categoryConfig.testTaskTimeout}")
       LogTools.info("${categoryConfig.name}.allocationRecording = ${categoryConfig.jvmArguments}")
 
       // List tests to be run
