@@ -1147,18 +1147,11 @@ open class IHMCBuildExtension(val project: Project)
 
             val classifiers = hashSetOf<String>()
             resolvedArtifacts.forEach { resolvedArtifact ->
-               if (resolvedArtifact.id.componentIdentifier.displayName.equals(firstLevelModuleDependency.name))
+               val classifier = resolvedArtifact.classifier
+               if (classifier != null && classifier.isNotEmpty())
                {
-                  val classifier = resolvedArtifact.classifier
-                  if (classifier != null && classifier.isNotEmpty())
-                  {
-                     LogTools.info("Classifier: $classifier")
-                     classifiers.add(classifier)
-                  }
-                  else
-                  {
-                     classifiers.add("")
-                  }
+                  LogTools.info("Classifier: $classifier")
+                  classifiers.add(classifier)
                }
             }
 
