@@ -1142,35 +1142,22 @@ open class IHMCBuildExtension(val project: Project)
                                                           configurationName: String)
    {
       configurations.getByName(configurationName).resolvedConfiguration.run {
-         firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
-            LogTools.info("First level dependency: configuration: $configurationName dependency: $firstLevelModuleDependency")
 
+         firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
             val classifiers = hashSetOf<String>()
-            resolvedArtifacts.forEach { resolvedArtifact ->
-               if (resolvedArtifact.id.componentIdentifier.displayName.equals(firstLevelModuleDependency.name))
-               {
-                  val classifier = resolvedArtifact.classifier
-                  if (classifier != null && classifier.isNotEmpty())
-                  {
-                     LogTools.info("Classifier: $classifier")
-                     classifiers.add(classifier)
-                  }
-                  else
-                  {
-                     classifiers.add("")
-                  }
-               }
+
+            firstLevelModuleDependency.moduleArtifacts.forEach { artifact ->
+               if (artifact.classifier != null)
+                  classifiers.add(artifact.classifier!!)
             }
 
             if (classifiers.isEmpty())
-            {
                classifiers.add("")
-            }
 
             classifiers.forEach { classifier ->
                val dependencyGAVKey = firstLevelModuleDependency.moduleGroup +
-                                      ":${firstLevelModuleDependency.moduleName}" +
-                                      ":${firstLevelModuleDependency.moduleVersion}"
+                       ":${firstLevelModuleDependency.moduleName}" +
+                       ":${firstLevelModuleDependency.moduleVersion}"
                val dependencyGAVWithClassifierKey = "$dependencyGAVKey:$classifier"
 
                if (!addedAlready.contains(dependencyGAVWithClassifierKey))
