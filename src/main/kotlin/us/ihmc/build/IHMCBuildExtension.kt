@@ -1156,8 +1156,8 @@ open class IHMCBuildExtension(val project: Project)
 
             classifiers.forEach { classifier ->
                val dependencyGAVKey = firstLevelModuleDependency.moduleGroup +
-                       ":${firstLevelModuleDependency.moduleName}" +
-                       ":${firstLevelModuleDependency.moduleVersion}"
+                                      ":${firstLevelModuleDependency.moduleName}" +
+                                      ":${firstLevelModuleDependency.moduleVersion}"
                val dependencyGAVWithClassifierKey = "$dependencyGAVKey:$classifier"
 
                if (!addedAlready.contains(dependencyGAVWithClassifierKey))
