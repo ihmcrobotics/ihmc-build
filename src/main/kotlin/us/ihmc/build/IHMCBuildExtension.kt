@@ -1144,20 +1144,14 @@ open class IHMCBuildExtension(val project: Project)
       configurations.getByName(configurationName).resolvedConfiguration.run {
 
          firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
-            val classifiers = hashSetOf<String>()
-
             firstLevelModuleDependency.moduleArtifacts.forEach { artifact ->
-               if (artifact.classifier != null)
-                  classifiers.add(artifact.classifier!!)
-            }
+               var classifier = artifact.classifier
+               if (classifier == null)
+                  classifier = ""
 
-            if (classifiers.isEmpty())
-               classifiers.add("")
-
-            classifiers.forEach { classifier ->
                val dependencyGAVKey = firstLevelModuleDependency.moduleGroup +
-                                      ":${firstLevelModuleDependency.moduleName}" +
-                                      ":${firstLevelModuleDependency.moduleVersion}"
+                       ":${firstLevelModuleDependency.moduleName}" +
+                       ":${firstLevelModuleDependency.moduleVersion}"
                val dependencyGAVWithClassifierKey = "$dependencyGAVKey:$classifier"
 
                if (!addedAlready.contains(dependencyGAVWithClassifierKey))
