@@ -1144,7 +1144,7 @@ open class IHMCBuildExtension(val project: Project)
       configurations.getByName(configurationName).resolvedConfiguration.run {
 
          firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
-            firstLevelModuleDependency.moduleArtifacts.forEach { artifact ->
+            resolvedArtifacts.forEach { artifact ->
                var classifier = artifact.classifier
                if (classifier == null)
                   classifier = ""
