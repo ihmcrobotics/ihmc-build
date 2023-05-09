@@ -5,7 +5,10 @@ import groovy.util.Node
 import kong.unirest.Unirest
 import kong.unirest.json.JSONObject
 import org.apache.commons.lang3.SystemUtils
-import org.gradle.api.*
+import org.gradle.api.GradleException
+import org.gradle.api.JavaVersion
+import org.gradle.api.Project
+import org.gradle.api.UnknownProjectException
 import org.gradle.api.artifacts.ExcludeRule
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.plugins.JavaPluginExtension
@@ -23,7 +26,6 @@ import java.io.InputStream
 import java.nio.file.Paths
 import java.util.*
 import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.collections.HashSet
 
 open class IHMCBuildExtension(val project: Project)
 {
@@ -1142,54 +1144,48 @@ open class IHMCBuildExtension(val project: Project)
                                                           configurationName: String)
    {
       configurations.getByName(configurationName).resolvedConfiguration.run {
+         // Get each of the resolved artifacts for the configuration
+         // firstLevelModuleDependencies may not return all dependencies if they aren't resolved locally
+         resolvedArtifacts.forEach { artifact ->
+            val dependencyGAVKey = "${artifact.moduleVersion.id.group}:${artifact.moduleVersion.id.name}:${artifact.moduleVersion.id.version}"
+            var classifier = artifact.classifier
+            if (classifier == null)
+               classifier = ""
 
-         firstLevelModuleDependencies.forEach { firstLevelModuleDependency ->
-            resolvedArtifacts.forEach { artifact ->
-               var classifier = artifact.classifier
-               if (classifier == null)
-                  classifier = ""
+            val dependencyGAVWithClassifierKey = "$dependencyGAVKey:$classifier"
 
-               val dependencyGAVKey = firstLevelModuleDependency.moduleGroup +
-                                      ":${firstLevelModuleDependency.moduleName}" +
-                                      ":${firstLevelModuleDependency.moduleVersion}"
-               val dependencyGAVWithClassifierKey = "$dependencyGAVKey:$classifier"
+            if (!addedAlready.contains(dependencyGAVWithClassifierKey))
+            {
+               addedAlready.add(dependencyGAVWithClassifierKey)
 
-               if (!addedAlready.contains(dependencyGAVWithClassifierKey))
-               {
-                  addedAlready.add(dependencyGAVWithClassifierKey)
-
-                  val dependencyNode = dependenciesNode.appendNode("dependency")
-                  dependencyNode.appendNode("groupId", firstLevelModuleDependency.moduleGroup)
-                  dependencyNode.appendNode("artifactId", firstLevelModuleDependency.moduleName)
-                  dependencyNode.appendNode("version", firstLevelModuleDependency.moduleVersion)
-                  exclusions.computeIfPresent(dependencyGAVKey) { _, excludeRules ->
-                     val exclusionsNode = dependencyNode.appendNode("exclusions")
-                     excludeRules.forEach { excludeRule ->
-                        val exclusionNode = exclusionsNode.appendNode("exclusion")
-                        exclusionNode.appendNode("groupId", excludeRule.group)
-                        var excludeString = excludeRule.group
-                        if (excludeRule.module != null) // warning that it's always false but it's not
-                        {
-                           exclusionNode.appendNode("artifactId", excludeRule.module)
-                           excludeString += ":" + excludeRule.module
-                        }
-                        LogTools.quiet("Excluding transitive(s) in POM: $excludeString")
-                     }
-                     excludeRules
+               val dependencyNode = dependenciesNode.appendNode("dependency")
+               dependencyNode.appendNode("groupId", artifact.moduleVersion.id.group)
+               dependencyNode.appendNode("artifactId", artifact.moduleVersion.id.name)
+               dependencyNode.appendNode("version", artifact.moduleVersion.id.version)
+               exclusions.computeIfPresent(dependencyGAVKey) { _, excludeRules ->
+                  val exclusionsNode = dependencyNode.appendNode("exclusions")
+                  excludeRules.forEach { excludeRule ->
+                     val exclusionNode = exclusionsNode.appendNode("exclusion")
+                     exclusionNode.appendNode("groupId", excludeRule.group)
+                     var excludeString = excludeRule.group
+                     exclusionNode.appendNode("artifactId", excludeRule.module)
+                     excludeString += ":" + excludeRule.module
+                     LogTools.quiet("Excluding transitive(s) in POM: $excludeString")
                   }
-                  if (classifier.isNotEmpty())
-                     dependencyNode.appendNode("classifier", classifier)
-                  var scope = configurationName.removeSuffix("Classpath")
-                  var implementationReportString = ""
-                  if (implementationDependencies.contains(dependencyGAVKey))
-                  {
-                     implementationReportString += " (implementation)"
-                     scope = "runtime"
-                  }
-                  dependencyNode.appendNode("scope", scope)
-
-                  LogTools.quiet("Adding dependency to POM: $dependencyGAVWithClassifierKey:$scope$implementationReportString")
+                  excludeRules
                }
+               if (classifier.isNotEmpty())
+                  dependencyNode.appendNode("classifier", classifier)
+               var scope = configurationName.removeSuffix("Classpath")
+               var implementationReportString = ""
+               if (implementationDependencies.contains(dependencyGAVKey))
+               {
+                  implementationReportString += " (implementation)"
+                  scope = "runtime"
+               }
+               dependencyNode.appendNode("scope", scope)
+
+               LogTools.quiet("Adding dependency to POM: $dependencyGAVWithClassifierKey:$scope$implementationReportString")
             }
          }
       }
