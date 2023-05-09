@@ -1144,6 +1144,8 @@ open class IHMCBuildExtension(val project: Project)
                                                           configurationName: String)
    {
       configurations.getByName(configurationName).resolvedConfiguration.run {
+         // Get each of the resolved artifacts for the configuration
+         // firstLevelModuleDependencies may not return all dependencies if they aren't resolved locally
          resolvedArtifacts.forEach { artifact ->
             val dependencyGAVKey = "${artifact.moduleVersion.id.group}:${artifact.moduleVersion.id.name}:${artifact.moduleVersion.id.version}"
             var classifier = artifact.classifier
