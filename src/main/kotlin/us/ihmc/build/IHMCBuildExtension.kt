@@ -1038,7 +1038,7 @@ open class IHMCBuildExtension(val project: Project)
             if (isBuildRoot() && libFolder)
             {
                var dependencyJarLocations = " "
-               for (file in configurations.getByName("default"))
+               for (file in configurations.getByName("runtimeClasspath"))
                {
                   dependencyJarLocations += "lib/" + file.name + " "
                }
