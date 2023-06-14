@@ -187,7 +187,7 @@ Copy the following into `settings.gradle.kts`:
 ```gradle
 pluginManagement {
    plugins {
-      id("us.ihmc.ihmc-build") version "0.28.8"
+      id("us.ihmc.ihmc-build") version "0.29.3"
    }
 }
 
@@ -197,7 +197,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.28.8")
+      classpath("us.ihmc:ihmc-build:0.29.3")
    }
 }
 
@@ -268,7 +268,7 @@ plugins {
 ```gradle
 pluginManagement {
    plugins {
-      id("us.ihmc.ihmc-build") version "0.28.8"
+      id("us.ihmc.ihmc-build") version "0.29.3"
    }
 }
 
@@ -278,7 +278,7 @@ buildscript {
       mavenLocal()
    }
    dependencies {
-      classpath("us.ihmc:ihmc-build:0.28.8")
+      classpath("us.ihmc:ihmc-build:0.29.3")
    }
 }
 
