@@ -166,11 +166,21 @@ class IHMCCIPlugin : Plugin<Project>
          configuredTestTasks[project.name] = true
          val addPhonyTestXmlTask = addPhonyTestXmlTask(project)
          project.tasks.named("test", Test::class.java) {
+            // create a default category if not found
+            val categoryConfig = postProcessCategoryConfig()
+            applyCategoryConfigToGradleTest(this, categoryConfig, project)
+
             doFirst {
-               // create a default category if not found
-               val categoryConfig = postProcessCategoryConfig()
-               applyCategoryConfigToGradleTest(this as Test, categoryConfig, project)
+               // List tests to be run
+               LogTools.quiet("Tests to be run:")
+               testsToTagsMap.value.forEach { entry ->
+                  if ((category == "fast" && entry.value.isEmpty()) || entry.value.contains(category))
+                  {
+                     LogTools.quiet(entry.key + " " + entry.value)
+                  }
+               }
             }
+
             finalizedBy(addPhonyTestXmlTask)
          }
       }
@@ -292,15 +302,7 @@ class IHMCCIPlugin : Plugin<Project>
 
       if (categoryConfig.name == "fast")  // fast runs all "untagged" tests, so exclude all found tags
       {
-         testsToTagsMap.value.forEach {
-            it.value.forEach {
-               if (it != "fast")
-               {
-                  categoryConfig.excludeTags.add(it)
-               }
-            }
-         }
-         categoryConfig.includeTags.clear()  // include is a whitelist, so must clear it
+         categoryConfig.includeTags.add("none()")
       }
       minHeapSizeGBOverride.run { if (this is Int) categoryConfig.minHeapSizeGB = this }
       maxHeapSizeGBOverride.run { if (this is Int) categoryConfig.maxHeapSizeGB = this }
@@ -323,15 +325,6 @@ class IHMCCIPlugin : Plugin<Project>
       LogTools.info("${categoryConfig.name}.defaultTimeout = ${categoryConfig.defaultTimeout}")
       LogTools.info("${categoryConfig.name}.testTaskTimeout = ${categoryConfig.testTaskTimeout}")
       LogTools.info("${categoryConfig.name}.allocationRecording = ${categoryConfig.jvmArguments}")
-
-      // List tests to be run
-      LogTools.quiet("Tests to be run:")
-      testsToTagsMap.value.forEach { entry ->
-         if ((category == "fast" && entry.value.isEmpty()) || entry.value.contains(category))
-         {
-            LogTools.quiet(entry.key + " " + entry.value)
-         }
-      }
 
       return categoryConfig
    }
