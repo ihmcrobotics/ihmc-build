@@ -302,8 +302,9 @@ class IHMCCIPlugin : Plugin<Project>
 
       if (categoryConfig.name == "fast")  // fast runs all "untagged" tests, so exclude all found tags
       {
+         categoryConfig.includeTags.clear()
          // https://github.com/junit-team/junit5/issues/1679
-         categoryConfig.includeTags.add("none()")
+         categoryConfig.includeTags.add("fast | none()")
       }
       minHeapSizeGBOverride.run { if (this is Int) categoryConfig.minHeapSizeGB = this }
       maxHeapSizeGBOverride.run { if (this is Int) categoryConfig.maxHeapSizeGB = this }
