@@ -172,7 +172,7 @@ class IHMCCIPlugin : Plugin<Project>
 
             doFirst {
                val test: Test = this as Test
-               test.forkEvery = categoryConfig.forkEvery.toLong()
+               test.setForkEvery(categoryConfig.forkEvery.toLong())
                test.maxParallelForks = categoryConfig.maxParallelForks
                this.project.properties["runningOnCIServer"].run {
                   if (this != null)
