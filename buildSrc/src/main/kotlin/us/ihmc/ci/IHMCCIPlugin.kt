@@ -168,9 +168,74 @@ class IHMCCIPlugin : Plugin<Project>
          project.tasks.named("test", Test::class.java) {
             // create a default category if not found
             val categoryConfig = postProcessCategoryConfig()
-            applyCategoryConfigToGradleTest(this, categoryConfig, project)
+            applyCategoryConfigToGradleTest(this, categoryConfig)
 
             doFirst {
+               val test: Test = this as Test
+               test.forkEvery = categoryConfig.forkEvery.toLong()
+               test.maxParallelForks = categoryConfig.maxParallelForks
+               this.project.properties["runningOnCIServer"].run {
+                  if (this != null)
+                     test.systemProperties["runningOnCIServer"] = toString()
+               }
+               for (jvmProp in categoryConfig.jvmProperties)
+               {
+                  test.systemProperties[jvmProp.key] = jvmProp.value
+               }
+               test.systemProperties["junit.jupiter.execution.timeout.default"] = categoryConfig.defaultTimeout
+               test.timeout.set(Duration.ofSeconds(categoryConfig.testTaskTimeout.toLong()))
+
+               if (categoryConfig.junit5ParallelEnabled)
+               {
+                  test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+                  test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = categoryConfig.junit5ParallelStrategy
+                  test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.junit5ParallelFixedParallelism
+               }
+
+               val java = project.convention.getPlugin(JavaPluginConvention::class.java)
+               val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
+               LogTools.info("Passing to JVM: -Dresource.dir=$resourcesDir")
+               test.systemProperties["resource.dir"] = resourcesDir
+
+               for (jvmArg in categoryConfig.jvmArguments)
+               {
+                  if (jvmArg == ALLOCATION_AGENT_KEY)
+                  {
+                     test.jvmArgs(findAllocationJVMArg())
+                  }
+                  else
+                  {
+                     test.jvmArgs(jvmArg)
+                  }
+               }
+               if (categoryConfig.enableAssertions)
+               {
+                  LogTools.info("Assertions enabled. Adding JVM arg: -ea")
+                  test.enableAssertions = true
+               }
+               else
+               {
+                  LogTools.info("Assertions disabled")
+                  test.enableAssertions = false
+               }
+
+               test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
+               test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
+
+               test.testLogging.info.events = setOf(TestLogEvent.STARTED,
+                                                    TestLogEvent.FAILED,
+                                                    TestLogEvent.PASSED,
+                                                    TestLogEvent.SKIPPED,
+                                                    TestLogEvent.STANDARD_ERROR,
+                                                    TestLogEvent.STANDARD_OUT)
+
+               LogTools.info("test.forkEvery = ${test.forkEvery}")
+               LogTools.info("test.maxParallelForks = ${test.maxParallelForks}")
+               LogTools.info("test.systemProperties = ${test.systemProperties}")
+               LogTools.info("test.allJvmArgs = ${test.allJvmArgs}")
+               LogTools.info("test.minHeapSize = ${test.minHeapSize}")
+               LogTools.info("test.maxHeapSize = ${test.maxHeapSize}")
+
                // List tests to be run
                LogTools.quiet("Tests to be run:")
                testsToTagsMap.value.forEach { entry ->
@@ -186,7 +251,7 @@ class IHMCCIPlugin : Plugin<Project>
       }
    }
 
-   fun applyCategoryConfigToGradleTest(test: Test, categoryConfig: IHMCCICategory, project: Project)
+   fun applyCategoryConfigToGradleTest(test: Test, categoryConfig: IHMCCICategory)
    {
       categoryConfig.doFirst.invoke()
 
@@ -231,69 +296,6 @@ class IHMCCIPlugin : Plugin<Project>
             }
          }
       }
-      test.setForkEvery(categoryConfig.forkEvery.toLong())
-      test.maxParallelForks = categoryConfig.maxParallelForks
-      this.project.properties["runningOnCIServer"].run {
-         if (this != null)
-            test.systemProperties["runningOnCIServer"] = toString()
-      }
-      for (jvmProp in categoryConfig.jvmProperties)
-      {
-         test.systemProperties[jvmProp.key] = jvmProp.value
-      }
-      test.systemProperties["junit.jupiter.execution.timeout.default"] = categoryConfig.defaultTimeout
-      test.timeout.set(Duration.ofSeconds(categoryConfig.testTaskTimeout.toLong()))
-
-      if (categoryConfig.junit5ParallelEnabled)
-      {
-         test.systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
-         test.systemProperties["junit.jupiter.execution.parallel.config.strategy"] = categoryConfig.junit5ParallelStrategy
-         test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.junit5ParallelFixedParallelism
-      }
-
-      val java = project.convention.getPlugin(JavaPluginConvention::class.java)
-      val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
-      LogTools.info("Passing to JVM: -Dresource.dir=$resourcesDir")
-      test.systemProperties["resource.dir"] = resourcesDir
-
-      for (jvmArg in categoryConfig.jvmArguments)
-      {
-         if (jvmArg == ALLOCATION_AGENT_KEY)
-         {
-            test.jvmArgs(findAllocationJVMArg())
-         }
-         else
-         {
-            test.jvmArgs(jvmArg)
-         }
-      }
-      if (categoryConfig.enableAssertions)
-      {
-         LogTools.info("Assertions enabled. Adding JVM arg: -ea")
-         test.enableAssertions = true
-      }
-      else
-      {
-         LogTools.info("Assertions disabled")
-         test.enableAssertions = false
-      }
-
-      test.minHeapSize = "${categoryConfig.minHeapSizeGB}g"
-      test.maxHeapSize = "${categoryConfig.maxHeapSizeGB}g"
-
-      test.testLogging.info.events = setOf(TestLogEvent.STARTED,
-                                           TestLogEvent.FAILED,
-                                           TestLogEvent.PASSED,
-                                           TestLogEvent.SKIPPED,
-                                           TestLogEvent.STANDARD_ERROR,
-                                           TestLogEvent.STANDARD_OUT)
-
-      LogTools.info("test.forkEvery = ${test.forkEvery}")
-      LogTools.info("test.maxParallelForks = ${test.maxParallelForks}")
-      LogTools.info("test.systemProperties = ${test.systemProperties}")
-      LogTools.info("test.allJvmArgs = ${test.allJvmArgs}")
-      LogTools.info("test.minHeapSize = ${test.minHeapSize}")
-      LogTools.info("test.maxHeapSize = ${test.maxHeapSize}")
    }
 
    fun postProcessCategoryConfig(): IHMCCICategory
