@@ -207,6 +207,7 @@ open class IHMCBuildExtension(val project: Project)
             repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
          }
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
          repository("https://jitpack.io")
          repository("https://oss.sonatype.org/content/repositories/snapshots")
          // https://central.sonatype.org/news/20210223_new-users-on-s01/
@@ -218,6 +219,7 @@ open class IHMCBuildExtension(val project: Project)
          declareJCenter()
          repository("https://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+         repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
          repository("https://jitpack.io")
          if (!openSource && (nexusUsername != "unset_username")) // support third parties not needing to declare Nexus
          {
