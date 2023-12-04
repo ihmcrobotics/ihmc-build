@@ -1,14 +1,12 @@
-import com.gradle.publish.MavenCoordinates
-
 plugins {
    `kotlin-dsl`
    `java-gradle-plugin`
    `maven-publish`
-   id("com.gradle.plugin-publish") version "0.18.0"
+   id("com.gradle.plugin-publish") version "1.2.1"
 }
 
 group = "us.ihmc"
-version = "0.29.4"
+version = "0.29.5"
 
 repositories {
    maven { url = uri("https://plugins.gradle.org/m2/") }  // needed for included plugins
@@ -30,37 +28,16 @@ tasks.withType<Test> {
    useJUnitPlatform()
 }
 
-val pluginDisplayName = "IHMC Build Plugin"
-val pluginDescription = "IHMC Robotics opinions on Java builds."
 val pluginVcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
-val pluginTags = listOf("build", "ihmc", "robotics")
 
 gradlePlugin {
+   website = pluginVcsUrl
+   vcsUrl = pluginVcsUrl
    plugins.register(project.name) {
       id = project.group as String + "." + project.name
       implementationClass = "us.ihmc.build.IHMCBuildPlugin"
-      displayName = pluginDisplayName
-      description = pluginDescription
+      displayName = "IHMC Build Plugin"
+      description = "IHMC Robotics opinions on Java builds."
+      tags = listOf("build", "ihmc", "robotics")
    }
-}
-
-pluginBundle {
-   website = pluginVcsUrl
-   vcsUrl = pluginVcsUrl
-   description = pluginDescription
-   tags = pluginTags
-
-   plugins.getByName(project.name) {
-      id = project.group as String + "." + project.name
-      version = project.version as String
-      displayName = pluginDisplayName
-      description = pluginDescription
-      tags = pluginTags
-   }
-
-   mavenCoordinates(closureOf<MavenCoordinates> {
-      groupId = project.group as String
-      artifactId = project.name
-      version = project.version as String
-   })
 }
