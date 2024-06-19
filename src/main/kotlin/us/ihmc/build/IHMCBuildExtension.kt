@@ -494,11 +494,18 @@ open class IHMCBuildExtension(val project: Project)
 
    fun javaFXOSIdentifier(): String
    {
+      var archSuffix = "";
+      val isARM64 = System.getProperty("os.arch").equals("aarch64")
+              || System.getProperty("os.arch").equals("arm64")
+              || System.getProperty("ihmc.build.javafxarm64").equals("true")
+      if (isARM64)
+         archSuffix = "-aarch64"
+
       return when
       {
-         SystemUtils.IS_OS_WINDOWS -> "win"
-         SystemUtils.IS_OS_MAC     -> "mac"
-         else                      -> "linux"
+         SystemUtils.IS_OS_WINDOWS -> "win" // No additional platforms for win
+         SystemUtils.IS_OS_MAC     -> "mac$archSuffix"
+         else                      -> "linux$archSuffix"
       }
    }
 
