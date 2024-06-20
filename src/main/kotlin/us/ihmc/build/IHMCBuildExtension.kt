@@ -497,7 +497,7 @@ open class IHMCBuildExtension(val project: Project)
       var archSuffix = "";
       val isARM64 = System.getProperty("os.arch").equals("aarch64")
               || System.getProperty("os.arch").equals("arm64")
-              || System.getProperty("ihmc.build.javafxarm64").equals("true")
+              || System.getProperty("ihmc.build.javafxarm64", "false").equals("true")
       if (isARM64)
          archSuffix = "-aarch64"
 
