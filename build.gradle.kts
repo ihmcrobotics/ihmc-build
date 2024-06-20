@@ -31,6 +31,7 @@ tasks.withType<Test> {
 val pluginVcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
 
 gradlePlugin {
+   website = pluginVcsUrl
    vcsUrl = pluginVcsUrl
    plugins.register(project.name) {
       id = project.group as String + "." + project.name
