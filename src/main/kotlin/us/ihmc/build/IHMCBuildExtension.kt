@@ -53,14 +53,8 @@ open class IHMCBuildExtension(val project: Project)
    private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
    
-   // Bamboo variables
-   private val isChildBuild: Boolean
-   private val isBambooBuild: Boolean
-   private val integrationNumber: String
    private lateinit var publishVersion: String
-   private val isBranchBuild: Boolean
-   private val branchName: String
-   
+
    private val includedBuildMap = hashMapOf<String, Boolean>()
    
    private val repositoryVersions = hashMapOf<String, TreeSet<String>>()
@@ -83,30 +77,6 @@ open class IHMCBuildExtension(val project: Project)
 
       titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
       kebabCasedNameProperty = IHMCBuildTools.kebabCasedNameCompatibility(project.name, project.extra)
-      
-      val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
-      val bambooPlanKeyProperty = setupPropertyWithDefault("bambooPlanKey", "UNKNOWN-KEY")
-      val bambooBranchNameProperty = setupPropertyWithDefault("bambooBranchName", "")
-      val bambooParentBuildKeyProperty = setupPropertyWithDefault("bambooParentBuildKey", "")
-      
-      isChildBuild = !bambooParentBuildKeyProperty.isEmpty()
-      isBambooBuild = bambooPlanKeyProperty != "UNKNOWN-KEY"
-      if (offline || !isBambooBuild)
-      {
-         integrationNumber = bambooBuildNumberProperty
-      }
-      else if (isChildBuild)
-      {
-         integrationNumber = requestIntegrationNumberFromCIDatabase(bambooParentBuildKeyProperty)
-      }
-      else
-      {
-         integrationNumber = requestIntegrationNumberFromCIDatabase("$bambooPlanKeyProperty-$bambooBuildNumberProperty")
-      }
-      isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
-      branchName = bambooBranchNameProperty.replace("/", "-")
-      Unirest.config().reset()
-      Unirest.config().connectTimeout(30000)
    }
    
    private fun requestIntegrationNumberFromCIDatabase(buildKey: String): String
@@ -151,7 +121,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          if (propertyName == "nexusUsername" || propertyName == "nexusPassword")
          {
-            if (!openSource && isBambooBuild)
+            if (!openSource)
             {
                LogTools.warn("Please set nexusUsername and nexusPassword in /path/to/user/.gradle/gradle.properties.")
             }
@@ -503,14 +473,7 @@ open class IHMCBuildExtension(val project: Project)
       if (snapshotModeProperty)
       {
          var publishVersion = "SNAPSHOT"
-         if (isBranchBuild)
-         {
-            publishVersion += "-$branchName"
-         }
-         if (isBambooBuild)
-         {
-            publishVersion += "-$integrationNumber"
-         }
+
          return publishVersion
       }
       else
@@ -607,7 +570,6 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
       // Try to resolve a snapshot, check for snapshotMode first
-      // Only gonna happen on Bamboo, not supporting this for users
       // NOTE: This code path will probably hardly be used soon
       else if (snapshotModeProperty && declaredVersion.startsWith("SNAPSHOT"))
       {
@@ -633,62 +595,7 @@ open class IHMCBuildExtension(val project: Project)
 
    fun resolveSnapshotVersion(declaredVersion: String, groupId: String, artifactId: String): String
    {
-      val externalDependencyVersion: String
-      var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "") // not sure where this came from
-
-      // Use Bamboo variables to resolve the version
-      if (isBambooBuild)
-      {
-         var closestVersion = "NOT-FOUND"
-         if (isChildBuild) // Match to parent build, exact branch and version
-         {
-            var childVersion = "SNAPSHOT"
-            if (isBranchBuild)
-            {
-               childVersion += "-$branchName"
-            }
-            childVersion += "-$integrationNumber"
-            closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
-         }
-         else // this was a bug for a long time where child builds could use an older snapshot with no warning
-         {
-            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-            }
-            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
-            }
-         }
-         externalDependencyVersion = closestVersion
-      }
-      else
-      {
-         // For users, probably get rid of this soon
-         if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
-         {
-            externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
-         }
-         else // Get exact match on end of string
-         {
-            externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
-         }
-      }
-
-      if (externalDependencyVersion.contains("NOT-FOUND"))
-      {
-         LogTools.info("Found the following artifacts while browsing:")
-         for ((groupArtifact, versions) in repositoryVersions.entries)
-         {
-            for (artifactVersion in versions)
-            {
-               LogTools.info("$groupArtifact:$artifactVersion")
-            }
-         }
-         throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
-      }
-      return externalDependencyVersion
+      return matchVersionFromRepositories(groupId, artifactId, declaredVersion)
    }
 
    private fun getSnapshotRepositoryList(): List<String>

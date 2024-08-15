@@ -6,7 +6,6 @@ Composite build and IDE classpath separation support for JVM Gradle projects.
 
 - Seperate source set classpaths when building projects in IDEs
 - Utilize composite builds to make each project standalone by default
-- Keep Bamboo CI configuration powerful, minimal, and flexible
 
 #### Contents
 1. [Properties](#properties)
