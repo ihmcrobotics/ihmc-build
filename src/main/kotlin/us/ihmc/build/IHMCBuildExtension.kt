@@ -2,8 +2,6 @@ package us.ihmc.build
 
 import groovy.util.Eval
 import groovy.util.Node
-import kong.unirest.Unirest
-import kong.unirest.json.JSONObject
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
@@ -19,7 +17,6 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
-import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -78,39 +75,7 @@ open class IHMCBuildExtension(val project: Project)
       titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
       kebabCasedNameProperty = IHMCBuildTools.kebabCasedNameCompatibility(project.name, project.extra)
    }
-   
-   private fun requestIntegrationNumberFromCIDatabase(buildKey: String): String
-   {
-      var tryCount = 0
-      var integrationNumber = "ERROR"
-      while (tryCount < 5 && integrationNumber == "ERROR")
-      {
-         integrationNumber = tryIntegrationNumberRequest(buildKey)
-         tryCount++
-         LogTools.info("Integration number for $buildKey: $integrationNumber")
-      }
-      
-      return integrationNumber
-   }
-   
-   private fun tryIntegrationNumberRequest(buildKey: String): String
-   {
-      var result = "ERROR"
-      Unirest.get(ciDatabaseUrlProperty).queryString("integrationNumber", buildKey).asString()
-            .ifSuccess { response ->
-               result = response.body
-            }
-            .ifFailure { response ->
-               LogTools.error("Response status: ${response.status}")
-               response.parsingError.ifPresent { exception ->
-                  LogTools.error("Exception: $exception")
-                  LogTools.error("Exception: ${exception.originalBody}")
-               }
-               LogTools.info("Failed to retrieve integration number. Trying again...")
-            }
-      return result
-   }
-   
+
    fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
    {
       if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
@@ -598,42 +563,20 @@ open class IHMCBuildExtension(val project: Project)
       return matchVersionFromRepositories(groupId, artifactId, declaredVersion)
    }
 
-   private fun getSnapshotRepositoryList(): List<String>
-   {
-      if (openSource)
-      {
-         return listOf("open-snapshots")
-      }
-      else
-      {
-         return listOf("open-snapshots", "proprietary-snapshots")
-      }
-   }
-   
    private fun searchRepositories(groupId: String, artifactId: String): Set<String>
    {
       if (!repositoryVersions.containsKey("$groupId:$artifactId"))
       {
-         repositoryVersions["$groupId:$artifactId"] = sortedSetOf<String>()
+         repositoryVersions["$groupId:$artifactId"] = sortedSetOf()
          
          if (offline)
          {
             val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
             val artifactPath = gradleCache.resolve(groupId).resolve(artifactId)
-            
+
             for (entry in artifactPath.toFile().list())
             {
                repositoryVersions["$groupId:$artifactId"]!!.add(entry)
-            }
-         }
-         else
-         {
-            for (repository in getSnapshotRepositoryList())
-            {
-               for (asset in searchNexus(repository, groupId, artifactId, ".*\\d\\.jar$"))
-               {
-                  repositoryVersions["$groupId:$artifactId"]!!.add(itemPathToVersion(asset.getString("path"), artifactId))
-               }
             }
          }
       }
@@ -648,131 +591,7 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun versionExists(groupId: String, artifactId: String, version: String): Boolean
    {
-      if (repositoryVersions.containsKey("$groupId:$artifactId") && repositoryVersions["$groupId:$artifactId"]!!.contains(version))
-      {
-         return true
-      }
-      
-      if (!offline)
-      {
-         for (repository in getSnapshotRepositoryList())
-         {
-            if (searchNexus(repository, groupId, artifactId, version, ".*").isNotEmpty())
-            {
-               if (repositoryVersions.containsKey("$groupId:$artifactId"))
-               {
-                  repositoryVersions["$groupId:$artifactId"]!!.add(version)
-               }
-               LogTools.info("Found version circumventing pagination bug: $groupId:$artifactId:$version") // TODO: Review if this is still necessary
-               return true
-            }
-         }
-      }
-      
-      return false
-   }
-   
-   private fun loadPOMDependencies(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (offline)
-      {
-         return loadPOMDependenciesMavenLocal(groupId, artifactId, versionToCheck)
-      }
-      else
-      {
-         return loadPOMDependenciesNexus(groupId, artifactId, versionToCheck)
-      }
-   }
-
-   private fun loadPOMDependenciesNexus(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
-      {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
-
-         for (repository in getSnapshotRepositoryList())
-         {
-            for (asset in searchNexus(repository, groupId, artifactId, versionToCheck, ".*\\d\\.pom$"))
-            {
-               LogTools.info("Hitting Nexus for POM: " + asset.getString("path"))
-               val bytes = downloadItemFromNexus(asset.getString("downloadUrl"))
-
-               parsePOMInputStream(ByteArrayInputStream(bytes), groupId, artifactId, versionToCheck)
-            }
-         }
-      }
-
-      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
-   }
-
-   private fun searchNexus(repository: String, groupId: String, artifactId: String, version: String, matchPattern: String): List<JSONObject>
-   {
-      return searchNexus("repository=$repository&maven.groupId=$groupId&maven.artifactId=$artifactId&maven.baseVersion=$version", matchPattern);
-   }
-
-   private fun searchNexus(repository: String, groupId: String, artifactId: String, matchPattern: String): List<JSONObject>
-   {
-      return searchNexus("repository=$repository&maven.groupId=$groupId&maven.artifactId=$artifactId", matchPattern);
-   }
-
-   private fun searchNexus(parameters: String, matchPattern: String): List<JSONObject>
-   {
-      var continuationToken = "first_page"
-      val requestUrl = "$nexusUrlProperty/service/rest/v1/search?$parameters"
-      val matches = arrayListOf<JSONObject>()
-      while (continuationToken != "no_more_pages")
-      {
-          Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl&continuationToken=$continuationToken")
-                 .basicAuth(nexusUsername, nexusPassword)
-                 .asJson()
-                 .ifSuccess { response ->
-                     val bodyObject: JSONObject = response.body.`object`
-                     if (bodyObject.isNull("continuationToken"))
-                         continuationToken = "no_more_pages"
-                     else
-                         continuationToken = bodyObject.getString("continuationToken")
-                     val items = bodyObject.getJSONArray("items")
-                     for (item in items)
-                     {
-                        val assets = (item as JSONObject).getJSONArray("assets")
-                        for (asset in assets)
-                        {
-                           val assetObject = asset as JSONObject
-                           val path = assetObject.getString("path")
-                           if (path.matches(Regex(matchPattern)))
-                           {
-                              matches.add(assetObject)
-                           }
-                        }
-                     }
-                 }
-                 .ifFailure { response ->
-                    throw nexusException(requestUrl)
-                 }
-      }
-      return matches
-   }
-
-   private fun downloadItemFromNexus(downloadUrl: String): ByteArray?
-   {
-      var bytes: ByteArray? = null
-      Unirest.get(downloadUrl)
-             .basicAuth(nexusUsername, nexusPassword)
-             .asBytes()
-             .ifSuccess { response ->
-                bytes = response.body
-             }
-             .ifFailure { response ->
-                throw nexusException(downloadUrl)
-             }
-      return bytes
-   }
-
-   private fun nexusException(path: String): GradleException
-   {
-      return GradleException("Problem authenticating or retrieving item from Nexus: $path. " +
-              "Try logging into $nexusUrlProperty with the credentials used " +
-              "(nexusUsername and nexusPassword properties) and see if the item is there.")
+      return repositoryVersions.containsKey("$groupId:$artifactId") && repositoryVersions["$groupId:$artifactId"]!!.contains(version)
    }
 
    private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
@@ -836,22 +655,14 @@ open class IHMCBuildExtension(val project: Project)
    
    private fun performPOMCheck(groupId: String, artifactId: String, versionToCheck: String): Boolean
    {
-      if (!versionExists(groupId, artifactId, versionToCheck))
+      return if (!versionExists(groupId, artifactId, versionToCheck))
       {
          LogTools.info("Version doesn't exist: $groupId:$artifactId:$versionToCheck")
-         return false
+         false
       }
       else
       {
-         for (dependency in loadPOMDependencies(groupId, artifactId, versionToCheck))
-         {
-            if (!performPOMCheck(dependency[0], dependency[1], dependency[2]))
-            {
-               return false
-            }
-         }
-         
-         return true
+         true
       }
    }
    
