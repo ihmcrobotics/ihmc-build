@@ -31,13 +31,16 @@ tasks.withType<Test> {
 val pluginVcsUrl = "https://github.com/ihmcrobotics/ihmc-build"
 
 gradlePlugin {
-   website = pluginVcsUrl
-   vcsUrl = pluginVcsUrl
-   plugins.register(project.name) {
-      id = project.group as String + "." + project.name
-      implementationClass = "us.ihmc.build.IHMCBuildPlugin"
-      displayName = "IHMC Build Plugin"
-      description = "IHMC Robotics opinions on Java builds."
-      tags = listOf("build", "ihmc", "robotics")
+   website.set(pluginVcsUrl)
+   vcsUrl.set(pluginVcsUrl)
+
+   plugins {
+      create(project.name) {
+         id = project.group as String + "." + project.name
+         implementationClass = "us.ihmc.build.IHMCBuildPlugin"
+         displayName = "IHMC Build Plugin"
+         description = "IHMC Robotics opinions on Java builds."
+         tags.set(listOf("build", "ihmc", "robotics"))
+      }
    }
 }
