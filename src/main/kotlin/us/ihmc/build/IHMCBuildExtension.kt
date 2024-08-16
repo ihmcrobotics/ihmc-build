@@ -355,29 +355,6 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
-
-//      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
-//      {
-//         if (project.hasProperty("extraSourceSets"))
-//         {
-//            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
-//
-//            for (extraSourceSet in extraSourceSets)
-//            {
-//               if (extraSourceSet == "test")
-//               {
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
-//               }
-//               else
-//               {
-//                  java.sourceSets.create(extraSourceSet)
-//                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
-//               }
-//            }
-//         }
-//      }
    }
    
    fun javaDirectory(sourceSetName: String, directory: String)
