@@ -35,9 +35,11 @@ open class IHMCBuildExtension(val project: Project)
    var licenseName: String = "Proprietary"
    var companyName: String = "IHMC"
    var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
-   
-   private lateinit var nexusUsername: String
-   private lateinit var nexusPassword: String
+
+   private var ihmcNexusUrl = "https://nexus.ihmc.us"
+   private var ihmcNexusUsername: String
+   private var ihmcNexusPassword: String
+
    private val publishUsername: String
    private val publishPassword: String
 
@@ -46,7 +48,6 @@ open class IHMCBuildExtension(val project: Project)
    private val snapshotModeProperty: Boolean
    private val publishUrlProperty: String
    private val ciDatabaseUrlProperty: String
-   private val nexusUrlProperty = IHMCBuildTools.nexusUrlCompatibility(project.extra)
    private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
    
@@ -62,8 +63,8 @@ open class IHMCBuildExtension(val project: Project)
    
    init
    {
-      nexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
-      nexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
+      ihmcNexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
+      ihmcNexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
       publishPassword = setupPropertyWithDefault("publishPassword", "")
    
@@ -133,12 +134,12 @@ open class IHMCBuildExtension(val project: Project)
       {
          declareMavenCentral()
          repository("https://clojars.org/repo/")
-         repository("$nexusUrlProperty/repository/open-snapshots/")
+         repository("$ihmcNexusUrl/repository/open-snapshots/")
          if (!openSource)
          {
-            repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
-            repository("$nexusUrlProperty/repository/proprietary-snapshots/", nexusUsername, nexusPassword)
-            repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
+            repository("$ihmcNexusUrl/repository/proprietary-releases/", ihmcNexusUsername, ihmcNexusPassword)
+            repository("$ihmcNexusUrl/repository/proprietary-snapshots/", ihmcNexusUsername, ihmcNexusPassword)
+            repository("$ihmcNexusUrl/repository/proprietary-vendor/", ihmcNexusUsername, ihmcNexusPassword)
          }
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
@@ -154,10 +155,10 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
          repository("https://jitpack.io")
-         if (!openSource && (nexusUsername != "unset_username")) // support third parties not needing to declare Nexus
+         if (!openSource && (ihmcNexusUsername != "unset_username")) // support third parties not needing to declare Nexus
          {
-            repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
-            repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
+            repository("$ihmcNexusUrl/repository/proprietary-releases/", ihmcNexusUsername, ihmcNexusPassword)
+            repository("$ihmcNexusUrl/repository/proprietary-vendor/", ihmcNexusUsername, ihmcNexusPassword)
          }
          repository("https://oss.sonatype.org/content/repositories/snapshots")
          // https://central.sonatype.org/news/20210223_new-users-on-s01/
@@ -764,8 +765,8 @@ open class IHMCBuildExtension(val project: Project)
       publishing.repositories.maven {
          name = "Nexus" + IHMCBuildTools.kebabToPascalCase(repoName)
          url = uri("https://nexus.ihmc.us/repository/$repoName")
-         credentials.username = nexusUsername
-         credentials.password = nexusPassword
+         credentials.username = ihmcNexusUsername
+         credentials.password = ihmcNexusPassword
       }
    }
 
