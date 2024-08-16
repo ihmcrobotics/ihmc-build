@@ -1,0 +1,14 @@
+name: Gradle test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+  pull_request:
+
+jobs:
+  gradle-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ihmcrobotics/ihmc-actions/.github/actions/gradle-test@main
