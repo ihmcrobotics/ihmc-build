@@ -765,7 +765,7 @@ open class IHMCBuildExtension(val project: Project)
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
          name = "Nexus" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("https://nexus.ihmc.us/repository/$repoName")
+         url = uri("$ihmcNexusUrl/repository/$repoName")
          credentials.username = ihmcNexusUsername
          credentials.password = ihmcNexusPassword
       }
