@@ -50,24 +50,24 @@ open class IHMCBuildExtension(val project: Project)
    private val ciDatabaseUrlProperty: String
    private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
-   
+
    private lateinit var publishVersion: String
 
    private val includedBuildMap = hashMapOf<String, Boolean>()
-   
+
    private val repositoryVersions = hashMapOf<String, TreeSet<String>>()
    private val pomDependencies = hashMapOf<String, ArrayList<ArrayList<String>>>()
    private val documentBuilderFactory by lazy {
       DocumentBuilderFactory.newInstance()
    }
-   
+
    init
    {
       ihmcNexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
       ihmcNexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
       publishPassword = setupPropertyWithDefault("publishPassword", "")
-   
+
       snapshotModeProperty = IHMCBuildTools.snapshotModeCompatibility(project.extra)
       publishUrlProperty = IHMCBuildTools.publishUrlCompatibility(project.extra)
       ciDatabaseUrlProperty = IHMCBuildTools.ciDatabaseUrlCompatibility(project.extra)
@@ -98,7 +98,7 @@ open class IHMCBuildExtension(val project: Project)
          return defaultValue
       }
    }
-   
+
    fun loadProductProperties(propertiesFilePath: String)
    {
       val properties = Properties()
@@ -127,7 +127,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun configureDependencyResolution()
    {
       if (snapshotModeProperty)
@@ -165,15 +165,15 @@ open class IHMCBuildExtension(val project: Project)
          repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
          declareMavenLocal()
       }
-      
+
       setupJavaSourceSets()
-      
+
       try // always declare dependency on "main" from "test"
       {
          val testProject = project.project(":$kebabCasedNameProperty-test")
          testProject.dependencies.add("api", project)
       }
-      catch (e: UnknownProjectException)
+      catch (_: UnknownProjectException)
       {
 
       }
@@ -186,7 +186,7 @@ open class IHMCBuildExtension(val project: Project)
          allproject.repositories.mavenCentral()
       }
    }
-   
+
    fun declareMavenLocal()
    {
       for (allproject in project.allprojects)
@@ -194,7 +194,7 @@ open class IHMCBuildExtension(val project: Project)
          allproject.repositories.mavenLocal()
       }
    }
-   
+
    fun repository(url: String)
    {
       for (allproject in project.allprojects)
@@ -202,7 +202,7 @@ open class IHMCBuildExtension(val project: Project)
          allproject.repositories.maven {}.url = allproject.uri(url)
       }
    }
-   
+
    fun repository(url: String, username: String, password: String)
    {
       for (allproject in project.allprojects)
@@ -213,7 +213,7 @@ open class IHMCBuildExtension(val project: Project)
          maven.credentials.password = password
       }
    }
-   
+
    fun mainClassJarWithLibFolder(mainClass: String)
    {
       project.allprojects {
@@ -222,7 +222,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun jarWithLibFolder()
    {
       project.allprojects {
@@ -231,7 +231,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun configurePublications()
    {
       if (openSource)
@@ -239,16 +239,16 @@ open class IHMCBuildExtension(val project: Project)
          licenseURL = "https://www.apache.org/licenses/LICENSE-2.0.txt"
          licenseName = "Apache License, Version 2.0"
       }
-      
+
       val productGroup = group
       project.allprojects {
          this.run {
             group = productGroup
             publishVersion = getPublishVersion()
             version = publishVersion
-            
+
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
-            
+
             if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "local"))
             {
                declareMavenLocal()
@@ -297,14 +297,14 @@ open class IHMCBuildExtension(val project: Project)
                val userPublishUrl = IHMCPublishUrl(publishUrlProperty, publishUsername, publishPassword)
                declareCustomPublishUrl("User", userPublishUrl)
             }
-            
+
             val java = extensions.getByType(JavaPluginExtension::class.java)
-            
+
             declarePublication(name, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
    }
-   
+
    fun addPublishUrl(keyword: String, url: String)
    {
       customPublishUrls[keyword] = IHMCPublishUrl(url, "", setupPropertyWithDefault("publishPassword", ""))
@@ -314,7 +314,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       customPublishUrls[keyword] = IHMCPublishUrl(url, username, password)
    }
-   
+
    fun setupJavaSourceSets()
    {
       val java = project.extensions.getByType(JavaPluginExtension::class.java)
@@ -357,30 +357,30 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun javaDirectory(sourceSetName: String, directory: String)
    {
       var modifiedDirectory = directory
       if (sourceSetName == "main")
          modifiedDirectory = "src/main/" + directory
-      
+
       sourceSet(sourceSetName).java.srcDir(modifiedDirectory)
    }
-   
+
    fun resourceDirectory(sourceSetName: String, directory: String)
    {
       var modifiedDirectory = directory
       if (sourceSetName == "main")
          modifiedDirectory = "src/main/" + directory
-      
+
       sourceSet(sourceSetName).resources.srcDir(modifiedDirectory)
    }
-   
+
    fun sourceSet(sourceSetName: String): SourceSet
    {
       return sourceSetProject(sourceSetName).extensions.getByType(JavaPluginExtension::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
    }
-   
+
    fun sourceSetProject(sourceSetName: String): Project
    {
       if (sourceSetName == "main")
@@ -398,8 +398,8 @@ open class IHMCBuildExtension(val project: Project)
    {
       var archSuffix = "";
       val isARM64 = System.getProperty("os.arch").equals("aarch64")
-              || System.getProperty("os.arch").equals("arm64")
-              || System.getProperty("ihmc.build.javafxarm64", "false").equals("true")
+            || System.getProperty("os.arch").equals("arm64")
+            || System.getProperty("ihmc.build.javafxarm64", "false").equals("true")
       if (isARM64)
          archSuffix = "-aarch64"
 
@@ -424,7 +424,7 @@ open class IHMCBuildExtension(val project: Project)
          return version
       }
    }
-   
+
    /** Public API. **/
    fun isBuildRoot(): Boolean
    {
@@ -453,7 +453,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       return includedBuilds
    }
-   
+
    fun artifactIsIncludedBuild(artifactId: String): Boolean
    {
       if (!includedBuildMap.containsKey(artifactId))
@@ -477,18 +477,18 @@ open class IHMCBuildExtension(val project: Project)
                }
             }
          }
-         
+
          includedBuildMap[artifactId] = false
          return false
       }
-      
+
       return includedBuildMap[artifactId]!!
    }
-   
+
    internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
    {
       var externalDependencyVersion: String
-      
+
       // For high-level projects depending on develop,
       // use version: "source" to make sure you've got everything, and fail fast
       if (declaredVersion.toLowerCase().contains("source"))
@@ -546,7 +546,7 @@ open class IHMCBuildExtension(val project: Project)
       if (!repositoryVersions.containsKey("$groupId:$artifactId"))
       {
          repositoryVersions["$groupId:$artifactId"] = sortedSetOf()
-         
+
          if (offline)
          {
             val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
@@ -558,7 +558,7 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
-      
+
       return repositoryVersions["$groupId:$artifactId"]!!
    }
 
@@ -566,7 +566,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       return !searchRepositories(groupId, artifactId).isEmpty()
    }
-   
+
    private fun versionExists(groupId: String, artifactId: String, version: String): Boolean
    {
       return repositoryVersions.containsKey("$groupId:$artifactId") && repositoryVersions["$groupId:$artifactId"]!!.contains(version)
@@ -578,21 +578,21 @@ open class IHMCBuildExtension(val project: Project)
       {
          val documentBuilder = documentBuilderFactory.newDocumentBuilder()
          val document = documentBuilder.parse(inputStream);
-         
+
          val dependencyTags = document.getElementsByTagName("dependency")
          for (i in 0 until dependencyTags.length)
          {
             val dependencyGroupId = dependencyTags.item(i).childNodes.item(1).textContent
             val dependencyArtifactId = dependencyTags.item(i).childNodes.item(3).textContent
             val dependencyVersion = dependencyTags.item(i).childNodes.item(5).textContent
-            
+
             if (dependencyVersion.contains("SNAPSHOT") && anyVersionExists(dependencyGroupId, dependencyArtifactId))
             {
                val arrayDependency: ArrayList<String> = arrayListOf()
                arrayDependency.add(dependencyGroupId)
                arrayDependency.add(dependencyArtifactId)
                arrayDependency.add(dependencyVersion)
-               
+
                pomDependencies["$groupId:$artifactId:$versionToCheck"]!!.add(arrayDependency)
             }
          }
@@ -602,7 +602,7 @@ open class IHMCBuildExtension(val project: Project)
          e.printStackTrace()
       }
    }
-   
+
    private fun loadPOMDependenciesMavenLocal(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
    {
       if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
@@ -612,7 +612,7 @@ open class IHMCBuildExtension(val project: Project)
          LogTools.info("Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
          val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
          val versionPath = gradleCache.resolve(groupId).resolve(artifactId).resolve(versionToCheck)
-         
+
          var pomFile: File? = null
          for (hashEntry in versionPath.toFile().list())
          {
@@ -624,13 +624,13 @@ open class IHMCBuildExtension(val project: Project)
                }
             }
          }
-         
+
          parsePOMInputStream(FileInputStream(pomFile), groupId, artifactId, versionToCheck)
       }
-      
+
       return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
    }
-   
+
    private fun performPOMCheck(groupId: String, artifactId: String, versionToCheck: String): Boolean
    {
       return if (!versionExists(groupId, artifactId, versionToCheck))
@@ -643,17 +643,17 @@ open class IHMCBuildExtension(val project: Project)
          true
       }
    }
-   
+
    private fun itemPathToVersion(itemPath: String, artifactId: String): String
    {
       val split: List<String> = itemPath.split("/")
       val artifact: String = split[split.size - 1]
       val withoutDotJar: String = artifact.split(".jar")[0]
       val version: String = withoutDotJar.substring(artifactId.length + 1)
-      
+
       return version
    }
-   
+
    private fun matchVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
    {
       for (repositoryVersion in searchRepositories(groupId, artifactId))
@@ -663,25 +663,25 @@ open class IHMCBuildExtension(val project: Project)
             return repositoryVersion
          }
       }
-      
+
       return "MATCH-NOT-FOUND-$versionMatcher"
    }
-   
+
    private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
    {
       LogTools.info("Looking for latest version: $groupId:$artifactId:$versionMatcher")
 
       var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
-      
+
       if (highestVersion.contains("NOT-FOUND"))
          return highestVersion
-      
+
       while (!performPOMCheck(groupId, artifactId, highestVersion))
       {
          LogTools.info("Failed POM check: $groupId:$artifactId:$highestVersion")
          repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
          highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
-         
+
          if (highestVersion.contains("NOT-FOUND"))
          {
             LogTools.error("Rollback failed, no more versions found: $groupId:$artifactId:$highestVersion")
@@ -690,15 +690,15 @@ open class IHMCBuildExtension(val project: Project)
 
          LogTools.info("Rolling back to: $groupId:$artifactId:$highestVersion")
       }
-      
+
       return highestVersion
    }
-   
+
    private fun highestBuildNumberVersion(groupId: String, artifactId: String, versionMatcher: String): String
    {
       var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
       var highestBuildNumber: Int = -1
-      
+
       for (repositoryVersion in searchRepositories(groupId, artifactId))
       {
          if (repositoryVersion.matches(Regex("$versionMatcher-\\d+")))
@@ -711,10 +711,10 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
-      
+
       return matchedVersion
    }
-   
+
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
       tasks.withType(Jar::class.java) {
@@ -745,7 +745,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun Project.declareCustomPublishUrl(keyword: String, publishUrl: IHMCPublishUrl)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
@@ -760,7 +760,8 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   fun Project.declareNexus(repoName: String) {
+   fun Project.declareNexus(repoName: String)
+   {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
          name = "Nexus" + IHMCBuildTools.kebabToPascalCase(repoName)
@@ -780,13 +781,13 @@ open class IHMCBuildExtension(val project: Project)
          credentials.password = publishPassword
       }
    }
-   
+
    fun Project.declareMavenLocal()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.mavenLocal()
    }
-   
+
    private fun Project.declarePublication(artifactName: String, sourceSet: SourceSet)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
@@ -796,7 +797,7 @@ open class IHMCBuildExtension(val project: Project)
       publication.version = version as String
 
       LogTools.info("Assembing publication for $name")
-      
+
       publication.pom.withXml {
          val dependenciesNode = asNode().appendNode("dependencies")
 
