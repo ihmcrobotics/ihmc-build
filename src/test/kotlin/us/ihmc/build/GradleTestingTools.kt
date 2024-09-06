@@ -1,13 +1,23 @@
 package us.ihmc.build
 
 import org.apache.commons.lang3.SystemUtils
+import java.io.BufferedReader
 import java.io.IOException
+import java.io.InputStreamReader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
-val gradleCommand = if (SystemUtils.IS_OS_WINDOWS) "gradlew.bat" else "gradlew"
-val gradleExe = Paths.get("tests/$gradleCommand").toAbsolutePath().toString()
+val gradleExe = getLocalGradlePath()
+
+private fun getLocalGradlePath(): String
+{
+   val process = Runtime.getRuntime().exec(if (SystemUtils.IS_OS_WINDOWS) "where gradle" else "which gradle")
+   val reader = BufferedReader(InputStreamReader(process.inputStream))
+   val path = reader.readLine()
+   println("Gradle path: $path")
+   return path;
+}
 
 fun runGradleTask(command: String?, project: String): String
 {
