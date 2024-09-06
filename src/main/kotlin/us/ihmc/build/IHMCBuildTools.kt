@@ -14,7 +14,7 @@ object IHMCBuildTools
 {
    fun isProjectGroupCompatibility(rawString: String): Boolean
    {
-      return rawString.trim().toLowerCase().contains("true");
+      return rawString.trim().lowercase().contains("true");
    }
 
    fun kebabCasedNameCompatibility(projectName: String, extra: ExtraPropertiesExtension): String
@@ -54,25 +54,6 @@ object IHMCBuildTools
       }
    }
 
-   fun snapshotModeCompatibility(extra: ExtraPropertiesExtension): Boolean
-   {
-      if (containsValidStringProperty("snapshotMode", extra))
-      {
-         val snapshotMode = (extra.get("snapshotMode") as String).trim().toLowerCase().contains("true")
-         LogTools.info("Loaded snapshotMode = $snapshotMode")
-         return snapshotMode;
-      }
-      if (extra.has("publishMode") // Backwards compatibility
-            && !(extra.get("publishMode") as String).startsWith("$")
-            && (extra.get("publishMode") as String).trim().toLowerCase().contains("snapshot"))
-      {
-         LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set snapshotMode = true.")
-         return true
-      }
-
-      return false
-   }
-
    fun publishUrlCompatibility(extra: ExtraPropertiesExtension): String
    {
       if (extra.has("publishMode")) // Backwards compatibility
@@ -85,7 +66,7 @@ object IHMCBuildTools
       }
       else if (containsValidStringProperty("publishMode", extra)) // Backwards compatibility
       {
-         val publishModeString = (extra.get("publishMode") as String).trim().toLowerCase()
+         val publishModeString = (extra.get("publishMode") as String).trim().lowercase()
 
          if (publishModeString.contains("local"))
          {
@@ -111,7 +92,7 @@ object IHMCBuildTools
 
    fun publishUrlIsKeyword(publishUrl: String, keyword: String): Boolean
    {
-      val sanitized = publishUrl.toLowerCase().replace("-", "")
+      val sanitized = publishUrl.lowercase().replace("-", "")
       return sanitized == keyword
    }
 
@@ -130,21 +111,6 @@ object IHMCBuildTools
          val defaultValue = 0
          LogTools.info("No value found for compositeSearchHeight. Using default value: $defaultValue")
          extra.set("compositeSearchHeight", defaultValue)
-         return defaultValue
-      }
-   }
-
-   fun ciDatabaseUrlCompatibility(extra: ExtraPropertiesExtension): String
-   {
-      if (containsValidStringProperty("ciDatabaseUrl", extra))
-      {
-         return (extra.get("ciDatabaseUrl") as String).trim()
-      }
-      else
-      {
-         val defaultValue = ""
-         LogTools.info("No value found for ciDatabaseUrl. Using default value: $defaultValue")
-         extra.set("ciDatabaseUrl", defaultValue)
          return defaultValue
       }
    }
@@ -176,7 +142,7 @@ object IHMCBuildTools
 
    fun titleToKebabCase(titleCased: String): String
    {
-      return titleCased.trim().toLowerCase().replace(Regex("\\s+"), "-")
+      return titleCased.trim().lowercase().replace(Regex("\\s+"), "-")
    }
 
    fun titleToPascalCase(titleCased: String): String
@@ -236,7 +202,7 @@ object IHMCBuildTools
          {
             if (!part.isEmpty())
             {
-               parts.add(part.toLowerCase());
+               parts.add(part.lowercase());
             }
             part = character;
          }
@@ -247,7 +213,7 @@ object IHMCBuildTools
       }
       if (!part.isEmpty())
       {
-         parts.add(part.toLowerCase());
+         parts.add(part.lowercase());
       }
 
       var kebab = "";
