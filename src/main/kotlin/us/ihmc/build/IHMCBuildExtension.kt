@@ -198,7 +198,6 @@ open class IHMCBuildExtension(val project: Project)
       {
          declareMavenCentral()
          repository("https://clojars.org/repo/")
-         declareJCenter()
          repository("$nexusUrlProperty/repository/open-snapshots/")
          if (!openSource)
          {
@@ -216,7 +215,6 @@ open class IHMCBuildExtension(val project: Project)
       else
       {
          declareMavenCentral()
-         declareJCenter()
          repository("https://clojars.org/repo/")
          repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
          repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
@@ -245,15 +243,6 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   @Deprecated("JFrog announced JCenter's <a href=\"https://blog.gradle.org/jcenter-shutdown\">sunset</a> in February 2021. Use {@link #mavenCentral()} instead.")
-   fun declareJCenter()
-   {
-      for (allproject in project.allprojects)
-      {
-         allproject.repositories.jcenter()
-      }
-   }
-   
    fun declareMavenCentral()
    {
       for (allproject in project.allprojects)
