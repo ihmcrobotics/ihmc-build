@@ -1,6 +1,6 @@
 pluginManagement {
    plugins {
-      id("us.ihmc.ihmc-build") version "0.29.3"
+      id("us.ihmc.ihmc-build") version "0.29.7"
    }
 }
 
