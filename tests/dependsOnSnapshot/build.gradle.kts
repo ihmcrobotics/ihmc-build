@@ -3,10 +3,6 @@ plugins {
    id("us.ihmc.ihmc-ci") version "7.7"
 }
 
-testSuites {
-   disableBambooConfigurationCheck = true
-}
-
 println testSuites.convertJobNameToHyphenatedName("AtlasAFast")
 
 nexusUsername = System.properties.getProperty("nexus.username")

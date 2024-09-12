@@ -17,7 +17,6 @@ dependencies {
       exclude("junit", "junit")
    }
    api("com.dorongold.plugins:task-tree:2.1.0")
-   api("com.konghq:unirest-java:3.13.4")
    api("guru.nidi:graphviz-kotlin:0.18.1")
 
    testApi("org.junit.jupiter:junit-jupiter-api:5.8.2")

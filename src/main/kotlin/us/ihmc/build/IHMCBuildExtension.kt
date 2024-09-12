@@ -2,8 +2,6 @@ package us.ihmc.build
 
 import groovy.util.Eval
 import groovy.util.Node
-import kong.unirest.Unirest
-import kong.unirest.json.JSONObject
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
@@ -19,17 +17,12 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
-import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
-import java.io.InputStream
-import java.nio.file.Paths
 import java.util.*
-import javax.xml.parsers.DocumentBuilderFactory
 
 open class IHMCBuildExtension(val project: Project)
 {
-   private val offline: Boolean = project.gradle.startParameter.isOffline
    var group = "unset.group"
    var version = "UNSET-VERSION"
    var vcsUrl: String = "unset_vcs_url"
@@ -38,109 +31,38 @@ open class IHMCBuildExtension(val project: Project)
    var licenseName: String = "Proprietary"
    var companyName: String = "IHMC"
    var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
-   
-   private lateinit var nexusUsername: String
-   private lateinit var nexusPassword: String
+
+   private var ihmcNexusUrl = "https://nexus.ihmc.us"
+   private var ihmcNexusUsername: String
+   private var ihmcNexusPassword: String
+
    private val publishUsername: String
    private val publishPassword: String
 
    private val titleCasedNameProperty: String
    private val kebabCasedNameProperty: String
-   private val snapshotModeProperty: Boolean
    private val publishUrlProperty: String
-   private val ciDatabaseUrlProperty: String
-   private val nexusUrlProperty = IHMCBuildTools.nexusUrlCompatibility(project.extra)
    private var compatibilityVersionProperty: String
    private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
-   
-   // Bamboo variables
-   private val isChildBuild: Boolean
-   private val isBambooBuild: Boolean
-   private val integrationNumber: String
+
    private lateinit var publishVersion: String
-   private val isBranchBuild: Boolean
-   private val branchName: String
-   
+
    private val includedBuildMap = hashMapOf<String, Boolean>()
-   
-   private val repositoryVersions = hashMapOf<String, TreeSet<String>>()
-   private val pomDependencies = hashMapOf<String, ArrayList<ArrayList<String>>>()
-   private val documentBuilderFactory by lazy {
-      DocumentBuilderFactory.newInstance()
-   }
-   
+
    init
    {
-      nexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
-      nexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
+      ihmcNexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
+      ihmcNexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
       publishPassword = setupPropertyWithDefault("publishPassword", "")
-   
-      snapshotModeProperty = IHMCBuildTools.snapshotModeCompatibility(project.extra)
+
       publishUrlProperty = IHMCBuildTools.publishUrlCompatibility(project.extra)
-      ciDatabaseUrlProperty = IHMCBuildTools.ciDatabaseUrlCompatibility(project.extra)
       compatibilityVersionProperty = IHMCBuildTools.compatibilityVersionCompatibility(project.extra)
 
       titleCasedNameProperty = IHMCBuildTools.titleCasedNameCompatibility(project.name, project.extra)
       kebabCasedNameProperty = IHMCBuildTools.kebabCasedNameCompatibility(project.name, project.extra)
-      
-      val bambooBuildNumberProperty = setupPropertyWithDefault("bambooBuildNumber", "0")
-      val bambooPlanKeyProperty = setupPropertyWithDefault("bambooPlanKey", "UNKNOWN-KEY")
-      val bambooBranchNameProperty = setupPropertyWithDefault("bambooBranchName", "")
-      val bambooParentBuildKeyProperty = setupPropertyWithDefault("bambooParentBuildKey", "")
-      
-      isChildBuild = !bambooParentBuildKeyProperty.isEmpty()
-      isBambooBuild = bambooPlanKeyProperty != "UNKNOWN-KEY"
-      if (offline || !isBambooBuild)
-      {
-         integrationNumber = bambooBuildNumberProperty
-      }
-      else if (isChildBuild)
-      {
-         integrationNumber = requestIntegrationNumberFromCIDatabase(bambooParentBuildKeyProperty)
-      }
-      else
-      {
-         integrationNumber = requestIntegrationNumberFromCIDatabase("$bambooPlanKeyProperty-$bambooBuildNumberProperty")
-      }
-      isBranchBuild = !bambooBranchNameProperty.isEmpty() && bambooBranchNameProperty != "develop" && bambooBranchNameProperty != "master"
-      branchName = bambooBranchNameProperty.replace("/", "-")
-      Unirest.config().reset()
-      Unirest.config().connectTimeout(30000)
    }
-   
-   private fun requestIntegrationNumberFromCIDatabase(buildKey: String): String
-   {
-      var tryCount = 0
-      var integrationNumber = "ERROR"
-      while (tryCount < 5 && integrationNumber == "ERROR")
-      {
-         integrationNumber = tryIntegrationNumberRequest(buildKey)
-         tryCount++
-         LogTools.info("Integration number for $buildKey: $integrationNumber")
-      }
-      
-      return integrationNumber
-   }
-   
-   private fun tryIntegrationNumberRequest(buildKey: String): String
-   {
-      var result = "ERROR"
-      Unirest.get(ciDatabaseUrlProperty).queryString("integrationNumber", buildKey).asString()
-            .ifSuccess { response ->
-               result = response.body
-            }
-            .ifFailure { response ->
-               LogTools.error("Response status: ${response.status}")
-               response.parsingError.ifPresent { exception ->
-                  LogTools.error("Exception: $exception")
-                  LogTools.error("Exception: ${exception.originalBody}")
-               }
-               LogTools.info("Failed to retrieve integration number. Trying again...")
-            }
-      return result
-   }
-   
+
    fun setupPropertyWithDefault(propertyName: String, defaultValue: String): String
    {
       if (project.hasProperty(propertyName) && !(project.property(propertyName) as String).startsWith("$"))
@@ -151,7 +73,7 @@ open class IHMCBuildExtension(val project: Project)
       {
          if (propertyName == "nexusUsername" || propertyName == "nexusPassword")
          {
-            if (!openSource && isBambooBuild)
+            if (!openSource)
             {
                LogTools.warn("Please set nexusUsername and nexusPassword in /path/to/user/.gradle/gradle.properties.")
             }
@@ -162,7 +84,7 @@ open class IHMCBuildExtension(val project: Project)
          return defaultValue
       }
    }
-   
+
    fun loadProductProperties(propertiesFilePath: String)
    {
       val properties = Properties()
@@ -191,53 +113,32 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun configureDependencyResolution()
    {
-      if (snapshotModeProperty)
+      declareMavenCentral()
+      repository("https://clojars.org/repo/")
+      repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
+      repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
+      repository("https://jitpack.io")
+      if (!openSource && (ihmcNexusUsername != "unset_username")) // support third parties not needing to declare Nexus
       {
-         declareMavenCentral()
-         repository("https://clojars.org/repo/")
-         repository("$nexusUrlProperty/repository/open-snapshots/")
-         if (!openSource)
-         {
-            repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
-            repository("$nexusUrlProperty/repository/proprietary-snapshots/", nexusUsername, nexusPassword)
-            repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
-         }
-         repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-         repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
-         repository("https://jitpack.io")
-         repository("https://oss.sonatype.org/content/repositories/snapshots")
-         // https://central.sonatype.org/news/20210223_new-users-on-s01/
-         repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
+         repository("$ihmcNexusUrl/repository/proprietary-releases/", ihmcNexusUsername, ihmcNexusPassword)
+         repository("$ihmcNexusUrl/repository/proprietary-vendor/", ihmcNexusUsername, ihmcNexusPassword)
       }
-      else
-      {
-         declareMavenCentral()
-         repository("https://clojars.org/repo/")
-         repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-         repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
-         repository("https://jitpack.io")
-         if (!openSource && (nexusUsername != "unset_username")) // support third parties not needing to declare Nexus
-         {
-            repository("$nexusUrlProperty/repository/proprietary-releases/", nexusUsername, nexusPassword)
-            repository("$nexusUrlProperty/repository/proprietary-vendor/", nexusUsername, nexusPassword)
-         }
-         repository("https://oss.sonatype.org/content/repositories/snapshots")
-         // https://central.sonatype.org/news/20210223_new-users-on-s01/
-         repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
-         declareMavenLocal()
-      }
-      
+      repository("https://oss.sonatype.org/content/repositories/snapshots")
+      // https://central.sonatype.org/news/20210223_new-users-on-s01/
+      repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
+      declareMavenLocal()
+
       setupJavaSourceSets()
-      
+
       try // always declare dependency on "main" from "test"
       {
          val testProject = project.project(":$kebabCasedNameProperty-test")
          testProject.dependencies.add("api", project)
       }
-      catch (e: UnknownProjectException)
+      catch (_: UnknownProjectException)
       {
 
       }
@@ -250,7 +151,7 @@ open class IHMCBuildExtension(val project: Project)
          allproject.repositories.mavenCentral()
       }
    }
-   
+
    fun declareMavenLocal()
    {
       for (allproject in project.allprojects)
@@ -258,7 +159,7 @@ open class IHMCBuildExtension(val project: Project)
          allproject.repositories.mavenLocal()
       }
    }
-   
+
    fun repository(url: String)
    {
       for (allproject in project.allprojects)
@@ -266,7 +167,7 @@ open class IHMCBuildExtension(val project: Project)
          allproject.repositories.maven {}.url = allproject.uri(url)
       }
    }
-   
+
    fun repository(url: String, username: String, password: String)
    {
       for (allproject in project.allprojects)
@@ -277,7 +178,7 @@ open class IHMCBuildExtension(val project: Project)
          maven.credentials.password = password
       }
    }
-   
+
    fun mainClassJarWithLibFolder(mainClass: String)
    {
       project.allprojects {
@@ -286,7 +187,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun jarWithLibFolder()
    {
       project.allprojects {
@@ -295,7 +196,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun configurePublications()
    {
       if (openSource)
@@ -303,16 +204,16 @@ open class IHMCBuildExtension(val project: Project)
          licenseURL = "https://www.apache.org/licenses/LICENSE-2.0.txt"
          licenseName = "Apache License, Version 2.0"
       }
-      
+
       val productGroup = group
       project.allprojects {
          this.run {
             group = productGroup
             publishVersion = getPublishVersion()
             version = publishVersion
-            
+
             configureJarManifest(maintainer, companyName, licenseURL, "NO_MAIN", false)
-            
+
             if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "local"))
             {
                declareMavenLocal()
@@ -361,14 +262,14 @@ open class IHMCBuildExtension(val project: Project)
                val userPublishUrl = IHMCPublishUrl(publishUrlProperty, publishUsername, publishPassword)
                declareCustomPublishUrl("User", userPublishUrl)
             }
-            
+
             val java = extensions.getByType(JavaPluginExtension::class.java)
-            
+
             declarePublication(name, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
          }
       }
    }
-   
+
    fun addPublishUrl(keyword: String, url: String)
    {
       customPublishUrls[keyword] = IHMCPublishUrl(url, "", setupPropertyWithDefault("publishPassword", ""))
@@ -378,7 +279,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       customPublishUrls[keyword] = IHMCPublishUrl(url, username, password)
    }
-   
+
    fun setupJavaSourceSets()
    {
       val java = project.extensions.getByType(JavaPluginExtension::class.java)
@@ -420,54 +321,31 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
-
-//      if (project.hasProperty("useLegacySourceSets") && project.property("useLegacySourceSets") == "true")
-//      {
-//         if (project.hasProperty("extraSourceSets"))
-//         {
-//            val extraSourceSets = Eval.me(project.property("extraSourceSets") as String) as ArrayList<String>
-//
-//            for (extraSourceSet in extraSourceSets)
-//            {
-//               if (extraSourceSet == "test")
-//               {
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).java.setSrcDirs(setOf(project.file("test/src")))
-//                  java.sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME).resources.setSrcDirs(setOf(project.file("test/resources")))
-//               }
-//               else
-//               {
-//                  java.sourceSets.create(extraSourceSet)
-//                  java.sourceSets.getByName(extraSourceSet).java.setSrcDirs(setOf(project.file("$extraSourceSet/src")))
-//                  java.sourceSets.getByName(extraSourceSet).resources.setSrcDirs(setOf(project.file("$extraSourceSet/resources")))
-//               }
-//            }
-//         }
-//      }
    }
-   
+
    fun javaDirectory(sourceSetName: String, directory: String)
    {
       var modifiedDirectory = directory
       if (sourceSetName == "main")
          modifiedDirectory = "src/main/" + directory
-      
+
       sourceSet(sourceSetName).java.srcDir(modifiedDirectory)
    }
-   
+
    fun resourceDirectory(sourceSetName: String, directory: String)
    {
       var modifiedDirectory = directory
       if (sourceSetName == "main")
          modifiedDirectory = "src/main/" + directory
-      
+
       sourceSet(sourceSetName).resources.srcDir(modifiedDirectory)
    }
-   
+
    fun sourceSet(sourceSetName: String): SourceSet
    {
       return sourceSetProject(sourceSetName).extensions.getByType(JavaPluginExtension::class.java).sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
    }
-   
+
    fun sourceSetProject(sourceSetName: String): Project
    {
       if (sourceSetName == "main")
@@ -485,8 +363,8 @@ open class IHMCBuildExtension(val project: Project)
    {
       var archSuffix = "";
       val isARM64 = System.getProperty("os.arch").equals("aarch64")
-              || System.getProperty("os.arch").equals("arm64")
-              || System.getProperty("ihmc.build.javafxarm64", "false").equals("true")
+            || System.getProperty("os.arch").equals("arm64")
+            || System.getProperty("ihmc.build.javafxarm64", "false").equals("true")
       if (isARM64)
          archSuffix = "-aarch64"
 
@@ -500,25 +378,9 @@ open class IHMCBuildExtension(val project: Project)
 
    private fun getPublishVersion(): String
    {
-      if (snapshotModeProperty)
-      {
-         var publishVersion = "SNAPSHOT"
-         if (isBranchBuild)
-         {
-            publishVersion += "-$branchName"
-         }
-         if (isBambooBuild)
-         {
-            publishVersion += "-$integrationNumber"
-         }
-         return publishVersion
-      }
-      else
-      {
-         return version
-      }
+      return version
    }
-   
+
    /** Public API. **/
    fun isBuildRoot(): Boolean
    {
@@ -547,7 +409,7 @@ open class IHMCBuildExtension(val project: Project)
       }
       return includedBuilds
    }
-   
+
    fun artifactIsIncludedBuild(artifactId: String): Boolean
    {
       if (!includedBuildMap.containsKey(artifactId))
@@ -571,21 +433,21 @@ open class IHMCBuildExtension(val project: Project)
                }
             }
          }
-         
+
          includedBuildMap[artifactId] = false
          return false
       }
-      
+
       return includedBuildMap[artifactId]!!
    }
-   
+
    internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
    {
       var externalDependencyVersion: String
-      
+
       // For high-level projects depending on develop,
       // use version: "source" to make sure you've got everything, and fail fast
-      if (declaredVersion.toLowerCase().contains("source"))
+      if (declaredVersion.lowercase().contains("source"))
       {
          if (artifactIsIncludedBuild(artifactId))
          {
@@ -594,32 +456,12 @@ open class IHMCBuildExtension(val project: Project)
             // All high-level project version numbers are the same
             externalDependencyVersion = publishVersion
          }
-         else if (snapshotModeProperty) // allows to retire `groupDependencyVersion` by allowing "source" to be
-         {                              // satisfied by snapshots, but only if snapshotMode = true
-            externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
-         }
          else
          {
             var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
                   " $artifactId in your composite build or use a release."
             LogTools.error(message)
             throw GradleException("[ihmc-build] " + message)
-         }
-      }
-      // Try to resolve a snapshot, check for snapshotMode first
-      // Only gonna happen on Bamboo, not supporting this for users
-      // NOTE: This code path will probably hardly be used soon
-      else if (snapshotModeProperty && declaredVersion.startsWith("SNAPSHOT"))
-      {
-         if (artifactIsIncludedBuild(artifactId))
-         {
-            // In this case, we are actually building this from source currently and so
-            // we should be using the publish version, usually SNAPSHOT-<integration number>
-            externalDependencyVersion = publishVersion
-         }
-         else
-         {
-            externalDependencyVersion = resolveSnapshotVersion(declaredVersion, groupId, artifactId)
          }
       }
       else // Pass directly to gradle as declared
@@ -631,394 +473,6 @@ open class IHMCBuildExtension(val project: Project)
       return externalDependencyVersion
    }
 
-   fun resolveSnapshotVersion(declaredVersion: String, groupId: String, artifactId: String): String
-   {
-      val externalDependencyVersion: String
-      var sanitizedDeclaredVersion = declaredVersion.replace("-BAMBOO", "") // not sure where this came from
-
-      // Use Bamboo variables to resolve the version
-      if (isBambooBuild)
-      {
-         var closestVersion = "NOT-FOUND"
-         if (isChildBuild) // Match to parent build, exact branch and version
-         {
-            var childVersion = "SNAPSHOT"
-            if (isBranchBuild)
-            {
-               childVersion += "-$branchName"
-            }
-            childVersion += "-$integrationNumber"
-            closestVersion = matchVersionFromRepositories(groupId, artifactId, childVersion)
-         }
-         else // this was a bug for a long time where child builds could use an older snapshot with no warning
-         {
-            if (closestVersion.contains("NOT-FOUND") && isBranchBuild) // Try latest from branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT-$branchName")
-            }
-            if (closestVersion.contains("NOT-FOUND")) // Try latest without branch
-            {
-               closestVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, "SNAPSHOT")
-            }
-         }
-         externalDependencyVersion = closestVersion
-      }
-      else
-      {
-         // For users, probably get rid of this soon
-         if (sanitizedDeclaredVersion.endsWith("-LATEST")) // Finds latest version
-         {
-            externalDependencyVersion = latestPOMCheckedVersionFromRepositories(groupId, artifactId, declaredVersion.substringBefore("-LATEST"))
-         }
-         else // Get exact match on end of string
-         {
-            externalDependencyVersion = matchVersionFromRepositories(groupId, artifactId, declaredVersion)
-         }
-      }
-
-      if (externalDependencyVersion.contains("NOT-FOUND"))
-      {
-         LogTools.info("Found the following artifacts while browsing:")
-         for ((groupArtifact, versions) in repositoryVersions.entries)
-         {
-            for (artifactVersion in versions)
-            {
-               LogTools.info("$groupArtifact:$artifactVersion")
-            }
-         }
-         throw GradleException("External dependency version not found: $groupId:$artifactId:$externalDependencyVersion")
-      }
-      return externalDependencyVersion
-   }
-
-   private fun getSnapshotRepositoryList(): List<String>
-   {
-      if (openSource)
-      {
-         return listOf("open-snapshots")
-      }
-      else
-      {
-         return listOf("open-snapshots", "proprietary-snapshots")
-      }
-   }
-   
-   private fun searchRepositories(groupId: String, artifactId: String): Set<String>
-   {
-      if (!repositoryVersions.containsKey("$groupId:$artifactId"))
-      {
-         repositoryVersions["$groupId:$artifactId"] = sortedSetOf<String>()
-         
-         if (offline)
-         {
-            val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
-            val artifactPath = gradleCache.resolve(groupId).resolve(artifactId)
-            
-            for (entry in artifactPath.toFile().list())
-            {
-               repositoryVersions["$groupId:$artifactId"]!!.add(entry)
-            }
-         }
-         else
-         {
-            for (repository in getSnapshotRepositoryList())
-            {
-               for (asset in searchNexus(repository, groupId, artifactId, ".*\\d\\.jar$"))
-               {
-                  repositoryVersions["$groupId:$artifactId"]!!.add(itemPathToVersion(asset.getString("path"), artifactId))
-               }
-            }
-         }
-      }
-      
-      return repositoryVersions["$groupId:$artifactId"]!!
-   }
-
-   private fun anyVersionExists(groupId: String, artifactId: String): Boolean
-   {
-      return !searchRepositories(groupId, artifactId).isEmpty()
-   }
-   
-   private fun versionExists(groupId: String, artifactId: String, version: String): Boolean
-   {
-      if (repositoryVersions.containsKey("$groupId:$artifactId") && repositoryVersions["$groupId:$artifactId"]!!.contains(version))
-      {
-         return true
-      }
-      
-      if (!offline)
-      {
-         for (repository in getSnapshotRepositoryList())
-         {
-            if (searchNexus(repository, groupId, artifactId, version, ".*").isNotEmpty())
-            {
-               if (repositoryVersions.containsKey("$groupId:$artifactId"))
-               {
-                  repositoryVersions["$groupId:$artifactId"]!!.add(version)
-               }
-               LogTools.info("Found version circumventing pagination bug: $groupId:$artifactId:$version") // TODO: Review if this is still necessary
-               return true
-            }
-         }
-      }
-      
-      return false
-   }
-   
-   private fun loadPOMDependencies(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (offline)
-      {
-         return loadPOMDependenciesMavenLocal(groupId, artifactId, versionToCheck)
-      }
-      else
-      {
-         return loadPOMDependenciesNexus(groupId, artifactId, versionToCheck)
-      }
-   }
-
-   private fun loadPOMDependenciesNexus(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
-      {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
-
-         for (repository in getSnapshotRepositoryList())
-         {
-            for (asset in searchNexus(repository, groupId, artifactId, versionToCheck, ".*\\d\\.pom$"))
-            {
-               LogTools.info("Hitting Nexus for POM: " + asset.getString("path"))
-               val bytes = downloadItemFromNexus(asset.getString("downloadUrl"))
-
-               parsePOMInputStream(ByteArrayInputStream(bytes), groupId, artifactId, versionToCheck)
-            }
-         }
-      }
-
-      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
-   }
-
-   private fun searchNexus(repository: String, groupId: String, artifactId: String, version: String, matchPattern: String): List<JSONObject>
-   {
-      return searchNexus("repository=$repository&maven.groupId=$groupId&maven.artifactId=$artifactId&maven.baseVersion=$version", matchPattern);
-   }
-
-   private fun searchNexus(repository: String, groupId: String, artifactId: String, matchPattern: String): List<JSONObject>
-   {
-      return searchNexus("repository=$repository&maven.groupId=$groupId&maven.artifactId=$artifactId", matchPattern);
-   }
-
-   private fun searchNexus(parameters: String, matchPattern: String): List<JSONObject>
-   {
-      var continuationToken = "first_page"
-      val requestUrl = "$nexusUrlProperty/service/rest/v1/search?$parameters"
-      val matches = arrayListOf<JSONObject>()
-      while (continuationToken != "no_more_pages")
-      {
-          Unirest.get(if (continuationToken == "first_page") requestUrl else "$requestUrl&continuationToken=$continuationToken")
-                 .basicAuth(nexusUsername, nexusPassword)
-                 .asJson()
-                 .ifSuccess { response ->
-                     val bodyObject: JSONObject = response.body.`object`
-                     if (bodyObject.isNull("continuationToken"))
-                         continuationToken = "no_more_pages"
-                     else
-                         continuationToken = bodyObject.getString("continuationToken")
-                     val items = bodyObject.getJSONArray("items")
-                     for (item in items)
-                     {
-                        val assets = (item as JSONObject).getJSONArray("assets")
-                        for (asset in assets)
-                        {
-                           val assetObject = asset as JSONObject
-                           val path = assetObject.getString("path")
-                           if (path.matches(Regex(matchPattern)))
-                           {
-                              matches.add(assetObject)
-                           }
-                        }
-                     }
-                 }
-                 .ifFailure { response ->
-                    throw nexusException(requestUrl)
-                 }
-      }
-      return matches
-   }
-
-   private fun downloadItemFromNexus(downloadUrl: String): ByteArray?
-   {
-      var bytes: ByteArray? = null
-      Unirest.get(downloadUrl)
-             .basicAuth(nexusUsername, nexusPassword)
-             .asBytes()
-             .ifSuccess { response ->
-                bytes = response.body
-             }
-             .ifFailure { response ->
-                throw nexusException(downloadUrl)
-             }
-      return bytes
-   }
-
-   private fun nexusException(path: String): GradleException
-   {
-      return GradleException("Problem authenticating or retrieving item from Nexus: $path. " +
-              "Try logging into $nexusUrlProperty with the credentials used " +
-              "(nexusUsername and nexusPassword properties) and see if the item is there.")
-   }
-
-   private fun parsePOMInputStream(inputStream: InputStream?, groupId: String, artifactId: String, versionToCheck: String)
-   {
-      try
-      {
-         val documentBuilder = documentBuilderFactory.newDocumentBuilder()
-         val document = documentBuilder.parse(inputStream);
-         
-         val dependencyTags = document.getElementsByTagName("dependency")
-         for (i in 0 until dependencyTags.length)
-         {
-            val dependencyGroupId = dependencyTags.item(i).childNodes.item(1).textContent
-            val dependencyArtifactId = dependencyTags.item(i).childNodes.item(3).textContent
-            val dependencyVersion = dependencyTags.item(i).childNodes.item(5).textContent
-            
-            if (dependencyVersion.contains("SNAPSHOT") && anyVersionExists(dependencyGroupId, dependencyArtifactId))
-            {
-               val arrayDependency: ArrayList<String> = arrayListOf()
-               arrayDependency.add(dependencyGroupId)
-               arrayDependency.add(dependencyArtifactId)
-               arrayDependency.add(dependencyVersion)
-               
-               pomDependencies["$groupId:$artifactId:$versionToCheck"]!!.add(arrayDependency)
-            }
-         }
-      }
-      catch (e: Exception)
-      {
-         e.printStackTrace()
-      }
-   }
-   
-   private fun loadPOMDependenciesMavenLocal(groupId: String, artifactId: String, versionToCheck: String): ArrayList<ArrayList<String>>
-   {
-      if (!pomDependencies.containsKey("$groupId:$artifactId:$versionToCheck"))
-      {
-         pomDependencies["$groupId:$artifactId:$versionToCheck"] = arrayListOf<ArrayList<String>>()
-
-         LogTools.info("Hitting Maven Local for POM: user.home/.gradle/caches/modules-2/files-2.1/$groupId/$artifactId/$versionToCheck")
-         val gradleCache = Paths.get(System.getProperty("user.home")).resolve(".gradle/caches/modules-2/files-2.1")
-         val versionPath = gradleCache.resolve(groupId).resolve(artifactId).resolve(versionToCheck)
-         
-         var pomFile: File? = null
-         for (hashEntry in versionPath.toFile().list())
-         {
-            for (fileEntry in versionPath.resolve(hashEntry).toFile().list())
-            {
-               if (fileEntry.endsWith(".pom"))
-               {
-                  pomFile = versionPath.resolve(hashEntry).resolve(fileEntry).toFile()
-               }
-            }
-         }
-         
-         parsePOMInputStream(FileInputStream(pomFile), groupId, artifactId, versionToCheck)
-      }
-      
-      return pomDependencies["$groupId:$artifactId:$versionToCheck"]!!
-   }
-   
-   private fun performPOMCheck(groupId: String, artifactId: String, versionToCheck: String): Boolean
-   {
-      if (!versionExists(groupId, artifactId, versionToCheck))
-      {
-         LogTools.info("Version doesn't exist: $groupId:$artifactId:$versionToCheck")
-         return false
-      }
-      else
-      {
-         for (dependency in loadPOMDependencies(groupId, artifactId, versionToCheck))
-         {
-            if (!performPOMCheck(dependency[0], dependency[1], dependency[2]))
-            {
-               return false
-            }
-         }
-         
-         return true
-      }
-   }
-   
-   private fun itemPathToVersion(itemPath: String, artifactId: String): String
-   {
-      val split: List<String> = itemPath.split("/")
-      val artifact: String = split[split.size - 1]
-      val withoutDotJar: String = artifact.split(".jar")[0]
-      val version: String = withoutDotJar.substring(artifactId.length + 1)
-      
-      return version
-   }
-   
-   private fun matchVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
-   {
-      for (repositoryVersion in searchRepositories(groupId, artifactId))
-      {
-         if (repositoryVersion.endsWith(versionMatcher))
-         {
-            return repositoryVersion
-         }
-      }
-      
-      return "MATCH-NOT-FOUND-$versionMatcher"
-   }
-   
-   private fun latestPOMCheckedVersionFromRepositories(groupId: String, artifactId: String, versionMatcher: String): String
-   {
-      LogTools.info("Looking for latest version: $groupId:$artifactId:$versionMatcher")
-
-      var highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
-      
-      if (highestVersion.contains("NOT-FOUND"))
-         return highestVersion
-      
-      while (!performPOMCheck(groupId, artifactId, highestVersion))
-      {
-         LogTools.info("Failed POM check: $groupId:$artifactId:$highestVersion")
-         repositoryVersions["$groupId:$artifactId"]!!.remove(highestVersion)
-         highestVersion = highestBuildNumberVersion(groupId, artifactId, versionMatcher)
-         
-         if (highestVersion.contains("NOT-FOUND"))
-         {
-            LogTools.error("Rollback failed, no more versions found: $groupId:$artifactId:$highestVersion")
-            break;
-         }
-
-         LogTools.info("Rolling back to: $groupId:$artifactId:$highestVersion")
-      }
-      
-      return highestVersion
-   }
-   
-   private fun highestBuildNumberVersion(groupId: String, artifactId: String, versionMatcher: String): String
-   {
-      var matchedVersion = "LATEST-NOT-FOUND-$versionMatcher"
-      var highestBuildNumber: Int = -1
-      
-      for (repositoryVersion in searchRepositories(groupId, artifactId))
-      {
-         if (repositoryVersion.matches(Regex("$versionMatcher-\\d+")))
-         {
-            val buildNumberFromRepositoryManager: Int = Integer.parseInt(repositoryVersion.split("-").last())
-            if (buildNumberFromRepositoryManager > highestBuildNumber)
-            {
-               matchedVersion = repositoryVersion
-               highestBuildNumber = buildNumberFromRepositoryManager
-            }
-         }
-      }
-      
-      return matchedVersion
-   }
-   
    private fun Project.configureJarManifest(maintainer: String, companyName: String, licenseURL: String, mainClass: String, libFolder: Boolean)
    {
       tasks.withType(Jar::class.java) {
@@ -1049,7 +503,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
    }
-   
+
    fun Project.declareCustomPublishUrl(keyword: String, publishUrl: IHMCPublishUrl)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
@@ -1064,13 +518,14 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   fun Project.declareNexus(repoName: String) {
+   fun Project.declareNexus(repoName: String)
+   {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
          name = "Nexus" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("https://nexus.ihmc.us/repository/$repoName")
-         credentials.username = nexusUsername
-         credentials.password = nexusPassword
+         url = uri("$ihmcNexusUrl/repository/$repoName")
+         credentials.username = ihmcNexusUsername
+         credentials.password = ihmcNexusPassword
       }
    }
 
@@ -1084,13 +539,13 @@ open class IHMCBuildExtension(val project: Project)
          credentials.password = publishPassword
       }
    }
-   
+
    fun Project.declareMavenLocal()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.mavenLocal()
    }
-   
+
    private fun Project.declarePublication(artifactName: String, sourceSet: SourceSet)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
@@ -1100,7 +555,7 @@ open class IHMCBuildExtension(val project: Project)
       publication.version = version as String
 
       LogTools.info("Assembing publication for $name")
-      
+
       publication.pom.withXml {
          val dependenciesNode = asNode().appendNode("dependencies")
 
