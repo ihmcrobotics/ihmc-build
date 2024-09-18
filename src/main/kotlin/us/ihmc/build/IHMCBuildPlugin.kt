@@ -19,9 +19,7 @@ class IHMCBuildPlugin : Plugin<Project>
 {
    override fun apply(project: Project)
    {
-      // add deploy task
       project.extensions.add("app", AppExtension(project))
-      // add SFTP extension
       project.extensions.add("remote", RemoteExtension())
 
       LogTools = IHMCBuildLogTools(project.logger)
