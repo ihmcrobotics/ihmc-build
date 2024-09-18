@@ -17,7 +17,6 @@ class IHMCCIPlugin : Plugin<Project>
    val JUNIT_VERSION = "5.9.2"
    val PLATFORM_VERSION = "1.9.2"
    val ALLOCATION_INSTRUMENTER_VERSION = "3.3.0"
-   val VINTAGE_VERSION = "4.13.2"
 
    lateinit var project: Project
    var cpuThreads = 8
@@ -31,8 +30,6 @@ class IHMCCIPlugin : Plugin<Project>
    var defaultTimeoutOverride: Any = Unset
    var testTaskTimeoutOverride: Any = Unset
    var allocationRecordingOverride: Any = Unset
-   var vintageMode: Boolean = false
-   var vintageSuite: String? = null
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
    val apiConfigurationName = "api"
@@ -57,7 +54,7 @@ class IHMCCIPlugin : Plugin<Project>
       }
       map
    }
-   private val junit = JUnitExtension(JUNIT_VERSION, PLATFORM_VERSION, VINTAGE_VERSION)
+   private val junit = JUnitExtension(JUNIT_VERSION, PLATFORM_VERSION)
    private val allocation = AllocationInstrumenter(ALLOCATION_INSTRUMENTER_VERSION)
 
    override fun apply(project: Project)
@@ -102,30 +99,18 @@ class IHMCCIPlugin : Plugin<Project>
       if (!addedDependenciesMap["${project.name}:$runtimeConfigurationName"]!! && configurationExists(project, runtimeConfigurationName))
       {
          addedDependenciesMap["${project.name}:$runtimeConfigurationName"] = true
-         if (vintageMode)
-         {
-            LogTools.info("Adding JUnit 4 dependency to $runtimeConfigurationName in ${project.name}")
-            project.dependencies.add(runtimeConfigurationName, junit.vintage())
-         }
-         else
-         {
-            LogTools.info("Adding JUnit 5 dependencies to $runtimeConfigurationName in ${project.name}")
-            project.dependencies.add(runtimeConfigurationName, junit.jupiterEngine())
-         }
+         LogTools.info("Adding JUnit 5 dependencies to $runtimeConfigurationName in ${project.name}")
+         project.dependencies.add(runtimeConfigurationName, junit.jupiterEngine())
       }
 
       // add api dependencies
       if (!addedDependenciesMap["${project.name}:$apiConfigurationName"]!! && configurationExists(project, apiConfigurationName))
       {
          addedDependenciesMap["${project.name}:$apiConfigurationName"] = true
-         if (!vintageMode) // add junit 5 dependencies
-         {
-            LogTools.info("Adding JUnit 5 dependencies to $apiConfigurationName in ${project.name}")
-            project.dependencies.add(apiConfigurationName, junit.jupiterApi())
-            project.dependencies.add(apiConfigurationName, junit.platformCommons())
-            project.dependencies.add(apiConfigurationName, junit.platformLauncher())
-
-         }
+         LogTools.info("Adding JUnit 5 dependencies to $apiConfigurationName in ${project.name}")
+         project.dependencies.add(apiConfigurationName, junit.jupiterApi())
+         project.dependencies.add(apiConfigurationName, junit.platformCommons())
+         project.dependencies.add(apiConfigurationName, junit.platformLauncher())
 
          if (category == "allocation") // help out users trying to run allocation tests
          {
@@ -245,42 +230,28 @@ class IHMCCIPlugin : Plugin<Project>
    {
       categoryConfig.doFirst.invoke()
 
-      if (vintageMode)
-      {
-         test.useJUnit()
-
-         if (vintageSuite != null)
+      test.useJUnitPlatform {
+         for (tag in categoryConfig.includeTags)
          {
-            val includeString = "**/${vintageSuite}TestSuite.class"
-            LogTools.info("Including JUnit 4 classes: $includeString")
-            test.include(includeString)
+            this.includeTags(tag)
          }
-      }
-      else
-      {
-         test.useJUnitPlatform {
-            for (tag in categoryConfig.includeTags)
+         for (tag in categoryConfig.excludeTags)
+         {
+            this.excludeTags(tag)
+         }
+         // If the "fast" category includes nothing, this excludes all tags included by other
+         // categories, which makes it run only untagged tests and tests that would not be run
+         // if the user were to run all defined catagories. This is both a safety feature,
+         // and the expected functionality of the "fast" category, historically at IHMC.
+         if (categoryConfig.name == "fast" && categoryConfig.includeTags.isEmpty())
+         {
+            for (definedCategory in categoriesExtension.categories)
             {
-               this.includeTags(tag)
-            }
-            for (tag in categoryConfig.excludeTags)
-            {
-               this.excludeTags(tag)
-            }
-            // If the "fast" category includes nothing, this excludes all tags included by other
-            // categories, which makes it run only untagged tests and tests that would not be run
-            // if the user were to run all defined catagories. This is both a safety feature,
-            // and the expected functionality of the "fast" category, historically at IHMC.
-            if (categoryConfig.name == "fast" && categoryConfig.includeTags.isEmpty())
-            {
-               for (definedCategory in categoriesExtension.categories)
+               for (tag in definedCategory.value.includeTags)
                {
-                  for (tag in definedCategory.value.includeTags)
+                  if (tag != "fast") // this allows @Tag("fast") to be used
                   {
-                     if (tag != "fast") // this allows @Tag("fast") to be used
-                     {
-                        this.excludeTags(tag)
-                     }
+                     this.excludeTags(tag)
                   }
                }
             }
@@ -386,8 +357,6 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
-      project.properties["vintageMode"].run { if (this != null) vintageMode = (this as String).trim().toLowerCase().toBoolean() }
-      project.properties["vintageSuite"].run { if (this != null) vintageSuite = (this as String).trim() }
       project.properties["minHeapSizeGB"].run { if (this != null) minHeapSizeGBOverride = (this as String).toInt() }
       project.properties["maxHeapSizeGB"].run { if (this != null) maxHeapSizeGBOverride = (this as String).toInt() }
       project.properties["forkEvery"].run { if (this != null) forkEveryOverride = (this as String).toInt() }
@@ -398,8 +367,6 @@ class IHMCCIPlugin : Plugin<Project>
       project.properties["allocationRecording"].run { if (this != null) allocationRecordingOverride = (this as String).toBoolean() }
       LogTools.info("cpuThreads = $cpuThreads")
       LogTools.info("category = $category")
-      LogTools.info("vintageMode = $vintageMode")
-      LogTools.info("vintageSuite = $vintageSuite")
       LogTools.info("minHeapSizeGB = ${unsetPrintFilter(minHeapSizeGBOverride)}")
       LogTools.info("maxHeapSizeGB = ${unsetPrintFilter(maxHeapSizeGBOverride)}")
       LogTools.info("forkEvery = ${unsetPrintFilter(forkEveryOverride)}")
