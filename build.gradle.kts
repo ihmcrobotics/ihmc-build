@@ -18,6 +18,7 @@ dependencies {
    }
    api("com.dorongold.plugins:task-tree:2.1.0")
    api("guru.nidi:graphviz-kotlin:0.18.1")
+   api("com.hierynomus:sshj:0.38.0")
 
    testApi("org.junit.jupiter:junit-jupiter-api:5.8.2")
    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")

@@ -12,11 +12,18 @@ import org.gradle.api.tasks.Delete
 import org.gradle.kotlin.dsl.create
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
+import us.ihmc.cd.AppExtension
+import us.ihmc.cd.RemoteExtension
 
 class IHMCBuildPlugin : Plugin<Project>
 {
    override fun apply(project: Project)
    {
+      // add deploy task
+      project.extensions.add("app", AppExtension(project))
+      // add SFTP extension
+      project.extensions.add("remote", RemoteExtension())
+
       LogTools = IHMCBuildLogTools(project.logger)
 
       if (project.hasProperty("isProjectGroup") &&
