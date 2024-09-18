@@ -36,7 +36,6 @@ class IHMCCIPlugin : Plugin<Project>
    val apiConfigurationName = "api"
    val runtimeConfigurationName = "runtimeOnly"
    val addedDependenciesMap = HashMap<String, Boolean>()
-   var registeredCIServerSyncTask = false
    var configuredTestTasks = HashMap<String, Boolean>()
    val testProjects = lazy {
       val testProjects = arrayListOf<Project>()
@@ -88,14 +87,6 @@ class IHMCCIPlugin : Plugin<Project>
          var allHaveCompileJava = true
          testProjects.value.forEach { testProject ->
             allHaveCompileJava = allHaveCompileJava && testProject.tasks.findByPath("compileJava") != null
-         }
-         if (!registeredCIServerSyncTask && allHaveCompileJava)
-         {
-            registeredCIServerSyncTask = true
-            project.tasks.register("ciServerSync") {
-               LogTools.info("Configuring ciServerSync task")
-               configureCIServerSyncTask(testsToTagsMap, testProjects, ciBackendHost)
-            }
          }
       }
    }
