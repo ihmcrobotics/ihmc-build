@@ -30,7 +30,6 @@ class IHMCCIPlugin : Plugin<Project>
    var defaultTimeoutOverride: Any = Unset
    var testTaskTimeoutOverride: Any = Unset
    var allocationRecordingOverride: Any = Unset
-   var ciBackendHost: String = "unset"
    lateinit var categoriesExtension: IHMCCICategoriesExtension
    var allocationJVMArg: String? = null
    val apiConfigurationName = "api"
@@ -358,7 +357,6 @@ class IHMCCIPlugin : Plugin<Project>
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
       project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
-      project.properties["ciBackendHost"].run { if (this != null) ciBackendHost = (this as String).trim() }
       project.properties["minHeapSizeGB"].run { if (this != null) minHeapSizeGBOverride = (this as String).toInt() }
       project.properties["maxHeapSizeGB"].run { if (this != null) maxHeapSizeGBOverride = (this as String).toInt() }
       project.properties["forkEvery"].run { if (this != null) forkEveryOverride = (this as String).toInt() }
