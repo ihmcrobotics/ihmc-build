@@ -117,7 +117,6 @@ open class IHMCBuildExtension(val project: Project)
    fun configureDependencyResolution()
    {
       declareMavenCentral()
-      repository("https://clojars.org/repo/")
       repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
       repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
       repository("https://jitpack.io")
