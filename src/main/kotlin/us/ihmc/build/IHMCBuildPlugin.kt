@@ -20,7 +20,7 @@ class IHMCBuildPlugin : Plugin<Project>
    override fun apply(project: Project)
    {
       project.extensions.add("app", AppExtension(project))
-      project.extensions.add("remote", RemoteExtension())
+      project.extensions.add("remote", RemoteExtension(project))
 
       LogTools = IHMCBuildLogTools(project.logger)
 

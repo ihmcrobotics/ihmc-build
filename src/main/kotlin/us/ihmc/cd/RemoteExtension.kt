@@ -8,12 +8,13 @@ import net.schmizz.sshj.transport.verification.OpenSSHKnownHosts
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import org.apache.commons.exec.OS
 import org.gradle.api.Action
+import org.gradle.api.Project
 import us.ihmc.build.LogTools
 import java.io.IOException
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
-open class RemoteExtension
+open class RemoteExtension(val project: Project)
 {
    fun session(address: String, username: String, password: String, action: Action<RemoteConnection>)
    {
@@ -106,14 +107,15 @@ open class RemoteExtension
       }
       catch (e: Exception)
       {
-         if (System.getProperty("ignoreHostIdentity", "false").equals("true"))
+         if (project.hasProperty("ignoreHostIdentity") && (project.property("ignoreHostIdentity") as String).toBoolean())
          {
             LogTools.warn("Could not find known_hosts file. Disabling host key verification (using -PignoreHostIdentity=true).")
             sshClient.addHostKeyVerifier(PromiscuousVerifier())
          }
          else
          {
-            LogTools.warn("Could not find known_hosts file. Disable host key verification with -PignoreHostIdentity=true. Please understand the security implications of doing this!")
+            LogTools.warn("Could not find known_hosts file. Disable host key verification with -PignoreHostIdentity=true. " +
+                                "This makes you vulnerable to man-in-the-middle attacks.")
             throw e
          }
       }
