@@ -116,19 +116,30 @@ open class IHMCBuildExtension(val project: Project)
 
    fun configureDependencyResolution()
    {
-      declareMavenCentral()
-      repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master")
-      repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/")
-      repository("https://jitpack.io")
+      declareMavenLocal()
+
+      // declareMavenCentral()
+
+      // If we use these endpoints directly instead of declareMavenCentral() (https://repo.maven.apache.org/maven2), we don't have to wait
+      // for the artifacts to propagate within their CDN setup. They're available much more quickly after publishing.
+
+      // Sonatype releases
+      repository("https://oss.sonatype.org/content/repositories/releases")
+      repository("https://s01.oss.sonatype.org/content/repositories/releases")
+      // Sonatype snapshots
+      repository("https://oss.sonatype.org/content/repositories/snapshots")
+      repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
+
+      repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master") // TODO: remove
+      repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/") // TODO: remove
+
+      repository("https://jitpack.io") // Used for kryonet and gdx-gltf
+
       if (!openSource && (ihmcNexusUsername != "unset_username")) // support third parties not needing to declare Nexus
       {
          repository("$ihmcNexusUrl/repository/proprietary-releases/", ihmcNexusUsername, ihmcNexusPassword)
          repository("$ihmcNexusUrl/repository/proprietary-vendor/", ihmcNexusUsername, ihmcNexusPassword)
       }
-      repository("https://oss.sonatype.org/content/repositories/snapshots")
-      // https://central.sonatype.org/news/20210223_new-users-on-s01/
-      repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
-      declareMavenLocal()
 
       setupJavaSourceSets()
 
