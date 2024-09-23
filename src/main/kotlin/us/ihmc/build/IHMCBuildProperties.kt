@@ -47,7 +47,7 @@ class IHMCBuildProperties(val projectPath: Path) : Comparable<IHMCBuildPropertie
 
       for (i in 0 until extraSourceSets.size)
       {
-         extraSourceSets.set(i, IHMCBuildTools.toKebabCased(extraSourceSets[i]))
+         extraSourceSets[i] = IHMCBuildTools.toKebabCased(extraSourceSets[i])
       }
       
       allArtifacts.add(kebabCasedName)
