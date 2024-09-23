@@ -76,7 +76,7 @@ class IHMCDependencyGraphviz(val project: Project)
             LogTools.quiet("Note: If graphviz results in a memory error, try -PgraphvizTotalMemoryMB=1000 and/or org.gradle.jvmargs=-Xmx2g")
             graph.toGraphviz().totalMemory(graphvizBytes).render(Format.PNG).toFile(File(filePathName))
 
-            LogTools.quiet("Dependency graph saved to " + filePathName)
+            LogTools.quiet("Dependency graph saved to $filePathName")
          }
       }
    }

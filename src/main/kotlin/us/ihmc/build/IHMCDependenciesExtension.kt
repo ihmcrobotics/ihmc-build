@@ -56,7 +56,7 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
       TODO("Not yet implemented")
    }
 
-   override fun <T : Any?> addProvider(p0: String, p1: Provider<T>): Unit
+   override fun <T : Any?> addProvider(configurationName: String, dependencyNotation: Provider<T>)
    {
       TODO("Not yet implemented")
    }

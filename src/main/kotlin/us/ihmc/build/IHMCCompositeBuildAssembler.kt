@@ -31,7 +31,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          compositeSearchPath = compositeSearchPath.resolve("..")
       }
       compositeSearchPath = compositeSearchPath.toRealPath()
-      LogTools.info("Repository group path: " + compositeSearchPath)
+      LogTools.info("Repository group path: $compositeSearchPath")
    }
    
    /**
@@ -48,7 +48,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       for (transitiveBuild in transitiveIncludedBuilds)
       {
          val relativizedPathName: String = buildRootPath.relativize(transitiveBuild.projectPath).toString()
-         if (!relativizedPathName.isEmpty()) // Including itself
+         if (relativizedPathName.isNotEmpty()) // Including itself
          {
             buildsToInclude.add(relativizedPathName)
          }
@@ -56,7 +56,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       for (buildToInclude in buildsToInclude)
       {
-         LogTools.quiet("Including build: " + buildToInclude)
+         LogTools.quiet("Including build: $buildToInclude")
       }
       
       return buildsToInclude
@@ -81,7 +81,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       if (properties.isProjectGroup)
       {
          val projectFile = properties.projectPath.toFile()
-         for (childDir in projectFile.listFiles { f -> f.isDirectory })
+         for (childDir in projectFile.listFiles { f -> f.isDirectory }!!)
          {
             val childPath = childDir.toPath()
             if (pathToPropertiesMap.containsKey(childPath))
@@ -111,7 +111,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
             LogTools.debug("Found dependency: $declaredDependency")
          }
 
-         for (declaredDependency in declaredDependencies!!)
+         for (declaredDependency in declaredDependencies)
          {
             if (kebabCasedNameToPropertiesMap.containsKey(declaredDependency))
             {
@@ -133,7 +133,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          // Make sure the names match up. See {@link #matchNames}
          if (!transitiveIncludedBuilds.contains(propertiesFromKebabCasedName(artifactName)) && matchNames(artifactName, kebabCasedDependency))
          {
-            LogTools.info("Matched: " + kebabCasedDependency + " to " + artifactName)
+            LogTools.info("Matched: $kebabCasedDependency to $artifactName")
             transitiveIncludedBuilds.add(propertiesFromKebabCasedName(artifactName))
             matched.add(propertiesFromKebabCasedName(artifactName))
          }
@@ -155,8 +155,8 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          {
             for (artifactName in includedBuildProperties.allArtifacts) // map test, etc. source set projects
             {
-               kebabCasedNameToPropertiesMap.put(artifactName, includedBuildProperties)
-               LogTools.info("Found: " + artifactName + ": " + directory)
+               kebabCasedNameToPropertiesMap[artifactName] = includedBuildProperties
+               LogTools.info("Found: $artifactName: $directory")
             }
             pathToPropertiesMap.put(directory, includedBuildProperties)
          }
@@ -192,10 +192,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          return true
       
       // Always include the composite search root
-      if (compositeRootKebabCasedName != "NotYetEvaluated" && kebabCasedName == compositeRootKebabCasedName)
-         return true
-      
-      return false
+      return compositeRootKebabCasedName != "NotYetEvaluated" && kebabCasedName == compositeRootKebabCasedName
    }
    
    /** Here, we could make the project more friendly by not having such harsh requirements. */
@@ -236,7 +233,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       {
          val builder = AstBuilder()
          val bytesInFile = String(Files.readAllBytes(buildFile))
-         LogTools.info("Parsing for dependencies: " + buildFile)
+         LogTools.info("Parsing for dependencies: $buildFile")
          
          // Handle empty build.gradle
          if (bytesInFile.trim().isEmpty())
@@ -278,15 +275,15 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       return dependencySet
    }
    
-   class ExternalGradleFileCodeVisitor(val dependencies: ArrayList<Array<String>>) : CodeVisitorSupport()
+   class ExternalGradleFileCodeVisitor(private val dependencies: ArrayList<Array<String>>) : CodeVisitorSupport()
    {
       override fun visitArgumentlistExpression(ale: ArgumentListExpression)
       {
-         val expressions: List<Expression> = ale.getExpressions()
+         val expressions: List<Expression> = ale.expressions
          
-         if (expressions.size == 1 && expressions.get(0) is ConstantExpression)
+         if (expressions.size == 1 && expressions[0] is ConstantExpression)
          {
-            val dependencyString = expressions.get(0).getText()
+            val dependencyString = expressions[0].text
             if (dependencyString.contains(":"))
             {
                val split = dependencyString.split(":")
@@ -303,17 +300,17 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       
       override fun visitMapExpression(expression: MapExpression)
       {
-         LogTools.debug("Found map entry: " + expression.getText())
-         val mapEntryExpressions: List<MapEntryExpression> = expression.getMapEntryExpressions()
+         LogTools.debug("Found map entry: " + expression.text)
+         val mapEntryExpressions: List<MapEntryExpression> = expression.mapEntryExpressions
          if (mapEntryExpressions.size >= 3)
          {
             val dependencyMap = HashMap<String, String>()
             
             for (mapEntryExpression in mapEntryExpressions)
             {
-               val key = mapEntryExpression.getKeyExpression().getText()
-               val value = mapEntryExpression.getValueExpression().getText()
-               dependencyMap.put(key, value)
+               val key = mapEntryExpression.keyExpression.text
+               val value = mapEntryExpression.valueExpression.text
+               dependencyMap[key] = value
             }
             
             if (dependencyMap.containsKey("group") && dependencyMap.containsKey("name") && dependencyMap.containsKey("version"))
@@ -332,7 +329,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       {
          throw GradleException("Something went wrong. $kebabCasedName has not been mapped.")
       }
-      return kebabCasedNameToPropertiesMap.get(kebabCasedName)!!
+      return kebabCasedNameToPropertiesMap[kebabCasedName]!!
    }
    
    private fun propertiesFromPath(path: Path): IHMCBuildProperties
