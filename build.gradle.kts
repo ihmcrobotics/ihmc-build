@@ -21,6 +21,8 @@ dependencies {
    api("com.hierynomus:sshj:0.38.0")
 
    testApi("org.junit.jupiter:junit-jupiter-api:5.10.3")
+   testApi("org.junit.platform:junit-platform-console:1.10.3")
+
    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.3")
 }
 
