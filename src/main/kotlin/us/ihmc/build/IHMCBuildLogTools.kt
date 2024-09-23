@@ -43,6 +43,6 @@ class IHMCBuildLogTools(val logger: Logger)
 
    private fun ihmcBuildMessage(message: Any): String
    {
-      return "[ihmc-build] " + message
+      return "[ihmc-build] $message"
    }
 }

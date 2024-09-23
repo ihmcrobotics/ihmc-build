@@ -150,7 +150,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       if (isPathCompatibleWithBuildConfiguration(directory))
       {
          // Load the properties, even for the root
-         includedBuildProperties = IHMCBuildProperties(logger, directory)
+         includedBuildProperties = IHMCBuildProperties(directory)
          
          // Always include the build root, but observe external exclude preferences
          if (forceInclude(includedBuildProperties.kebabCasedName) || !includedBuildProperties.excludeFromCompositeBuild)

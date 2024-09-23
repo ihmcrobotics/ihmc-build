@@ -2,7 +2,7 @@ package us.ihmc.build
 
 import groovy.util.Eval
 import groovy.util.Node
-import org.apache.commons.lang3.SystemUtils
+import org.apache.commons.exec.OS
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
@@ -94,22 +94,22 @@ open class IHMCBuildExtension(val project: Project)
          if (property.key as String == "group")
          {
             group = property.value as String
-            LogTools.info("Loaded group: " + group)
+            LogTools.info("Loaded group: $group")
          }
          if (property.key as String == "version")
          {
             version = property.value as String
-            LogTools.info("Loaded version: " + version)
+            LogTools.info("Loaded version: $version")
          }
          if (property.key as String == "vcsUrl")
          {
             vcsUrl = property.value as String
-            LogTools.info("Loaded vcsUrl: " + vcsUrl)
+            LogTools.info("Loaded vcsUrl: $vcsUrl")
          }
          if (property.key as String == "openSource")
          {
             openSource = Eval.me(property.value as String) as Boolean
-            LogTools.info("Loaded openSource: " + openSource)
+            LogTools.info("Loaded openSource: $openSource")
          }
       }
    }
@@ -296,7 +296,7 @@ open class IHMCBuildExtension(val project: Project)
       if (compatibilityVersionProperty != "CURRENT")
       {
          java.sourceCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
-         java.targetCompatibility = JavaVersion.valueOf(compatibilityVersionProperty);
+         java.targetCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
       }
       for (sourceSet in java.sourceSets)
       {
@@ -312,7 +312,7 @@ open class IHMCBuildExtension(val project: Project)
          if (compatibilityVersionProperty != "CURRENT")
          {
             javaSubproject.sourceCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
-            javaSubproject.targetCompatibility = JavaVersion.valueOf(compatibilityVersionProperty);
+            javaSubproject.targetCompatibility = JavaVersion.valueOf(compatibilityVersionProperty)
          }
          for (sourceSet in javaSubproject.sourceSets)
          {
@@ -337,7 +337,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       var modifiedDirectory = directory
       if (sourceSetName == "main")
-         modifiedDirectory = "src/main/" + directory
+         modifiedDirectory = "src/main/$directory"
 
       sourceSet(sourceSetName).java.srcDir(modifiedDirectory)
    }
@@ -346,7 +346,7 @@ open class IHMCBuildExtension(val project: Project)
    {
       var modifiedDirectory = directory
       if (sourceSetName == "main")
-         modifiedDirectory = "src/main/" + directory
+         modifiedDirectory = "src/main/$directory"
 
       sourceSet(sourceSetName).resources.srcDir(modifiedDirectory)
    }
@@ -358,10 +358,10 @@ open class IHMCBuildExtension(val project: Project)
 
    fun sourceSetProject(sourceSetName: String): Project
    {
-      if (sourceSetName == "main")
-         return project
+      return if (sourceSetName == "main")
+         project
       else
-         return project.project(project.name + "-" + sourceSetName)
+         project.project(project.name + "-" + sourceSetName)
    }
 
    fun javaFXModule(moduleName: String, version: String): String
@@ -371,7 +371,7 @@ open class IHMCBuildExtension(val project: Project)
 
    fun javaFXOSIdentifier(): String
    {
-      var archSuffix = "";
+      var archSuffix = ""
       val isARM64 = System.getProperty("os.arch").equals("aarch64")
             || System.getProperty("os.arch").equals("arm64")
             || System.getProperty("ihmc.build.javafxarm64", "false").equals("true")
@@ -380,9 +380,14 @@ open class IHMCBuildExtension(val project: Project)
 
       return when
       {
-         SystemUtils.IS_OS_WINDOWS -> "win" // No additional platforms for win
-         SystemUtils.IS_OS_MAC     -> "mac$archSuffix"
-         else                      -> "linux$archSuffix"
+
+         OS.isFamilyWindows() -> "win" // No additional platforms for win
+         OS.isFamilyMac()     -> "mac$archSuffix"
+         OS.isFamilyUnix()    -> "linux$archSuffix"
+         else                 ->
+         {
+            throw RuntimeException("Unsupported javafx platform")
+         }
       }
    }
 
@@ -433,7 +438,7 @@ open class IHMCBuildExtension(val project: Project)
             }
             else if (artifactId.startsWith(includedBuild.name))
             {
-               for (extraSourceSet in IHMCBuildProperties(project.logger, includedBuild.projectDir.toPath()).extraSourceSets)
+               for (extraSourceSet in IHMCBuildProperties(includedBuild.projectDir.toPath()).extraSourceSets)
                {
                   if (artifactId == (includedBuild.name + "-$extraSourceSet"))
                   {
@@ -453,7 +458,7 @@ open class IHMCBuildExtension(val project: Project)
 
    internal fun getExternalDependencyVersion(groupId: String, artifactId: String, declaredVersion: String): String
    {
-      var externalDependencyVersion: String
+      val externalDependencyVersion: String
 
       // For high-level projects depending on develop,
       // use version: "source" to make sure you've got everything, and fail fast
@@ -468,10 +473,10 @@ open class IHMCBuildExtension(val project: Project)
          }
          else
          {
-            var message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
+            val message = "$groupId:$artifactId's version is set to \"$declaredVersion\" and is not included in the build. Please put" +
                   " $artifactId in your composite build or use a release."
             LogTools.error(message)
-            throw GradleException("[ihmc-build] " + message)
+            throw GradleException("[ihmc-build] $message")
          }
       }
       else // Pass directly to gradle as declared
@@ -559,7 +564,9 @@ open class IHMCBuildExtension(val project: Project)
    private fun Project.declarePublication(artifactName: String, sourceSet: SourceSet)
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
-      val publication = publishing.publications.create(sourceSet.name.capitalize(), MavenPublication::class.java)
+      val publication = publishing.publications.create(sourceSet.name.replaceFirstChar {
+         if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+      }, MavenPublication::class.java)
       publication.groupId = group as String
       publication.artifactId = artifactName
       publication.version = version as String
@@ -606,6 +613,7 @@ open class IHMCBuildExtension(val project: Project)
                                                           implementationDependencies: HashSet<String>,
                                                           configurationName: String)
    {
+      // TODO: cleanup
       configurations.getByName(configurationName).resolvedConfiguration.run {
          // Get each of the resolved artifacts for the configuration
          // firstLevelModuleDependencies may not return all dependencies if they aren't resolved locally
@@ -656,6 +664,7 @@ open class IHMCBuildExtension(val project: Project)
 
    private fun Project.findExclusions(exclusions: HashMap<String, HashSet<ExcludeRule>>, configurationName: String)
    {
+      // TODO: cleanup
       configurations.getByName(configurationName).dependencies.forEach { dependency ->
          if (dependency is DefaultExternalModuleDependency)
          {
