@@ -30,7 +30,7 @@ open class IHMCBuildExtension(val project: Project)
    var licenseURL: String = "proprietary"
    var licenseName: String = "Proprietary"
    var companyName: String = "IHMC"
-   var maintainer: String = "Rosie (dragon_ryderz@ihmc.us)"
+   var maintainer: String = "ihmc-rosie (rosie@ihmc.org)"
 
    private var ihmcNexusUrl = "https://nexus.ihmc.us"
    private var ihmcNexusUsername: String
