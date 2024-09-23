@@ -2,7 +2,6 @@ package us.ihmc.build
 
 import groovy.lang.MissingPropertyException
 import groovy.util.Eval
-import org.gradle.api.GradleException
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -19,14 +18,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
 
       LogTools.info("Evaluating " + settings.rootProject.projectDir.toPath().fileName.toString() + " settings.gradle")
       ext["org.gradle.workers.max"] = 200
-      
-      if (SemanticVersionNumber(settings.gradle.gradleVersion).compareTo(SemanticVersionNumber("5.3.1")) < 0)
-      {
-         val message = "Gradle version ${settings.gradle.gradleVersion} detected. Versions earlier than 5.3.1 are not supported. " +
-               "Please upgrade to the latest version."
-         LogTools.error(message)
-         throw GradleException(message)
-      }
    }
    
    fun configureExtraSourceSets()
