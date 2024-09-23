@@ -7,7 +7,6 @@ import org.codehaus.groovy.ast.expr.*
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.gradle.api.GradleException
 import org.gradle.api.GradleScriptException
-import org.gradle.api.logging.Logger
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -15,7 +14,6 @@ import java.util.*
 
 class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
 {
-   val logger = configurator.logger
    val buildRootKebabCasedName = configurator.settings.rootProject.name
    var compositeRootKebabCasedName = "NotYetEvaluated"
    val compositeSearchHeight = configurator.compositeSearchHeight
@@ -249,7 +247,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
          
          val nodes: List<ASTNode> = builder.buildFromString(bytesInFile)
          val dependencies = ArrayList<Array<String>>()
-         val visitor = ExternalGradleFileCodeVisitor(dependencies, logger)
+         val visitor = ExternalGradleFileCodeVisitor(dependencies)
          for (node in nodes)
          {
             node.visit(visitor)
@@ -280,7 +278,7 @@ class IHMCCompositeBuildAssembler(val configurator: IHMCSettingsConfigurator)
       return dependencySet
    }
    
-   class ExternalGradleFileCodeVisitor(val dependencies: ArrayList<Array<String>>, val logger: Logger) : CodeVisitorSupport()
+   class ExternalGradleFileCodeVisitor(val dependencies: ArrayList<Array<String>>) : CodeVisitorSupport()
    {
       override fun visitArgumentlistExpression(ale: ArgumentListExpression)
       {
