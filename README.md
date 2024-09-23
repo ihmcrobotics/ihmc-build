@@ -301,22 +301,6 @@ another common reason that projects don't make it into the build.
 
 ### Learn more
 
-##### Snapshots
-
-Snapshots is an unsupported feature which is used internally in our CI.
-
-`publish -PsnapshotMode=true -PpublishUrl=ihmcSnapshots`
-
-Setting `snapshotMode=true` changes the version to `SNAPSHOT-$branchName-$integrationNumber` and enables parsing of versions 
-declared as `SNAPSHOT-*`, matching
-them to artifacts found to be available on IHMC's Artifactory snapshots repos.
-
-Gradle Plugin Site: https://plugins.gradle.org/plugin/us.ihmc.ihmc-build
-
-Documentation on Confluence: https://confluence.ihmc.us/display/BUILD/New+Build+Configuration+Documentation
-
-Presentation outlining the purpose of this project: https://docs.google.com/presentation/d/1xH8kKYqLaBkRXms_04nb_yyoV6MRchLO8EAtz9WqfZA/edit?usp=sharing
-
 #### Testing Without Publishing to the Gradle Plugins Site
 
 Use `gradle publishToMavenLocal`

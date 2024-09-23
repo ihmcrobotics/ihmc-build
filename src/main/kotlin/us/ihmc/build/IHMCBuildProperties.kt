@@ -1,12 +1,11 @@
 package us.ihmc.build
 
 import groovy.util.Eval
-import org.gradle.api.logging.Logger
 import java.io.FileInputStream
 import java.nio.file.Path
 import java.util.*
 
-class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparable<IHMCBuildProperties>
+class IHMCBuildProperties(val projectPath: Path) : Comparable<IHMCBuildProperties>
 {
    var folderName = projectPath.fileName.toString()
    var kebabCasedName: String = ""
@@ -23,15 +22,15 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       {
          if (propertyKey == "excludeFromCompositeBuild")
          {
-            excludeFromCompositeBuild = (properties.get(propertyKey)!! as String).toBoolean()
+            excludeFromCompositeBuild = (properties[propertyKey]!! as String).toBoolean()
             if (excludeFromCompositeBuild)
             {
-               LogTools.info("Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties.get(propertyKey))
+               LogTools.info("Excluding " + folderName + ". Property excludeFromCompositeBuild = " + properties[propertyKey])
             }
          }
          if (propertyKey == "isProjectGroup")
          {
-            isProjectGroup = IHMCBuildTools.isProjectGroupCompatibility(properties.get(propertyKey)!! as String)
+            isProjectGroup = IHMCBuildTools.isProjectGroupCompatibility(properties[propertyKey]!! as String)
             if (isProjectGroup)
             {
                LogTools.info("Found group: $folderName (isProjectGroup = $isProjectGroup) $projectPath")
@@ -39,7 +38,8 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
          }
          if (propertyKey == "extraSourceSets")
          {
-            extraSourceSets.addAll(Eval.me(properties.get(propertyKey)!! as String) as ArrayList<String>)
+            // TODO: cleanup
+            extraSourceSets.addAll(Eval.me(properties[propertyKey]!! as String) as ArrayList<String>)
          }
       }
    
@@ -57,22 +57,20 @@ class IHMCBuildProperties(val logger: Logger, val projectPath: Path) : Comparabl
       }
    }
    
-   fun kebabCasedNameCompatibilityDuplicate(projectName: String, properties: Properties): String
+   private fun kebabCasedNameCompatibilityDuplicate(projectName: String, properties: Properties): String
    {
-      if (properties.containsKey("kebabCasedName") && !(properties.get("kebabCasedName") as String).startsWith("$"))
+      return if (properties.containsKey("kebabCasedName") && !(properties["kebabCasedName"] as String).startsWith("$"))
       {
-         return properties.get("kebabCasedName") as String
-      }
-      else if (properties.containsKey("title") && !(properties.get("title") as String).startsWith("$"))
+         properties["kebabCasedName"] as String
+      } else if (properties.containsKey("title") && !(properties["title"] as String).startsWith("$"))
       {
-         return IHMCBuildTools.titleToKebabCase(properties.get("title") as String)
-      }
-      else
+         IHMCBuildTools.titleToKebabCase(properties["title"] as String)
+      } else
       {
          val defaultValue = IHMCBuildTools.toKebabCased(projectName)
          LogTools.info("No value found for kebabCasedName. Using default value: $defaultValue")
-         properties.set("kebabCasedName", defaultValue)
-         return defaultValue
+         properties["kebabCasedName"] = defaultValue
+         defaultValue
       }
    }
    

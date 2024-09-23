@@ -1,12 +1,11 @@
 package us.ihmc.build
 
-import org.apache.commons.lang3.StringUtils
-import org.apache.commons.lang3.mutable.MutableInt
 import org.gradle.api.*
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 
 lateinit var LogTools: IHMCBuildLogTools
 
@@ -14,7 +13,7 @@ object IHMCBuildTools
 {
    fun isProjectGroupCompatibility(rawString: String): Boolean
    {
-      return rawString.trim().lowercase().contains("true");
+      return rawString.trim().lowercase().contains("true")
    }
 
    fun kebabCasedNameCompatibility(projectName: String, extra: ExtraPropertiesExtension): String
@@ -56,33 +55,9 @@ object IHMCBuildTools
 
    fun publishUrlCompatibility(extra: ExtraPropertiesExtension): String
    {
-      if (extra.has("publishMode")) // Backwards compatibility
-      {
-         LogTools.warn("publishMode has been replaced by publishUrl. See README for details.")
-      }
       if (containsValidStringProperty("publishUrl", extra))
       {
          return (extra.get("publishUrl") as String).trim()
-      }
-      else if (containsValidStringProperty("publishMode", extra)) // Backwards compatibility
-      {
-         val publishModeString = (extra.get("publishMode") as String).trim().lowercase()
-
-         if (publishModeString.contains("local"))
-         {
-            LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = local.")
-            return "local"
-         }
-         else if (publishModeString.contains("snapshot"))
-         {
-            LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcSnapshots.")
-            return "ihmcSnapshots"
-         }
-         else
-         {
-            LogTools.warn("Using publishMode = ${(extra.get("publishMode") as String)} to set publishUrl = ihmcRelease.")
-            return "ihmcRelease"
-         }
       }
       else
       {
@@ -183,48 +158,47 @@ object IHMCBuildTools
 
    fun toKebabCased(anyCased: String): String
    {
-      var kebabCased = toPreKababWithBookendHandles(anyCased);
+      var kebabCased = toPreKababWithBookendHandles(anyCased)
 
-      kebabCased = kebabCased.substring(1, kebabCased.length - 1);
+      kebabCased = kebabCased.substring(1, kebabCased.length - 1)
 
-      return kebabCased;
+      return kebabCased
    }
 
-   fun toPreKababWithBookendHandles(anyCased: String): String
+   private fun toPreKababWithBookendHandles(anyCased: String): String
    {
-      val parts = ArrayList<String>();
-      var part = "";
+      val parts = ArrayList<String>()
+      var part = ""
 
-      for (i in 0 until anyCased.length)
+      for (element in anyCased)
       {
-         var character = anyCased[i].toString();
-         if (StringUtils.isAllUpperCase(character) || StringUtils.isNumeric(character))
+         if (element.isUpperCase() || element.isDigit())
          {
             if (!part.isEmpty())
             {
-               parts.add(part.lowercase());
+               parts.add(part.lowercase())
             }
-            part = character;
+            part = element.toString()
          }
          else
          {
-            part += character;
+            part += element
          }
       }
       if (!part.isEmpty())
       {
-         parts.add(part.lowercase());
+         parts.add(part.lowercase())
       }
 
-      var kebab = "";
+      var kebab = ""
       for (i in 0 until parts.size)
       {
-         kebab += '-';
-         kebab += parts.get(i);
+         kebab += '-'
+         kebab += parts[i]
       }
-      kebab += '-';
+      kebab += '-'
 
-      return kebab;
+      return kebab
    }
 
    fun parseDependenciesFromGradleKtsFile(buildFile: Path): SortedSet<String>
@@ -235,13 +209,13 @@ object IHMCBuildTools
       val fileAsString = String(Files.readAllBytes(buildFile))
 
       val pattern = Regex("ependencies[ \\t\\x0B\\S]*\\{").toPattern()
-      val matcher = pattern.matcher(fileAsString);
+      val matcher = pattern.matcher(fileAsString)
 
       while (matcher.find())
       {
          val end = matcher.end()
 
-         val indexAfterEndBracket = matchingBracket(fileAsString.substring(end), MutableInt(0))
+         val indexAfterEndBracket = matchingBracket(fileAsString.substring(end), AtomicInteger(0))
 
          val dependencyBlockString = "   " + fileAsString.substring(end, end + indexAfterEndBracket - 1).trim()
 
@@ -257,7 +231,7 @@ object IHMCBuildTools
       val artifactNames = TreeSet<String>()
 
       val pattern = Regex("(compile|implementation|api|runtime)[ \\t\\x0B]*\\([ \\t\\x0B]*\\\"[\\s\\-\\w\\.]+:[\\$\\s\\:\\-\\w\\.]+\\\"").toPattern()
-      val matcher = pattern.matcher(dependencyBlockString);
+      val matcher = pattern.matcher(dependencyBlockString)
       while (matcher.find())
       {
          val match = matcher.toMatchResult().group()
@@ -270,21 +244,21 @@ object IHMCBuildTools
       return artifactNames
    }
 
-   fun matchingBracket(string: String, i: MutableInt): Int
+   fun matchingBracket(string: String, i: AtomicInteger): Int
    {
-      while (i.value < string.length)
+      while (i.get() < string.length)
       {
-         if (string[i.value] == '{')
+         if (string[i.get()] == '{')
          {
-            i.increment()
-            i.setValue(matchingBracket(string, i))
+            i.getAndIncrement()
+            i.set(matchingBracket(string, i))
          }
-         if (string[i.value] == '}')
+         if (string[i.get()] == '}')
          {
-            return i.value + 1
+            return i.get() + 1
          }
 
-         i.increment()
+         i.getAndIncrement()
       }
 
       throw GradleException("No end bracket for dependencies block")

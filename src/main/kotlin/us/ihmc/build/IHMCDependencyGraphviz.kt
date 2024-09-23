@@ -41,7 +41,7 @@ class IHMCDependencyGraphviz(val project: Project)
 
                if (projectName == id)
                {
-                  continue;
+                  continue
                }
 
                if (!nodeMap.containsKey(id))
@@ -61,10 +61,10 @@ class IHMCDependencyGraphviz(val project: Project)
 
             nodeMap.values.forEach { graph.add(it) }
 
-            val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmssSSS");
-            val calendar = Calendar.getInstance();
-            val timestamp = dateFormat.format(calendar.getTime());
-            val filePathName = System.getProperty("user.home") + "/.ihmc/logs/" + timestamp + "_" + "_DependencyGraph.png";
+            val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmssSSS")
+            val calendar = Calendar.getInstance()
+            val timestamp = dateFormat.format(calendar.getTime())
+            val filePathName = System.getProperty("user.home") + "/.ihmc/logs/" + timestamp + "_" + "_DependencyGraph.png"
 
             var graphvizBytes = 200000000
             val graphvizMegabytesProperty = project.findProperty("graphvizTotalMemoryMB")
@@ -89,7 +89,7 @@ class IHMCDependencyGraphviz(val project: Project)
 
          if (childId == id)
          {
-            continue;
+            continue
          }
 
          if (!nodeMap.containsKey(childId))

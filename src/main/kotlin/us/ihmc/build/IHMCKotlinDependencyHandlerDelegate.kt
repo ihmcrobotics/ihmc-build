@@ -1,4 +1,4 @@
-package us.ihmc.build;
+package us.ihmc.build
 
 import groovy.lang.Closure
 

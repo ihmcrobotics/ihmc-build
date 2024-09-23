@@ -1,6 +1,6 @@
 package us.ihmc.build
 
-import org.apache.commons.lang3.SystemUtils
+import org.apache.commons.exec.OS
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -12,7 +12,7 @@ val gradleExe = getLocalGradlePath()
 
 private fun getLocalGradlePath(): String
 {
-   val process = Runtime.getRuntime().exec(if (SystemUtils.IS_OS_WINDOWS) "where gradle" else "which gradle")
+   val process = Runtime.getRuntime().exec(if (OS.isFamilyWindows()) "where gradle" else "which gradle")
    val reader = BufferedReader(InputStreamReader(process.inputStream))
    val path = reader.readLine()
    println("Gradle path: $path")
@@ -21,10 +21,10 @@ private fun getLocalGradlePath(): String
 
 fun runGradleTask(command: String?, project: String): String
 {
-   if (command == null || command.isEmpty())
-      return runCommand("$gradleExe", Paths.get("tests/$project").toAbsolutePath())
+   return if (command.isNullOrEmpty())
+      runCommand(gradleExe, Paths.get("tests/$project").toAbsolutePath())
    else
-      return runCommand("$gradleExe $command", Paths.get("tests/$project").toAbsolutePath())
+      runCommand("$gradleExe $command", Paths.get("tests/$project").toAbsolutePath())
 }
 
 fun runCommand(command: String, workingDir: Path): String
