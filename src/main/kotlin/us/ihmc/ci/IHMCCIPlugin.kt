@@ -7,10 +7,11 @@ import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import us.ihmc.build.IHMCBuildLogTools
 import java.io.File
 import java.time.Duration
 
-lateinit var LogTools: IHMCCILogTools
+lateinit var LogTools: IHMCBuildLogTools
 
 class IHMCCIPlugin : Plugin<Project>
 {
@@ -60,7 +61,7 @@ class IHMCCIPlugin : Plugin<Project>
    override fun apply(project: Project)
    {
       this.project = project
-      LogTools = IHMCCILogTools(project.logger)
+      LogTools = IHMCBuildLogTools(project.logger)
 
       loadProperties()
       categoriesExtension = project.extensions.create("categories", IHMCCICategoriesExtension::class.java, project)
