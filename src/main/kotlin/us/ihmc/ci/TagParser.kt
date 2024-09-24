@@ -2,7 +2,6 @@ package us.ihmc.ci
 
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
-import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.discovery.ClasspathRootSelector
 import org.junit.platform.engine.discovery.DiscoverySelectors
 import org.junit.platform.engine.support.descriptor.MethodSource
@@ -11,6 +10,7 @@ import org.junit.platform.launcher.TestIdentifier
 import org.junit.platform.launcher.TestPlan
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
+
 import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
@@ -29,7 +29,7 @@ object TagParser
       val contextClasspathUrls = arrayListOf<URL>()   // all of the tests and dependencies
       val selectorPaths = hashSetOf<Path>()           // just the test classes in this project
       assembleTestClasspath(testProject, contextClasspathUrls, selectorPaths)
-      LogTools.debug("Classpath entries: " + contextClasspathUrls.toString())
+      LogTools.debug("Classpath entries: $contextClasspathUrls")
 
       val originalClassLoader = Thread.currentThread().contextClassLoader
       val customClassLoader = URLClassLoader.newInstance(contextClasspathUrls.toTypedArray(), originalClassLoader)
@@ -58,7 +58,7 @@ object TagParser
    private fun recursiveBuildMap(set: Set<TestIdentifier>, testPlan: TestPlan, testsToTagsMap: HashMap<String, HashSet<String>>)
    {
       set.forEach { testIdentifier ->
-         if (testIdentifier.type == TestDescriptor.Type.TEST && testIdentifier.source.isPresent && testIdentifier.source.get() is MethodSource)
+         if (testIdentifier.isTest && testIdentifier.source.isPresent && testIdentifier.source.get() is MethodSource)
          {
             val methodSource = testIdentifier.source.get() as MethodSource
             LogTools.debug("Test id: ${testIdentifier.displayName} tags: ${testIdentifier.tags} path: $methodSource")
@@ -88,6 +88,7 @@ object TagParser
     */
    private fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
    {
+      // TODO:
       val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
 //      val java = testProject.convention.getPlugin(JavaLibraryPlugin::class.java)
 //      testProject.plugins.
@@ -102,7 +103,7 @@ object TagParser
 
    private fun addStuffToClasspath(file: File, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
    {
-      var entryString = file.toString()
+      val entryString = file.toString()
       val uri = file.toURI()
       val path = file.toPath()
       if (entryString.endsWith(".jar"))

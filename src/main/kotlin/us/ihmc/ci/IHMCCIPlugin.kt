@@ -13,6 +13,9 @@ import java.time.Duration
 
 lateinit var LogTools: IHMCBuildLogTools
 
+/**
+ * Included now in IHMCBuildPlugin
+ */
 class IHMCCIPlugin : Plugin<Project>
 {
    val JUNIT_VERSION = "5.9.2"
@@ -78,16 +81,16 @@ class IHMCCIPlugin : Plugin<Project>
             addDependencies(testProject, apiConfigurationName, runtimeConfigurationName)
             configureTestTask(testProject)
          }
-         if (!containsIHMCTestMultiProject(project))
-         {
-            addDependencies(project, "testImplementation", "testRuntimeOnly")
-            configureTestTask(project)
-         }
-
-         var allHaveCompileJava = true
-         testProjects.value.forEach { testProject ->
-            allHaveCompileJava = allHaveCompileJava && testProject.tasks.findByPath("compileJava") != null
-         }
+//         if (!containsIHMCTestMultiProject(project))
+//         {
+//            addDependencies(project, "testImplementation", "testRuntimeOnly")
+//            configureTestTask(project)
+//         }
+//
+//         var allHaveCompileJava = true
+//         testProjects.value.forEach { testProject ->
+//            allHaveCompileJava = allHaveCompileJava && testProject.tasks.findByPath("compileJava") != null
+//         }
       }
    }
 
@@ -115,7 +118,7 @@ class IHMCCIPlugin : Plugin<Project>
 
          if (category == "allocation") // help out users trying to run allocation tests
          {
-            LogTools.info("Adding allocation intrumenter dependency to $apiConfigurationName in ${project.name}")
+            LogTools.info("Adding allocation instrumenter dependency to $apiConfigurationName in ${project.name}")
             project.dependencies.add(apiConfigurationName, allocation.instrumenter())
          }
       }
@@ -217,7 +220,7 @@ class IHMCCIPlugin : Plugin<Project>
                testsToTagsMap.value.forEach { entry ->
                   if ((category == "fast" && entry.value.isEmpty()) || entry.value.contains(category))
                   {
-                     LogTools.quiet(entry.key + " " + entry.value)
+                     LogTools.info(entry.key + " " + entry.value)
                   }
                }
             }

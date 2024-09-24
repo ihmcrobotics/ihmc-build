@@ -19,9 +19,8 @@ dependencies {
    api("com.dorongold.plugins:task-tree:4.0.0")
    api("guru.nidi:graphviz-kotlin:0.18.1")
    api("com.hierynomus:sshj:0.38.0")
-
-   testApi("org.junit.jupiter:junit-jupiter-api:5.10.3")
-   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.3")
+   api("org.junit.platform:junit-platform-launcher:1.10.3")
+   testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
 }
 
 tasks.withType<Test> {
