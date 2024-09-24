@@ -2,14 +2,15 @@ package us.ihmc.ci
 
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.internal.impldep.org.junit.platform.engine.discovery.ClasspathRootSelector
-import org.gradle.internal.impldep.org.junit.platform.engine.discovery.DiscoverySelectors
-import org.gradle.internal.impldep.org.junit.platform.engine.support.descriptor.MethodSource
-import org.gradle.internal.impldep.org.junit.platform.launcher.LauncherDiscoveryRequest
-import org.gradle.internal.impldep.org.junit.platform.launcher.TestIdentifier
-import org.gradle.internal.impldep.org.junit.platform.launcher.TestPlan
-import org.gradle.internal.impldep.org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
-import org.gradle.internal.impldep.org.junit.platform.launcher.core.LauncherFactory
+import org.junit.platform.engine.discovery.ClasspathRootSelector
+import org.junit.platform.engine.discovery.DiscoverySelectors
+import org.junit.platform.engine.support.descriptor.MethodSource
+import org.junit.platform.launcher.LauncherDiscoveryRequest
+import org.junit.platform.launcher.TestIdentifier
+import org.junit.platform.launcher.TestPlan
+import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
+import org.junit.platform.launcher.core.LauncherFactory
+
 import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
