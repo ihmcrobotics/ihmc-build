@@ -14,6 +14,7 @@ import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import us.ihmc.cd.AppExtension
 import us.ihmc.cd.RemoteExtension
+import us.ihmc.ci.IHMCCIPlugin
 
 class IHMCBuildPlugin : Plugin<Project>
 {
@@ -122,5 +123,12 @@ class IHMCBuildPlugin : Plugin<Project>
       // IHMCBuildTools.defineExtraSourceSetCompositeTask("publishExtraSourceSets", arrayListOf("publish"), project)
 
       IHMCBuildTools.defineDynamicCompositeTask(project)
+
+      // Apply old ihmc-ci plugin functionality
+      if (!project.hasProperty("isProjectGroup"))
+      {
+         val ciPlugin = IHMCCIPlugin()
+         ciPlugin.apply(project);
+      }
    }
 }
