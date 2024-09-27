@@ -18,8 +18,6 @@ import us.ihmc.ci.IHMCCIPlugin
 
 class IHMCBuildPlugin : Plugin<Project>
 {
-   val ciPlugin: IHMCCIPlugin = IHMCCIPlugin()
-
    override fun apply(project: Project)
    {
       project.extensions.add("app", AppExtension(project))
@@ -126,6 +124,11 @@ class IHMCBuildPlugin : Plugin<Project>
 
       IHMCBuildTools.defineDynamicCompositeTask(project)
 
-      ciPlugin.apply(project);
+      // Apply old ihmc-ci plugin functionality
+      if (!project.hasProperty("isProjectGroup"))
+      {
+         val ciPlugin = IHMCCIPlugin()
+         ciPlugin.apply(project);
+      }
    }
 }
