@@ -90,9 +90,9 @@ object TagParser
    private fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
    {
       val java = testProject.extensions.getByType<JavaPluginExtension>()
-      java.sourceSets.getByName("main").compileClasspath.forEach { file ->
-         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
-      }
+//      java.sourceSets.getByName("main").compileClasspath.forEach { file ->
+//         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
+//      }
       java.sourceSets.getByName("main").runtimeClasspath.forEach { file ->
          addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
       }
