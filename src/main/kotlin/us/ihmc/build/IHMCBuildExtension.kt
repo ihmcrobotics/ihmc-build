@@ -71,16 +71,6 @@ open class IHMCBuildExtension(val project: Project)
       }
       else
       {
-         val runningOnCIServer = project.hasProperty("runningOnCIServer")
-
-         if (!runningOnCIServer && !openSource)
-         {
-            if (propertyName == "nexusUsername" || propertyName == "nexusPassword")
-            {
-               LogTools.warn("Please set nexusUsername and nexusPassword in /path/to/user/.gradle/gradle.properties.")
-            }
-         }
-
          LogTools.info("No value found for $propertyName. Using default value: $defaultValue")
          project.extra.set(propertyName, defaultValue)
          return defaultValue
