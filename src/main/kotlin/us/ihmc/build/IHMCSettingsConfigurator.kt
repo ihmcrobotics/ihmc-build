@@ -93,10 +93,6 @@ class IHMCSettingsConfigurator(val settings: Settings, val logger: Logger, val e
       {
          settings.rootProject.name = propertyAsString("kebabCasedName")
       }
-      else
-      {
-         throwMissingException("title", "Your Project Name")
-      }
    }
 
    private fun checkExcludeFromCompositeBuild()
