@@ -221,8 +221,8 @@ class IHMCCIPlugin : Plugin<Project>
                   val testName = entry.key;
                   val tags = entry.value;
 
-                  val isInFast = tags.isEmpty() && category == "fast" || tags.contains("fast")
-                  val willRun = isInFast || tags.contains(category);
+                  val isInFast = tags.isEmpty() || tags.contains("fast")
+                  val willRun = (isInFast && category == "fast") || tags.contains(category)
 
                   if (willRun)
                   {
