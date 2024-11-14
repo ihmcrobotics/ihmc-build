@@ -218,9 +218,15 @@ class IHMCCIPlugin : Plugin<Project>
                // List tests to be run
                LogTools.quiet("Tests to be run:")
                testsToTagsMap.value.forEach { entry ->
-                  if ((category == "fast" && entry.value.isEmpty()) || entry.value.contains(category))
+                  val testName = entry.key;
+                  val tags = entry.value;
+
+                  val isInFast = tags.isEmpty() || tags.contains("fast")
+                  val willRun = (isInFast && category == "fast") || tags.contains(category)
+
+                  if (willRun)
                   {
-                     LogTools.info(entry.key + " " + entry.value)
+                     LogTools.quiet("$testName $tags")
                   }
                }
             }

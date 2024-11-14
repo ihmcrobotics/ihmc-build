@@ -1,7 +1,8 @@
 package us.ihmc.ci
 
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.kotlin.dsl.getByType
 import org.junit.platform.engine.discovery.ClasspathRootSelector
 import org.junit.platform.engine.discovery.DiscoverySelectors
 import org.junit.platform.engine.support.descriptor.MethodSource
@@ -16,6 +17,9 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Path
 
+/**
+ * Used to print which tests are going to run.
+ */
 object TagParser
 {
    /**
@@ -88,14 +92,10 @@ object TagParser
     */
    private fun assembleTestClasspath(testProject: Project, contextClasspathUrls: ArrayList<URL>, selectorPaths: HashSet<Path>)
    {
-      // TODO:
-      val java = testProject.convention.getPlugin(JavaPluginConvention::class.java)
-//      val java = testProject.convention.getPlugin(JavaLibraryPlugin::class.java)
-//      testProject.plugins.
-//      testProject.configurations.getByName("default").forEach { file ->
-      java.sourceSets.getByName("main").compileClasspath.forEach { file ->
-         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
-      }
+      val java = testProject.extensions.getByType<JavaPluginExtension>()
+//      java.sourceSets.getByName("main").compileClasspath.forEach { file ->
+//         addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
+//      }
       java.sourceSets.getByName("main").runtimeClasspath.forEach { file ->
          addStuffToClasspath(file, contextClasspathUrls, selectorPaths)
       }
