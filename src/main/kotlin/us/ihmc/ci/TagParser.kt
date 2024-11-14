@@ -17,6 +17,9 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Path
 
+/**
+ * Used to print which tests are going to run.
+ */
 object TagParser
 {
    /**
