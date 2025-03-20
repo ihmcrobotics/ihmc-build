@@ -110,17 +110,18 @@ open class IHMCBuildExtension(val project: Project)
    {
       declareMavenLocal()
 
-      // declareMavenCentral()
+      declareMavenCentral()
 
       // If we use these endpoints directly instead of declareMavenCentral() (https://repo.maven.apache.org/maven2), we don't have to wait
       // for the artifacts to propagate within their CDN setup. They're available much more quickly after publishing.
+      // 03/20/25 - We tried this for some time and found that s01 sonatype sometimes has reliability issues (going down, returning 503 on artifacts, etc)
 
       // Sonatype releases
-      repository("https://oss.sonatype.org/content/repositories/releases")
-      repository("https://s01.oss.sonatype.org/content/repositories/releases")
+      // repository("https://oss.sonatype.org/content/repositories/releases")
+      // repository("https://s01.oss.sonatype.org/content/repositories/releases")
       // Sonatype snapshots
-      repository("https://oss.sonatype.org/content/repositories/snapshots")
-      repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
+      // repository("https://oss.sonatype.org/content/repositories/snapshots")
+      // repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
 
       repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master") // TODO: remove
       repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/") // TODO: remove
