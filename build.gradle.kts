@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "us.ihmc"
-version = "1.1.1"
+version = "1.2.0"
 
 repositories {
    maven { url = uri("https://plugins.gradle.org/m2/") }  // needed for included plugins
