@@ -66,12 +66,17 @@ So you can use the `:` character to sepcify the extra source set project and the
 
 ##### Publishing releases
 
-Set `publishUsername` and `publishPassword` in `~/.gradle/gradle.properties` to your Sonatype JIRA credentials.
+Set `publishUsername` and `publishPassword` in `~/.gradle/gradle.properties` to your Sonatype Maven Central credentials (https://central.sonatype.com/).
 
 `gradle publish -PpublishUrl=ihmcRelease`
 
-The above command publishes `your-project-0.1.0.jar` to Maven Central if the `openSource` option is set to "true" in the `ihmc` block. 
-Otherwise, it will publish to Artifactory `proprietary-releases`.
+The above command publishes `your-project-0.1.0.jar` to OSSRH Staging API (see below) if the `openSource` option is set to "true" in the `ihmc` block. 
+Otherwise, it will publish to IHMC Nexus `proprietary-releases`.
+
+###### OSSRH Staging API
+If publishing to OSSRH Staging API (the default if `openSource` is true), a GPG key is required to sign the artifacts. Install gpg on your system and create a keypair if you don't already have one.
+
+Once published, you must manually go to the Deployments page on Maven Central Repository (https://central.sonatype.com/publishing) and click Publish on the new Deployment.
 
 ##### Publishing locally
 
