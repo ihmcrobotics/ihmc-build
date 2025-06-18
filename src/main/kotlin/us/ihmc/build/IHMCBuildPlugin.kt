@@ -2,7 +2,8 @@ package us.ihmc.build
 
 import ca.cutterslade.gradle.analyze.AnalyzeDependenciesPlugin
 import com.dorongold.gradle.tasktree.TaskTreePlugin
-import org.gradle.api.*
+import org.gradle.api.Plugin
+import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.plugins.HelpTasksPlugin
 import org.gradle.api.plugins.JavaLibraryPlugin
@@ -12,6 +13,7 @@ import org.gradle.api.tasks.Delete
 import org.gradle.kotlin.dsl.create
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
+import org.gradle.plugins.signing.SigningPlugin
 import us.ihmc.cd.AppExtension
 import us.ihmc.cd.RemoteExtension
 import us.ihmc.ci.IHMCCIPlugin
@@ -42,6 +44,7 @@ class IHMCBuildPlugin : Plugin<Project>
             pluginManager.apply(JavaLibraryPlugin::class.java)
             pluginManager.apply(IvyPublishPlugin::class.java)
             pluginManager.apply(MavenPublishPlugin::class.java)
+            pluginManager.apply(SigningPlugin::class.java)
             pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
             pluginManager.apply(EclipsePlugin::class.java)
             pluginManager.apply(IdeaPlugin::class.java)
