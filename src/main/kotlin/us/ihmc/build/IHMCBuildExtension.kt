@@ -17,8 +17,11 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
+import org.gradle.plugins.signing.SigningExtension
 import java.io.File
 import java.io.FileInputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
@@ -237,7 +240,7 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (openSource)
                {
-                  declareMavenCentral("releases")
+                  declareMavenCentral()
                }
                else
                {
@@ -248,7 +251,7 @@ open class IHMCBuildExtension(val project: Project)
             {
                if (openSource)
                {
-                  declareMavenCentral("releases")
+                  declareMavenCentral()
                }
                else
                {
@@ -269,6 +272,16 @@ open class IHMCBuildExtension(val project: Project)
             val java = extensions.getByType(JavaPluginExtension::class.java)
 
             declarePublication(name, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
+         }
+      }
+
+      if (openSource)
+      {
+         project.afterEvaluate {
+            val publishTask = project.tasks.findByName("publish")
+            publishTask?.doLast {
+               callOSSRHStagingPortalAPI()
+            }
          }
       }
    }
@@ -537,14 +550,16 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   fun Project.declareMavenCentral(repoName: String)
+   fun Project.declareMavenCentral()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
-         name = "MavenCentral" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("https://s01.oss.sonatype.org/content/repositories/$repoName/")
-         credentials.username = publishUsername
-         credentials.password = publishPassword
+         name = "ossrh-staging-api"
+         url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+         credentials {
+            username = publishUsername
+            password = publishPassword
+         }
       }
    }
 
@@ -590,6 +605,14 @@ open class IHMCBuildExtension(val project: Project)
          licenseNode.appendNode("name", licenseName)
          licenseNode.appendNode("url", licenseURL)
          licenseNode.appendNode("distribution", "repo")
+
+         val scmNode = asNode().appendNode("scm")
+         scmNode.appendNode("url", vcsUrl)
+
+         val developersNode = asNode().appendNode("developers")
+         val developerNode = developersNode.appendNode("developer")
+         developerNode.appendNode("name", maintainer)
+         developerNode.appendNode("organization", companyName)
       }
 
       publication.artifact(tasks.withType<Jar>().getByName("jar"))
@@ -598,6 +621,11 @@ open class IHMCBuildExtension(val project: Project)
          from(sourceSet.allJava)
          archiveClassifier.set("sources")
       })
+
+      val signing = extensions.getByType(SigningExtension::class.java)
+      signing.useGpgCmd()
+      LogTools.info("Signing publication $name")
+      signing.sign(publication)
    }
 
    private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node,
@@ -667,6 +695,38 @@ open class IHMCBuildExtension(val project: Project)
                exclusions[key]!!.add(excludeRule)
             }
          }
+      }
+   }
+
+   private fun callOSSRHStagingPortalAPI()
+   {
+      LogTools.info("Uploading artifacts to Maven Central Publishing from OSSRH Staging Portal")
+
+      val url = URL("https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/us.ihmc")
+      val connection = url.openConnection() as HttpURLConnection
+
+      return try
+      {
+         val credentials = "$publishUsername:$publishPassword"
+         val credentialsEncoded = Base64.getEncoder().encodeToString(credentials.toByteArray())
+         connection.requestMethod = "POST"
+         connection.setRequestProperty("accept", "*/*")
+         connection.setRequestProperty(
+               "Authorization",
+               "Bearer $credentialsEncoded"
+         )
+         connection.doOutput = true
+         connection.outputStream.use { /* empty body */ }
+      }
+      catch (e: Exception)
+      {
+         e.printStackTrace()
+      }
+      finally
+      {
+         connection.disconnect()
+
+         LogTools.warn("You are not finished publishing! Please visit https://central.sonatype.com/publishing/deployments to publish the newly created deployment")
       }
    }
 }
