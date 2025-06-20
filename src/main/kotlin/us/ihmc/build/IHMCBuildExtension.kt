@@ -615,12 +615,14 @@ open class IHMCBuildExtension(val project: Project)
          developerNode.appendNode("organization", companyName)
       }
 
-      publication.artifact(tasks.withType<Jar>().getByName("jar"))
+      val java = extensions.getByType(JavaPluginExtension::class.java)
+      java.withJavadocJar()
+      java.withSourcesJar()
 
-      publication.artifact(tasks.create("sourceJar", Jar::class.java) {
-         from(sourceSet.allJava)
-         archiveClassifier.set("sources")
-      })
+      // sources and javadoc jar required for Sonatype Maven Central
+      publication.artifact(tasks.withType<Jar>().getByName("jar"))
+      publication.artifact(tasks.withType<Jar>().getByName("sourcesJar"))
+      publication.artifact(tasks.withType<Jar>().getByName("javadocJar"))
 
       val signing = extensions.getByType(SigningExtension::class.java)
       signing.useGpgCmd()
