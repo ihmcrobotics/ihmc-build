@@ -719,6 +719,37 @@ open class IHMCBuildExtension(val project: Project)
          )
          connection.doOutput = true
          connection.outputStream.use { /* empty body */ }
+
+         if (connection.responseCode != 200)
+         {
+            val responseBody = try {
+               connection.inputStream.bufferedReader().use { it.readText() }
+            } catch (e: Exception) {
+               connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            }
+
+            project.gradle.buildFinished {
+               LogTools.error("")
+               LogTools.error("")
+               LogTools.error("")
+               LogTools.error("There was an error when trying to call the OSSRH Staging Portal API. Response code: ${connection.responseCode}. Response body: $responseBody")
+               LogTools.error("")
+               LogTools.error("")
+               LogTools.error("")
+            }
+         }
+         else
+         {
+            project.gradle.buildFinished {
+               LogTools.warn("")
+               LogTools.warn("")
+               LogTools.warn("")
+               LogTools.warn("You are not finished publishing! Please visit https://central.sonatype.com/publishing/deployments to publish the newly created deployment.")
+               LogTools.warn("")
+               LogTools.warn("")
+               LogTools.warn("")
+            }
+         }
       }
       catch (e: Exception)
       {
@@ -727,8 +758,6 @@ open class IHMCBuildExtension(val project: Project)
       finally
       {
          connection.disconnect()
-
-         LogTools.warn("You are not finished publishing! Please visit https://central.sonatype.com/publishing/deployments to publish the newly created deployment")
       }
    }
 }
