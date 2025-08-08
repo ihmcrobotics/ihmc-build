@@ -2,7 +2,6 @@ package us.ihmc.build
 
 import groovy.util.Eval
 import groovy.util.Node
-import org.apache.commons.exec.OS
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
@@ -35,10 +34,6 @@ open class IHMCBuildExtension(val project: Project)
    var companyName: String = "IHMC"
    var maintainer: String = "ihmc-rosie (rosie@ihmc.org)"
 
-   private var ihmcNexusUrl = "https://nexus.ihmc.us"
-   private var ihmcNexusUsername: String
-   private var ihmcNexusPassword: String
-
    private val publishUsername: String
    private val publishPassword: String
 
@@ -54,8 +49,6 @@ open class IHMCBuildExtension(val project: Project)
 
    init
    {
-      ihmcNexusUsername = setupPropertyWithDefault("nexusUsername", "unset_username")
-      ihmcNexusPassword = setupPropertyWithDefault("nexusPassword", "unset_password")
       publishUsername = setupPropertyWithDefault("publishUsername", "")
       publishPassword = setupPropertyWithDefault("publishPassword", "")
 
@@ -112,30 +105,11 @@ open class IHMCBuildExtension(val project: Project)
    fun configureDependencyResolution()
    {
       declareMavenLocal()
-
       declareMavenCentral()
-
-      // If we use these endpoints directly instead of declareMavenCentral() (https://repo.maven.apache.org/maven2), we don't have to wait
-      // for the artifacts to propagate within their CDN setup. They're available much more quickly after publishing.
-      // 03/20/25 - We tried this for some time and found that s01 sonatype sometimes has reliability issues (going down, returning 503 on artifacts, etc)
-
-      // Sonatype releases
-      // repository("https://oss.sonatype.org/content/repositories/releases")
-      // repository("https://s01.oss.sonatype.org/content/repositories/releases")
-      // Sonatype snapshots
-      // repository("https://oss.sonatype.org/content/repositories/snapshots")
-      // repository("https://s01.oss.sonatype.org/content/repositories/snapshots")
 
       repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master") // TODO: remove
       repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/") // TODO: remove
-
       repository("https://jitpack.io") // Used for kryonet and gdx-gltf
-
-      if (!openSource && (ihmcNexusUsername != "unset_username")) // support third parties not needing to declare Nexus
-      {
-         repository("$ihmcNexusUrl/repository/proprietary-releases/", ihmcNexusUsername, ihmcNexusPassword)
-         repository("$ihmcNexusUrl/repository/proprietary-vendor/", ihmcNexusUsername, ihmcNexusPassword)
-      }
 
       setupJavaSourceSets()
 
@@ -224,38 +198,12 @@ open class IHMCBuildExtension(val project: Project)
             {
                declareMavenLocal()
             }
-            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshots")
-                  || IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcsnapshot"))
-            {
-               if (openSource)
-               {
-                  declareNexus("open-snapshots")
-               }
-               else
-               {
-                  declareNexus("proprietary-snapshots")
-               }
-            }
-            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcrelease"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcrelease")
+               || IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
             {
                if (openSource)
                {
                   declareMavenCentral()
-               }
-               else
-               {
-                  declareNexus("proprietary-releases")
-               }
-            }
-            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
-            {
-               if (openSource)
-               {
-                  declareMavenCentral()
-               }
-               else
-               {
-                  declareNexus("proprietary-releases")
                }
             }
             else if (customPublishUrls.contains(publishUrlProperty)) // addPublishUrl was called
@@ -386,11 +334,10 @@ open class IHMCBuildExtension(val project: Project)
 
       return when
       {
-
-         OS.isFamilyWindows() -> "win" // No additional platforms for win
-         OS.isFamilyMac()     -> "mac$archSuffix"
-         OS.isFamilyUnix()    -> "linux$archSuffix"
-         else                 ->
+         System.getProperty("os.name").contains("Windows") -> "win" // No additional platforms for win
+         System.getProperty("os.name").contains("Mac")     -> "mac$archSuffix"
+         System.getProperty("os.name").contains("Linux")   -> "linux$archSuffix"
+         else ->
          {
             throw RuntimeException("Unsupported javafx platform")
          }
@@ -536,17 +483,6 @@ open class IHMCBuildExtension(val project: Project)
             credentials.username = publishUrl.username
             credentials.password = publishUrl.password
          }
-      }
-   }
-
-   fun Project.declareNexus(repoName: String)
-   {
-      val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven {
-         name = "Nexus" + IHMCBuildTools.kebabToPascalCase(repoName)
-         url = uri("$ihmcNexusUrl/repository/$repoName")
-         credentials.username = ihmcNexusUsername
-         credentials.password = ihmcNexusPassword
       }
    }
 

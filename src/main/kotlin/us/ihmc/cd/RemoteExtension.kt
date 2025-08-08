@@ -6,7 +6,6 @@ import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.sftp.SFTPClient
 import net.schmizz.sshj.transport.verification.OpenSSHKnownHosts
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
-import org.apache.commons.exec.OS
 import org.gradle.api.Action
 import org.gradle.api.Project
 import us.ihmc.build.LogTools
