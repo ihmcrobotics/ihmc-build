@@ -1,24 +1,12 @@
 name: Gradle test
 
 on:
-  push:
-    branches: ["develop"]
-  pull_request:
-    branches: ["develop"]
   workflow_dispatch:
+  push:
+    branches:
+      - develop
+  pull_request:
 
 jobs:
   gradle-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Run JUnit tests
-        run: gradle test
+    uses: ihmcrobotics/ihmc-actions/.github/workflows/gradle-test.yml@main
