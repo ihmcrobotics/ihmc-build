@@ -13,7 +13,6 @@ repositories {
 }
 
 dependencies {
-   api("com.dorongold.plugins:task-tree:4.0.0")
    api("com.hierynomus:sshj:0.38.0")
    api("org.junit.platform:junit-platform-launcher:1.10.3")
    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")

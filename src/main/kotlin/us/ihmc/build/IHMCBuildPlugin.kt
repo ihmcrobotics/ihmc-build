@@ -1,6 +1,5 @@
 package us.ihmc.build
 
-import com.dorongold.gradle.tasktree.TaskTreePlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
@@ -33,7 +32,6 @@ class IHMCBuildPlugin : Plugin<Project>
             pluginManager.apply(BasePlugin::class.java)
             pluginManager.apply(EclipsePlugin::class.java)
             pluginManager.apply(IdeaPlugin::class.java)
-            pluginManager.apply(TaskTreePlugin::class.java)
             pluginManager.apply(HelpTasksPlugin::class.java)
          }
       }
@@ -46,7 +44,6 @@ class IHMCBuildPlugin : Plugin<Project>
             pluginManager.apply(SigningPlugin::class.java)
             pluginManager.apply(EclipsePlugin::class.java)
             pluginManager.apply(IdeaPlugin::class.java)
-            pluginManager.apply(TaskTreePlugin::class.java)
             pluginManager.apply(HelpTasksPlugin::class.java)
          }
 
