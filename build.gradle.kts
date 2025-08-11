@@ -2,11 +2,11 @@ plugins {
    `kotlin-dsl`
    `java-gradle-plugin`
    `maven-publish`
-   id("com.gradle.plugin-publish") version "1.3.0"
+   id("com.gradle.plugin-publish") version "1.3.1"
 }
 
 group = "us.ihmc"
-version = "1.2.2"
+version = "1.2.999"
 
 repositories {
    maven { url = uri("https://plugins.gradle.org/m2/") }  // needed for included plugins

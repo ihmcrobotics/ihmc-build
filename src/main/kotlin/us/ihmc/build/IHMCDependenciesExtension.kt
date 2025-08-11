@@ -1,15 +1,11 @@
 package us.ihmc.build
 
 import groovy.lang.Closure
-import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.MinimalExternalModuleDependency
 import org.gradle.api.artifacts.dsl.DependencyHandler
-import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec
 import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ProviderConvertible
 import org.gradle.internal.metaobject.DynamicInvokeResult
 import org.gradle.internal.metaobject.MethodAccess
 import org.gradle.internal.metaobject.MethodMixIn
@@ -45,37 +41,6 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    }
 
    override fun enforcedPlatform(dependencyProvider: Provider<MinimalExternalModuleDependency>): Provider<MinimalExternalModuleDependency>
-   {
-      TODO("Not yet implemented")
-   }
-
-   override fun <T : Any?, U : ExternalModuleDependency?> addProvider(configurationName: String,
-                                                                      dependencyNotation: Provider<T>,
-                                                                      configuration: Action<in U>)
-   {
-      TODO("Not yet implemented")
-   }
-
-   override fun <T : Any?> addProvider(configurationName: String, dependencyNotation: Provider<T>)
-   {
-      TODO("Not yet implemented")
-   }
-
-   override fun <T : Any?, U : ExternalModuleDependency?> addProviderConvertible(configurationName: String,
-                                                                                 dependencyNotation: ProviderConvertible<T>,
-                                                                                 configuration: Action<in U>)
-   {
-      TODO("Not yet implemented")
-   }
-
-   override fun <T : Any?> addProviderConvertible(configurationName: String, dependencyNotation: ProviderConvertible<T>)
-   {
-      TODO("Not yet implemented")
-   }
-
-   override fun variantOf(dependencyProvider: Provider<MinimalExternalModuleDependency>,
-                          variantSpec: Action<in ExternalModuleDependencyVariantSpec>)
-   : Provider<MinimalExternalModuleDependency>
    {
       TODO("Not yet implemented")
    }
@@ -193,15 +158,15 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    {
       return dynamicMethods
    }
-   
+
    private inner class DynamicMethods : MethodAccess
    {
-      override fun hasMethod(name: String, vararg arguments: Any): Boolean
+      override fun hasMethod(name: String, vararg arguments: Any?): Boolean
       {
          return arguments.isNotEmpty() && projectToConfigure.configurations.findByName(name) != null
       }
-      
-      override fun tryInvokeMethod(name: String, vararg arguments: Any): DynamicInvokeResult
+
+      override fun tryInvokeMethod(name: String, vararg arguments: Any?): DynamicInvokeResult
       {
          if (arguments.isEmpty())
          {
@@ -211,17 +176,17 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
          val normalizedArgs = listOf(*arguments)
          if (normalizedArgs.size == 2 && normalizedArgs[1] is Closure<*>)
          {
-            return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0], normalizedArgs[1] as Closure<Any>))
+            return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0] as String, normalizedArgs[1] as Closure<Any>))
          }
          else if (normalizedArgs.size == 1)
          {
-            return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0]))
+            return DynamicInvokeResult.found(filterAndAddDependency(configuration.name, normalizedArgs[0] as String))
          }
          else
          {
             for (arg in normalizedArgs)
             {
-               dependencies.add(configuration.name, arg) // we don't know how to filter, let Gradle handle
+               dependencies.add(configuration.name, arg as String) // we don't know how to filter, let Gradle handle
             }
             return DynamicInvokeResult.found()
          }

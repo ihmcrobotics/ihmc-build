@@ -4,10 +4,11 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.kotlin.dsl.getByType
 import us.ihmc.build.IHMCBuildLogTools
 import java.io.File
 import java.time.Duration
@@ -172,7 +173,7 @@ class IHMCCIPlugin : Plugin<Project>
                   test.systemProperties["junit.jupiter.execution.parallel.config.fixed.parallelism"] = categoryConfig.junit5ParallelFixedParallelism
                }
 
-               val java = project.convention.getPlugin(JavaPluginConvention::class.java)
+               val java = project.extensions.getByType(JavaPluginExtension::class)
                val resourcesDir = java.sourceSets.getByName("main").output.resourcesDir
                LogTools.info("Passing to JVM: -Dresource.dir=$resourcesDir")
                test.systemProperties["resource.dir"] = resourcesDir
@@ -314,7 +315,7 @@ class IHMCCIPlugin : Plugin<Project>
       return categoryConfig
    }
 
-   fun addPhonyTestXmlTask(anyproject: Project): Task?
+   fun addPhonyTestXmlTask(anyproject: Project): Task
    {
       return anyproject.tasks.create("addPhonyTestXml") {
          this.doLast {
@@ -376,7 +377,7 @@ class IHMCCIPlugin : Plugin<Project>
    fun loadProperties()
    {
       project.properties["cpuThreads"].run { if (this != null) cpuThreads = (this as String).toInt() }
-      project.properties["category"].run { if (this != null) category = (this as String).trim().toLowerCase() }
+      project.properties["category"].run { if (this != null) category = (this as String).trim().lowercase() }
       project.properties["minHeapSizeGB"].run { if (this != null) minHeapSizeGBOverride = (this as String).toInt() }
       project.properties["maxHeapSizeGB"].run { if (this != null) maxHeapSizeGBOverride = (this as String).toInt() }
       project.properties["forkEvery"].run { if (this != null) forkEveryOverride = (this as String).toInt() }
