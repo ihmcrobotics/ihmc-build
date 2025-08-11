@@ -1,6 +1,5 @@
 package us.ihmc.build
 
-import org.apache.commons.exec.OS
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -12,7 +11,7 @@ val gradleExe = getLocalGradlePath()
 
 private fun getLocalGradlePath(): String
 {
-   val process = Runtime.getRuntime().exec(if (OS.isFamilyWindows()) "where gradle" else "which gradle")
+   val process = Runtime.getRuntime().exec(if (System.getProperty("os.name").contains("Windows")) "where gradle" else "which gradle")
    val reader = BufferedReader(InputStreamReader(process.inputStream))
    val path = reader.readLine()
    println("Gradle path: $path")

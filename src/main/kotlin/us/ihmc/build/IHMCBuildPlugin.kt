@@ -1,7 +1,5 @@
 package us.ihmc.build
 
-import ca.cutterslade.gradle.analyze.AnalyzeDependenciesPlugin
-import com.dorongold.gradle.tasktree.TaskTreePlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
@@ -34,7 +32,6 @@ class IHMCBuildPlugin : Plugin<Project>
             pluginManager.apply(BasePlugin::class.java)
             pluginManager.apply(EclipsePlugin::class.java)
             pluginManager.apply(IdeaPlugin::class.java)
-            pluginManager.apply(TaskTreePlugin::class.java)
             pluginManager.apply(HelpTasksPlugin::class.java)
          }
       }
@@ -45,10 +42,8 @@ class IHMCBuildPlugin : Plugin<Project>
             pluginManager.apply(IvyPublishPlugin::class.java)
             pluginManager.apply(MavenPublishPlugin::class.java)
             pluginManager.apply(SigningPlugin::class.java)
-            pluginManager.apply(AnalyzeDependenciesPlugin::class.java)
             pluginManager.apply(EclipsePlugin::class.java)
             pluginManager.apply(IdeaPlugin::class.java)
-            pluginManager.apply(TaskTreePlugin::class.java)
             pluginManager.apply(HelpTasksPlugin::class.java)
          }
 
@@ -109,9 +104,6 @@ class IHMCBuildPlugin : Plugin<Project>
             dependsOn(allproject.tasks.getByPath("cleanBuildship"))
          }
       }
-
-      // setup graph dependencies task
-      IHMCDependencyGraphviz(project)
 
       // composite tasks name composite* instead of *All because, while they would work for single multi project builds too,
       // the normal tasks also call the subproject ones
