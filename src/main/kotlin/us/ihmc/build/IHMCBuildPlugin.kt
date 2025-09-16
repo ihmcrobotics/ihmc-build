@@ -47,15 +47,15 @@ class IHMCBuildPlugin : Plugin<Project>
             pluginManager.apply(HelpTasksPlugin::class.java)
          }
 
-         val ihmcBuildExtension = IHMCBuildExtension(project)
-         project.extensions.add("ihmc", ihmcBuildExtension)
-         project.extensions.add("mainDependencies", IHMCDependenciesExtension(project, "main", ihmcBuildExtension, project.dependencies))
+         val ihmc = IHMCBuildExtension(project)
+         project.extensions.add("ihmc", ihmc)
+         project.extensions.add("mainDependencies", IHMCDependenciesExtension(ihmc, project, project.dependencies))
          for (subproject in project.subprojects)
          {
             val sourceSetKebabCasedName = IHMCBuildTools.toSourceSetName(subproject)
             val sourceSetCamelCasedName = IHMCBuildTools.kebabToCamelCase(sourceSetKebabCasedName)
             project.extensions.add(sourceSetCamelCasedName + "Dependencies",
-                                   IHMCDependenciesExtension(project, sourceSetKebabCasedName, ihmcBuildExtension, project.dependencies))
+                                   IHMCDependenciesExtension(ihmc, subproject, subproject.dependencies))
          }
       }
 

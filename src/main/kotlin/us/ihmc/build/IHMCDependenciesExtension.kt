@@ -3,25 +3,12 @@ package us.ihmc.build
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.dsl.DependencyHandler
-import org.gradle.kotlin.dsl.extra
 
-open class IHMCDependenciesExtension(private val mainProject: Project,
-                                     private val sourceSetKebabCasedName: String,
-                                     private val ihmcBuildExtension: IHMCBuildExtension,
+open class IHMCDependenciesExtension(private val ihmcBuildExtension: IHMCBuildExtension,
+                                     private val project: Project,
                                      private val dependencies: DependencyHandler)
    : DependencyHandler by dependencies  // Allows us to override only the methods we need to
 {
-   private val kebabCasedName: String = IHMCBuildTools.kebabCasedNameCompatibility(mainProject.name, mainProject.extra)
-   private val projectToConfigure by lazy {
-      if (sourceSetKebabCasedName == "main")
-      {
-         mainProject
-      }
-      else
-      {
-         mainProject.project(":$kebabCasedName-$sourceSetKebabCasedName")
-      }
-   }
 
    override fun create(dependencyNotation: Any): Dependency
    {
@@ -43,7 +30,7 @@ open class IHMCDependenciesExtension(private val mainProject: Project,
    {
       val modifiedDependencyNotation = modifyDependency(dependencyNotation)
 
-      LogTools.debug("Adding dependency to " + projectToConfigure.name + ": $modifiedDependencyNotation")
+      LogTools.debug("Adding dependency to " + project.name + ": $modifiedDependencyNotation")
       
       if (configurationName != "api")
       {
