@@ -318,6 +318,17 @@ open class IHMCBuildExtension(val project: Project)
          project.project(project.name + "-" + sourceSetName)
    }
 
+   /** Replacement for the Gradle exec function. Pass in a new ProcessBuilder without calling start(). */
+   fun exec(processBuilder: ProcessBuilder)
+   {
+      val workingDir = processBuilder.directory() ?: File(System.getProperty("user.dir"))
+      val relativePath = workingDir.relativeTo(project.projectDir.parentFile)
+      project.logger.quiet("$relativePath $ ${processBuilder.command().joinToString(" ")}")
+      val process = processBuilder.start()
+      process.inputStream.bufferedReader().use { project.logger.quiet(it.readText()) }
+      process.waitFor()
+   }
+
    fun javaFXModule(moduleName: String, version: String): String
    {
       return "org.openjfx:javafx-$moduleName:$version:${javaFXOSIdentifier()}"
