@@ -318,7 +318,21 @@ open class IHMCBuildExtension(val project: Project)
          project.project(project.name + "-" + sourceSetName)
    }
 
-   /** Replacement for the Gradle exec function. Pass in a new ProcessBuilder without calling start(). */
+   /**
+    * Execute a command. Pass in a new ProcessBuilder without calling start().
+    * Replacement for the now removed Gradle exec function.
+    *
+    * Example usage:
+    * ```
+    * tasks.register("taskName")
+    * {
+    *    doLast {
+    *       ihmc.exec(ProcessBuilder("echo", ihmc.version))
+    *       ihmc.exec(ProcessBuilder("cmd", "arg1", "arg2").directory(project.layout.buildDirectory.asFile.get()))
+    *    }
+    * }
+    * ```
+    */
    fun exec(processBuilder: ProcessBuilder)
    {
       val workingDir = processBuilder.directory() ?: File(System.getProperty("user.dir"))
