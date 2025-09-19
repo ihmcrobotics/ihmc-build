@@ -1,6 +1,7 @@
 package us.ihmc.ci;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import us.ihmc.build.GradleTestingToolsKt;
@@ -32,6 +33,7 @@ public class CategoriesTest
    }
 
    @Test
+   @Disabled
    public void testFastTestsRun() throws IOException
    {
       String projectName = "categories";

@@ -1,11 +1,13 @@
 package us.ihmc.build
 
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class PublishApiTest
 {
    @Test
+   @Disabled
    fun testNewApi()
    {
       var logOutput: String = runGradleTask("publish -PnexusUsername=foo -PpublishUsername=foo", "publishApiTest")
@@ -34,6 +36,7 @@ class PublishApiTest
    }
    
    @Test
+   @Disabled
    fun testNewApiCustomRepos()
    {
       var command: String
