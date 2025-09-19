@@ -108,7 +108,7 @@ open class IHMCBuildExtension(val project: Project)
       declareMavenCentral()
 
       repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master") // TODO: remove
-      repository("https://raw.githubusercontent.com/ihmcrobotics/maven-artifacts-archive/main/") // TODO: remove
+      repository("https://robotlabfiles.ihmc.us/repository")
       repository("https://jitpack.io") // Used for kryonet and gdx-gltf
 
       setupJavaSourceSets()
