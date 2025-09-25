@@ -23,6 +23,8 @@ import org.gradle.kotlin.dsl.withType
 import org.gradle.plugins.signing.SigningExtension
 import java.io.File
 import java.io.FileInputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
 
 open class IHMCBuildExtension(val project: Project)
@@ -196,19 +198,30 @@ open class IHMCBuildExtension(val project: Project)
 
             if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "local"))
             {
-               declareMavenLocal()
+               declareMavenLocalPublish()
             }
-            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "robotlabfiles"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "robotlabfiles") && openSource)
             {
-               if (openSource)
-               {
-                  declareRobotLabFiles()
-               }
+               declareRobotLabFilesPublish()
+            }
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "mavencentral") && openSource)
+            {
+               declareMavenCentralPublish()
             }
 
             val java = extensions.getByType(JavaPluginExtension::class.java)
 
             declarePublication(name, java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME))
+         }
+      }
+
+      if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "mavencentral") && openSource)
+      {
+         project.afterEvaluate {
+            val publishTask = project.tasks.findByName("publish")
+            publishTask?.doLast {
+               callOSSRHStagingPortalAPI()
+            }
          }
       }
    }
@@ -466,21 +479,7 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   fun Project.declareCustomPublishUrl(keyword: String, publishUrl: IHMCPublishUrl)
-   {
-      val publishing = extensions.getByType(PublishingExtension::class.java)
-      publishing.repositories.maven {
-         name = IHMCBuildTools.kebabToPascalCase(keyword)
-         url = uri(publishUrl.url)
-         if (publishUrl.hasCredentials())
-         {
-            credentials.username = publishUrl.username
-            credentials.password = publishUrl.password
-         }
-      }
-   }
-
-   fun Project.declareRobotLabFiles() {
+   fun Project.declareRobotLabFilesPublish() {
       val publishing = extensions.getByType(PublishingExtension::class.java)
 
       publishing.repositories.maven {
@@ -496,8 +495,20 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
+   fun Project.declareMavenCentralPublish()
+   {
+      val publishing = extensions.getByType(PublishingExtension::class.java)
+      publishing.repositories.maven {
+         name = "ossrh-staging-api"
+         url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+         credentials {
+            username = publishUsername
+            password = publishPassword
+         }
+      }
+   }
 
-   fun Project.declareMavenLocal()
+   fun Project.declareMavenLocalPublish()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.mavenLocal()
@@ -631,6 +642,67 @@ open class IHMCBuildExtension(val project: Project)
                exclusions[key]!!.add(excludeRule)
             }
          }
+      }
+   }
+
+   private fun callOSSRHStagingPortalAPI()
+   {
+      LogTools.info("Uploading artifacts to Maven Central Publishing from OSSRH Staging Portal")
+
+      val url = URL("https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/us.ihmc")
+      val connection = url.openConnection() as HttpURLConnection
+
+      return try
+      {
+         val credentials = "$publishUsername:$publishPassword"
+         val credentialsEncoded = Base64.getEncoder().encodeToString(credentials.toByteArray())
+         connection.requestMethod = "POST"
+         connection.setRequestProperty("accept", "*/*")
+         connection.setRequestProperty(
+            "Authorization",
+            "Bearer $credentialsEncoded"
+         )
+         connection.doOutput = true
+         connection.outputStream.use { /* empty body */ }
+
+         if (connection.responseCode != 200)
+         {
+            val responseBody = try {
+               connection.inputStream.bufferedReader().use { it.readText() }
+            } catch (e: Exception) {
+               connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            }
+
+            project.gradle.buildFinished {
+               LogTools.error("")
+               LogTools.error("")
+               LogTools.error("")
+               LogTools.error("There was an error when trying to call the OSSRH Staging Portal API. Response code: ${connection.responseCode}. Response body: $responseBody")
+               LogTools.error("")
+               LogTools.error("")
+               LogTools.error("")
+            }
+         }
+         else
+         {
+            project.gradle.buildFinished {
+               LogTools.warn("")
+               LogTools.warn("")
+               LogTools.warn("")
+               LogTools.warn("You are not finished publishing! Please visit https://central.sonatype.com/publishing/deployments to publish the newly created deployment.")
+               LogTools.warn("")
+               LogTools.warn("")
+               LogTools.warn("")
+            }
+         }
+      }
+      catch (e: Exception)
+      {
+         e.printStackTrace()
+      }
+      finally
+      {
+         connection.disconnect()
       }
    }
 }
