@@ -7,6 +7,7 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.UnknownProjectException
 import org.gradle.api.artifacts.ExcludeRule
+import org.gradle.api.artifacts.repositories.PasswordCredentials
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
@@ -14,6 +15,9 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
+import org.gradle.authentication.http.BasicAuthentication
+import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.credentials
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.withType
 import org.gradle.plugins.signing.SigningExtension
@@ -41,7 +45,6 @@ open class IHMCBuildExtension(val project: Project)
    private val kebabCasedNameProperty: String
    private val publishUrlProperty: String
    private var compatibilityVersionProperty: String
-   private val customPublishUrls by lazy { hashMapOf<String, IHMCPublishUrl>() }
 
    private lateinit var publishVersion: String
 
@@ -107,7 +110,6 @@ open class IHMCBuildExtension(val project: Project)
       declareMavenLocal()
       declareMavenCentral()
 
-      repository("https://github.com/rosjava/rosjava_mvn_repo/raw/master") // TODO: remove
       repository("https://robotlabfiles.ihmc.us/repository")
       repository("https://jitpack.io") // Used for kryonet and gdx-gltf
 
@@ -196,25 +198,15 @@ open class IHMCBuildExtension(val project: Project)
 
             if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "local"))
             {
-               declareMavenLocal()
+               declareMavenLocalPublish()
             }
-            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcrelease")
-               || IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "ihmcvendor"))
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "robotlabfiles") && openSource)
             {
-               if (openSource)
-               {
-                  declareMavenCentral()
-               }
+               declareRobotLabFilesPublish()
             }
-            else if (customPublishUrls.contains(publishUrlProperty)) // addPublishUrl was called
+            else if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "mavencentral") && openSource)
             {
-               declareCustomPublishUrl(publishUrlProperty, customPublishUrls[publishUrlProperty]!!)
-            }
-            else // User passes new url in manually
-            {
-               LogTools.info("Declaring user publish repository: $publishUrlProperty")
-               val userPublishUrl = IHMCPublishUrl(publishUrlProperty, publishUsername, publishPassword)
-               declareCustomPublishUrl("User", userPublishUrl)
+               declareMavenCentralPublish()
             }
 
             val java = extensions.getByType(JavaPluginExtension::class.java)
@@ -223,7 +215,7 @@ open class IHMCBuildExtension(val project: Project)
          }
       }
 
-      if (openSource)
+      if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "mavencentral") && openSource)
       {
          project.afterEvaluate {
             val publishTask = project.tasks.findByName("publish")
@@ -232,16 +224,6 @@ open class IHMCBuildExtension(val project: Project)
             }
          }
       }
-   }
-
-   fun addPublishUrl(keyword: String, url: String)
-   {
-      customPublishUrls[keyword] = IHMCPublishUrl(url, "", setupPropertyWithDefault("publishPassword", ""))
-   }
-
-   fun addPublishUrl(keyword: String, url: String, username: String, password: String)
-   {
-      customPublishUrls[keyword] = IHMCPublishUrl(url, username, password)
    }
 
    fun setupJavaSourceSets()
@@ -497,21 +479,23 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   fun Project.declareCustomPublishUrl(keyword: String, publishUrl: IHMCPublishUrl)
-   {
+   fun Project.declareRobotLabFilesPublish() {
       val publishing = extensions.getByType(PublishingExtension::class.java)
+
       publishing.repositories.maven {
-         name = IHMCBuildTools.kebabToPascalCase(keyword)
-         url = uri(publishUrl.url)
-         if (publishUrl.hasCredentials())
-         {
-            credentials.username = publishUrl.username
-            credentials.password = publishUrl.password
+         name = "robotlabfiles"
+         url = uri("https://robotlabfiles.ihmc.us/repository/")
+         credentials(PasswordCredentials::class) {
+            username = publishUsername
+            password = publishPassword
+         }
+         authentication {
+            create("basic", BasicAuthentication::class)
          }
       }
    }
 
-   fun Project.declareMavenCentral()
+   fun Project.declareMavenCentralPublish()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.maven {
@@ -524,7 +508,7 @@ open class IHMCBuildExtension(val project: Project)
       }
    }
 
-   fun Project.declareMavenLocal()
+   fun Project.declareMavenLocalPublish()
    {
       val publishing = extensions.getByType(PublishingExtension::class.java)
       publishing.repositories.mavenLocal()
@@ -580,15 +564,19 @@ open class IHMCBuildExtension(val project: Project)
       java.withJavadocJar()
       java.withSourcesJar()
 
-      // sources and javadoc jar required for Sonatype Maven Central
       publication.artifact(tasks.withType<Jar>().getByName("jar"))
       publication.artifact(tasks.withType<Jar>().getByName("sourcesJar"))
-      publication.artifact(tasks.withType<Jar>().getByName("javadocJar"))
 
-      val signing = extensions.getByType(SigningExtension::class.java)
-      signing.useGpgCmd()
-      LogTools.info("Signing publication $name")
-      signing.sign(publication)
+      // javadoc jar and signatures are required for sonatype maven central
+      if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "mavencentral"))
+      {
+         publication.artifact(tasks.withType<Jar>().getByName("javadocJar"))
+
+         val signing = extensions.getByType(SigningExtension::class.java)
+         signing.useGpgCmd()
+         LogTools.info("Signing publication $name")
+         signing.sign(publication)
+      }
    }
 
    private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node,
@@ -675,8 +663,8 @@ open class IHMCBuildExtension(val project: Project)
          connection.requestMethod = "POST"
          connection.setRequestProperty("accept", "*/*")
          connection.setRequestProperty(
-               "Authorization",
-               "Bearer $credentialsEncoded"
+            "Authorization",
+            "Bearer $credentialsEncoded"
          )
          connection.doOutput = true
          connection.outputStream.use { /* empty body */ }
