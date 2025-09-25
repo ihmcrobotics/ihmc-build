@@ -564,15 +564,19 @@ open class IHMCBuildExtension(val project: Project)
       java.withJavadocJar()
       java.withSourcesJar()
 
-      // sources and javadoc jar required for Sonatype Maven Central
       publication.artifact(tasks.withType<Jar>().getByName("jar"))
       publication.artifact(tasks.withType<Jar>().getByName("sourcesJar"))
-      publication.artifact(tasks.withType<Jar>().getByName("javadocJar"))
 
-      val signing = extensions.getByType(SigningExtension::class.java)
-      signing.useGpgCmd()
-      LogTools.info("Signing publication $name")
-      signing.sign(publication)
+      // javadoc jar and signatures are required for sonatype maven central
+      if (IHMCBuildTools.publishUrlIsKeyword(publishUrlProperty, "mavencentral"))
+      {
+         publication.artifact(tasks.withType<Jar>().getByName("javadocJar"))
+
+         val signing = extensions.getByType(SigningExtension::class.java)
+         signing.useGpgCmd()
+         LogTools.info("Signing publication $name")
+         signing.sign(publication)
+      }
    }
 
    private fun Project.addPOMDependenciesForConfiguration(dependenciesNode: Node,
